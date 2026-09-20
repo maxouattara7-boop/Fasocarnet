@@ -21,6 +21,11 @@ allprojects {
         google()
         mavenCentral()
     }
+    tasks.whenTaskAdded { task ->
+        if (task.name.contains("AarMetadata")) {
+            task.enabled = false
+        }
+    }
 }
 
 task clean(type: Delete) {
