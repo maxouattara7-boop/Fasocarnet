@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FasoCarnet</string>
+    <string name="title_activity_main">FasoCarnet</string>
+    <string name="package_name">com.fasocarnet.app</string>
+    <string name="custom_url_scheme">com.fasocarnet.app</string>
+</resources>

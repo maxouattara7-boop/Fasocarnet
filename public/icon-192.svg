@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="192" height="192">
+  <defs>
+    <linearGradient id="pwaBg192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="50%" stop-color="#047857" />
+      <stop offset="100%" stop-color="#022c22" />
+    </linearGradient>
+    <linearGradient id="pwaGold192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="pwaRed192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#b91c1c" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="128" fill="url(#pwaBg192)" />
+
+  <rect x="70" y="80" width="60" height="352" rx="24" fill="#047857" />
+  <circle cx="100" cy="140" r="14" fill="url(#pwaGold192)" />
+  <circle cx="100" cy="256" r="14" fill="url(#pwaGold192)" />
+  <circle cx="100" cy="372" r="14" fill="url(#pwaGold192)" />
+
+  <rect x="140" y="80" width="302" height="352" rx="32" fill="#ffffff" />
+  <rect x="180" y="140" width="220" height="18" rx="9" fill="#f3f4f6" />
+  <rect x="180" y="180" width="160" height="18" rx="9" fill="#f3f4f6" />
+  <rect x="180" y="220" width="190" height="18" rx="9" fill="#f3f4f6" />
+
+  <circle cx="310" cy="310" r="88" fill="url(#pwaGold192)" />
+  <path d="M275 310l25 25 50-50" fill="none" stroke="#ffffff" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" />
+
+  <g transform="translate(370, 70) scale(1.4)">
+    <path d="M20 0l6 13 14 2-10 10 2 14-12-6-12 6 2-14-10-10 14-2z" fill="url(#pwaRed192)" />
+  </g>
+</svg>

@@ -1,0 +1,365 @@
+{
+  "default_shop": {
+    "profile": {
+      "id": "default_shop",
+      "name": "LA VRAIE SAPE",
+      "ownerName": "Maxime",
+      "phone": "65616134",
+      "currency": "FCFA",
+      "createdAt": "2026-09-17T23:33:59.013Z",
+      "updatedAt": "2026-09-18T18:46:47.460Z",
+      "orangeMoneyNumber": "65616134",
+      "isConfigured": true,
+      "pinCode": "1230",
+      "subscriptionPlan": "annual",
+      "subscriptionStatus": "active",
+      "subscriptionExpiresAt": "2027-09-18T18:46:47.452Z",
+      "licenseKey": "FASO-PRO-1AN-2026",
+      "telemetry": {
+        "deviceId": "dev_1789915057948_hdlvh0n",
+        "platform": "desktop",
+        "appVersion": "1.2.0",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+        "installedAt": "2026-09-20T14:37:37.949Z",
+        "lastActiveAt": "2026-09-20T16:18:26.489Z",
+        "operator": "ORANGE"
+      }
+    },
+    "products": [],
+    "customers": [
+      {
+        "id": "cust_1789688463907_ebhib",
+        "name": "Ali",
+        "phone": "65616134",
+        "totalDebt": 5448,
+        "createdAt": "2026-09-17T23:41:03.907Z",
+        "updatedAt": "2026-09-18T00:45:36.490Z"
+      }
+    ],
+    "debts": [
+      {
+        "id": "debt_1789688463922_fz1oe",
+        "customerId": "cust_1789688463907_ebhib",
+        "customerName": "Ali",
+        "customerPhone": "65616134",
+        "saleId": "sale_1789688463920_1k3f1",
+        "initialAmount": 548965,
+        "remainingAmount": 0,
+        "status": "PAID",
+        "createdAt": "2026-09-17T23:41:03.922Z",
+        "updatedAt": "2026-09-18T00:42:13.037Z"
+      },
+      {
+        "id": "debt_1789692336488_flxau",
+        "customerId": "cust_1789688463907_ebhib",
+        "customerName": "Ali",
+        "customerPhone": "65616134",
+        "saleId": "sale_1789692336475_uvorv",
+        "initialAmount": 5448,
+        "remainingAmount": 5448,
+        "status": "PENDING",
+        "createdAt": "2026-09-18T00:45:36.488Z",
+        "updatedAt": "2026-09-18T00:45:36.488Z"
+      }
+    ],
+    "debtPayments": [
+      {
+        "id": "pay_1789692133037_c2kgu",
+        "debtId": "debt_1789688463922_fz1oe",
+        "customerId": "cust_1789688463907_ebhib",
+        "amount": 548965,
+        "paymentMethod": "ORANGE_MONEY",
+        "createdAt": "2026-09-18T00:42:13.037Z"
+      }
+    ],
+    "sales": [
+      {
+        "id": "sale_1789688251685_immse",
+        "totalAmount": 5807,
+        "paymentMethod": "CASH",
+        "isCredit": false,
+        "receivedAmount": 5807,
+        "changeAmount": 0,
+        "createdAt": "2026-09-17T23:37:31.687Z"
+      },
+      {
+        "id": "sale_1789688316252_ackf7",
+        "totalAmount": 2549,
+        "paymentMethod": "ORANGE_MONEY",
+        "isCredit": false,
+        "receivedAmount": 2549,
+        "changeAmount": 0,
+        "createdAt": "2026-09-17T23:38:36.252Z"
+      },
+      {
+        "id": "sale_1789688463920_1k3f1",
+        "totalAmount": 548965,
+        "paymentMethod": "CREDIT",
+        "isCredit": true,
+        "customerId": "cust_1789688463907_ebhib",
+        "customerName": "Ali",
+        "receivedAmount": 548965,
+        "changeAmount": 0,
+        "notes": "chemise",
+        "createdAt": "2026-09-17T23:41:03.920Z"
+      },
+      {
+        "id": "sale_1789692336475_uvorv",
+        "totalAmount": 5448,
+        "paymentMethod": "CREDIT",
+        "isCredit": true,
+        "customerId": "cust_1789688463907_ebhib",
+        "customerName": "Ali",
+        "receivedAmount": 5448,
+        "changeAmount": 0,
+        "createdAt": "2026-09-18T00:45:36.475Z"
+      },
+      {
+        "id": "sale_1789692376027_4r628",
+        "totalAmount": 4562,
+        "paymentMethod": "CASH",
+        "isCredit": false,
+        "receivedAmount": 4562,
+        "changeAmount": 0,
+        "createdAt": "2026-09-18T00:46:16.027Z"
+      }
+    ],
+    "licenses": [
+      {
+        "id": "lic_1789759320672_0_rh29",
+        "code": "FASO-1M-0FH7-WPKQ",
+        "plan": "monthly",
+        "durationDays": 30,
+        "price": 2000,
+        "isUsed": false,
+        "createdAt": "2026-09-18T19:22:00.672Z"
+      },
+      {
+        "id": "lic_1789759331311_0_umkw",
+        "code": "FASO-1M-NGMC-NO4P",
+        "plan": "monthly",
+        "durationDays": 30,
+        "price": 2000,
+        "isUsed": false,
+        "createdAt": "2026-09-18T19:22:11.311Z"
+      },
+      {
+        "id": "lic_1789759331325_1_3i5u",
+        "code": "FASO-1M-S0TY-RK13",
+        "plan": "monthly",
+        "durationDays": 30,
+        "price": 2000,
+        "isUsed": false,
+        "createdAt": "2026-09-18T19:22:11.325Z"
+      },
+      {
+        "id": "lic_1789759331328_2_km3k",
+        "code": "FASO-1M-ALBH-ST9H",
+        "plan": "monthly",
+        "durationDays": 30,
+        "price": 2000,
+        "isUsed": false,
+        "createdAt": "2026-09-18T19:22:11.329Z"
+      },
+      {
+        "id": "lic_1789759331330_3_8lrq",
+        "code": "FASO-1M-30HW-X3B7",
+        "plan": "monthly",
+        "durationDays": 30,
+        "price": 2000,
+        "isUsed": false,
+        "createdAt": "2026-09-18T19:22:11.330Z"
+      }
+    ],
+    "telemetry": {
+      "deviceId": "dev_1789915057948_hdlvh0n",
+      "platform": "desktop",
+      "appVersion": "1.2.0",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+      "installedAt": "2026-09-20T14:37:37.949Z",
+      "lastActiveAt": "2026-09-20T16:18:26.489Z",
+      "operator": "ORANGE"
+    },
+    "lastUpdatedAt": "2026-09-20T16:18:26.500Z"
+  },
+  "shop_1789858177828_i5gi2": {
+    "profile": {
+      "id": "shop_1789858177828_i5gi2",
+      "name": "La vraie sap",
+      "phone": "65616134",
+      "city": "Ouagadougou",
+      "currency": "FCFA",
+      "isConfigured": true,
+      "orangeMoneyNumber": "65616134",
+      "pinCode": "1230",
+      "subscriptionPlan": "monthly",
+      "subscriptionStatus": "active",
+      "subscriptionExpiresAt": "2027-01-17T22:49:37.828Z",
+      "createdAt": "2026-09-19T22:49:37.836Z",
+      "updatedAt": "2026-09-19T23:22:58.285Z"
+    },
+    "products": [],
+    "customers": [],
+    "debts": [],
+    "debtPayments": [],
+    "sales": [],
+    "licenses": [],
+    "lastUpdatedAt": "2026-09-19T23:28:11.925Z"
+  },
+  "shop_1789858782140_abje8": {
+    "profile": {
+      "id": "shop_1789858782140_abje8",
+      "name": "72990310",
+      "ownerName": "",
+      "phone": "72990310",
+      "city": "Ouagadougou",
+      "currency": "FCFA",
+      "isConfigured": true,
+      "orangeMoneyNumber": "65616134",
+      "moovMoneyNumber": "72990310",
+      "pinCode": "1230",
+      "subscriptionPlan": "monthly",
+      "subscriptionStatus": "active",
+      "subscriptionExpiresAt": "2026-10-29T22:59:42.140Z",
+      "createdAt": "2026-09-19T22:59:42.141Z",
+      "updatedAt": "2026-09-19T23:11:33.360Z",
+      "licenseKey": "FASO-1M-U0PH-3NAW",
+      "telemetry": {
+        "deviceId": "dev_1789915057948_hdlvh0n",
+        "platform": "desktop",
+        "appVersion": "1.2.0",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+        "installedAt": "2026-09-20T14:37:37.949Z",
+        "lastActiveAt": "2026-09-20T16:40:53.253Z",
+        "city": "Ouagadougou",
+        "operator": "MOOV"
+      }
+    },
+    "products": [],
+    "customers": [
+      {
+        "id": "cust_1789865239983_tl5k7",
+        "name": "Ali",
+        "phone": "6000000",
+        "totalDebt": 6980,
+        "createdAt": "2026-09-20T00:47:19.983Z",
+        "updatedAt": "2026-09-20T00:47:20.247Z"
+      }
+    ],
+    "debts": [
+      {
+        "id": "debt_1789865240151_c9vc3",
+        "customerId": "cust_1789865239983_tl5k7",
+        "customerName": "Ali",
+        "customerPhone": "6000000",
+        "saleId": "sale_1789865240046_iic6x",
+        "initialAmount": 6980,
+        "remainingAmount": 6980,
+        "status": "PENDING",
+        "createdAt": "2026-09-20T00:47:20.168Z",
+        "updatedAt": "2026-09-20T00:47:20.168Z"
+      }
+    ],
+    "debtPayments": [],
+    "sales": [
+      {
+        "id": "sale_1789865067985_lifz6",
+        "totalAmount": 5000,
+        "paymentMethod": "CASH",
+        "isCredit": false,
+        "receivedAmount": 5000,
+        "changeAmount": 0,
+        "createdAt": "2026-09-20T00:44:27.985Z"
+      },
+      {
+        "id": "sale_1789865138859_wu55u",
+        "totalAmount": 9800,
+        "paymentMethod": "CASH",
+        "isCredit": false,
+        "receivedAmount": 9800,
+        "changeAmount": 0,
+        "createdAt": "2026-09-20T00:45:38.859Z"
+      },
+      {
+        "id": "sale_1789865151799_10qsb",
+        "totalAmount": 5000,
+        "paymentMethod": "CASH",
+        "isCredit": false,
+        "receivedAmount": 5000,
+        "changeAmount": 0,
+        "createdAt": "2026-09-20T00:45:51.799Z"
+      },
+      {
+        "id": "sale_1789865165358_mo8v3",
+        "totalAmount": 14000,
+        "paymentMethod": "CASH",
+        "isCredit": false,
+        "receivedAmount": 14000,
+        "changeAmount": 0,
+        "createdAt": "2026-09-20T00:46:05.358Z"
+      },
+      {
+        "id": "sale_1789865176835_kqn3p",
+        "totalAmount": 300002,
+        "paymentMethod": "CASH",
+        "isCredit": false,
+        "receivedAmount": 300002,
+        "changeAmount": 0,
+        "createdAt": "2026-09-20T00:46:16.835Z"
+      },
+      {
+        "id": "sale_1789865240046_iic6x",
+        "totalAmount": 6980,
+        "paymentMethod": "CREDIT",
+        "isCredit": true,
+        "customerId": "cust_1789865239983_tl5k7",
+        "customerName": "Ali",
+        "receivedAmount": 6980,
+        "changeAmount": 0,
+        "createdAt": "2026-09-20T00:47:20.046Z"
+      }
+    ],
+    "licenses": [],
+    "telemetry": {
+      "deviceId": "dev_1789915057948_hdlvh0n",
+      "platform": "desktop",
+      "appVersion": "1.2.0",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36",
+      "installedAt": "2026-09-20T14:37:37.949Z",
+      "lastActiveAt": "2026-09-20T16:40:53.253Z",
+      "city": "Ouagadougou",
+      "operator": "MOOV"
+    },
+    "lastUpdatedAt": "2026-09-20T16:40:53.266Z"
+  },
+  "_admin_vault": {
+    "sales": [],
+    "customers": [],
+    "products": [],
+    "debts": [],
+    "debtPayments": [],
+    "licenses": [
+      {
+        "id": "lic_1789859372655_5o0wg",
+        "code": "FASO-1M-8OMU-5M4L",
+        "plan": "monthly",
+        "durationDays": 30,
+        "price": 2000,
+        "isUsed": false,
+        "createdAt": "2026-09-19T23:09:32.655Z"
+      }
+    ],
+    "lastUpdatedAt": "2026-09-19T23:32:07.141Z"
+  },
+  "_admin_broadcast": {
+    "broadcast": {
+      "id": "bc_1789860890726",
+      "title": "Promo annuelle",
+      "message": "Promo de 50% sur les forfaits de 6 mois pour cette fin d'années. Bénéficiez de 6 mois d'abonnement à 5000 au lieu de 12000.",
+      "type": "promo",
+      "isActive": true,
+      "createdAt": "2026-09-19T23:34:50.726Z"
+    },
+    "lastUpdatedAt": "2026-09-19T23:34:50.779Z"
+  }
+}

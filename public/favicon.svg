@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="favBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#022c22" />
+    </linearGradient>
+    <linearGradient id="favGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+  </defs>
+
+  <!-- Fond carré arrondi premium -->
+  <rect width="64" height="64" rx="16" fill="url(#favBg)" />
+
+  <!-- Reliure de carnet à gauche -->
+  <rect x="8" y="10" width="8" height="44" rx="3" fill="#047857" />
+  <circle cx="12" cy="18" r="2" fill="url(#favGold)" />
+  <circle cx="12" cy="32" r="2" fill="url(#favGold)" />
+  <circle cx="12" cy="46" r="2" fill="url(#favGold)" />
+
+  <!-- Page du carnet -->
+  <rect x="18" y="10" width="38" height="44" rx="4" fill="#ffffff" />
+  
+  <!-- Lignes du carnet -->
+  <line x1="24" y1="20" x2="50" y2="20" stroke="#e5e7eb" stroke-width="2.5" stroke-linecap="round" />
+  <line x1="24" y1="28" x2="42" y2="28" stroke="#e5e7eb" stroke-width="2.5" stroke-linecap="round" />
+  
+  <!-- Badge Coche de Validation Dorée -->
+  <circle cx="38" cy="38" r="12" fill="url(#favGold)" />
+  <path d="M33 38l3.5 3.5 7-7" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Petite étoile Faso en haut à droite -->
+  <path d="M48 12l1.2 2.5 2.8.4-2 2 .5 2.8-2.5-1.3-2.5 1.3.5-2.8-2-2 2.8-.4z" fill="#ef4444" />
+</svg>

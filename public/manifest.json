@@ -1,0 +1,21 @@
+{
+  "short_name": "FasoCarnet",
+  "name": "FasoCarnet - Caisse & Dettes Commerçants",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#047857",
+  "theme_color": "#047857",
+  "display": "standalone",
+  "orientation": "portrait"
+}

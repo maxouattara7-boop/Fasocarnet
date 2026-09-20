@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    touch-action: manipulation;
+    font-family: "Plus Jakarta Sans", "Inter", system-ui, -apple-system, sans-serif;
+  }
+
+  /* Form Elements Ergonomics & Focus States */
+  input[type="text"],
+  input[type="tel"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  select,
+  textarea {
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #94a3b8;
+    font-weight: 500;
+  }
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Dark Mode Scrollbars for Admin & Dark Modals */
+.dark-scroll::-webkit-scrollbar-thumb,
+.bg-slate-900::-webkit-scrollbar-thumb,
+.bg-slate-950::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+.dark-scroll::-webkit-scrollbar-thumb:hover,
+.bg-slate-900::-webkit-scrollbar-thumb:hover,
+.bg-slate-950::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Safe Area Insets for Mobile Devices */
+.safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.safe-top {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+
+/* Smooth Interactive Click Feedback */
+button:active:not(:disabled),
+.clickable:active {
+  transform: scale(0.98);
+}
+
+/* Continuous Marquee Ticker for Mobile & Tablets */
+@keyframes marquee-ticker {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee-ticker {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marquee-ticker 25s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-ticker:hover,
+.animate-marquee-ticker:active,
+.group:hover .animate-marquee-ticker,
+.group:active .animate-marquee-ticker {
+  animation-play-state: paused;
+}
+
+
