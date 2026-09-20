@@ -37,9 +37,14 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
-          echo "=== Contenu du dossier outputs/apk ==="
-          find app/build/outputs/apk/ -type f || true
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee ../build_log.txt
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-txt
+          path: build_log.txt
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
