@@ -28,6 +28,9 @@ export const App: React.FC = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   useEffect(() => {
+    // Confirmer le bon démarrage pour le système de Live Update (anti-rollback)
+    updateService.notifyAppReady();
+
     // Rétablir automatiquement tout compte précédemment suspendu
     adminService.restoreAllSuspendedShops().catch(() => {});
     loadCurrentShop();
@@ -41,6 +44,9 @@ export const App: React.FC = () => {
         }
       }
     });
+
+    // En tâche de fond silencieuse : télécharger les nouveautés si disponibles
+    updateService.performBackgroundLiveUpdate();
   }, [loadCurrentShop]);
 
   useEffect(() => {

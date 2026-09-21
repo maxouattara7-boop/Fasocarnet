@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && node scripts/build-bundle.cjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -15,6 +15,7 @@
     "@capacitor/cli": "^8.5.2",
     "@capacitor/core": "^8.5.2",
     "@capacitor/haptics": "^8.0.2",
+    "@capgo/capacitor-updater": "^8.51.20",
     "@supabase/supabase-js": "^2.116.0",
     "clsx": "^2.1.1",
     "dexie": "^4.0.11",
@@ -29,10 +30,12 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
+    "@types/adm-zip": "^0.5.8",
     "@types/node": "^22.13.9",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
+    "adm-zip": "^0.6.1",
     "autoprefixer": "^10.4.20",
     "fake-indexeddb": "^6.0.0",
     "jsdom": "^26.0.0",

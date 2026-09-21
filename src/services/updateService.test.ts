@@ -60,4 +60,9 @@ describe('updateService', () => {
     expect(updateService.isDismissed('1.3.0')).toBe(true);
     expect(updateService.isDismissed('1.4.0')).toBe(false);
   });
+
+  it('handles live update execution safely on web / non-native environment', async () => {
+    const res = await updateService.applyLiveUpdate('https://example.com/dist.zip', '1.3.0');
+    expect(res.success).toBe(false);
+  });
 });

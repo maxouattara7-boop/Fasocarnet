@@ -2,8 +2,9 @@
   "version": "1.2.2",
   "versionCode": 6,
   "releaseDate": "2026-09-21",
-  "title": "Mise à jour FasoCarnet v1.2.2",
-  "releaseNotes": "Harmonisation des polices, section Bilan avec regroupement CASH déroulant, formulaires optimisés et système de mise à jour automatique.",
+  "title": "Scanner Code-Barres & Mises à Jour Automatiques",
+  "releaseNotes": "Scanner code-barres caméra et douchette laser pour encaissement instantané, et système de mise à jour à chaud (Live Update) sans réinstallation d'APK.",
+  "bundleUrl": "https://fasocarnet.onrender.com/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false
 }
