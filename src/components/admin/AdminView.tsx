@@ -385,35 +385,37 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   return (
     <div className="fixed inset-0 z-50 bg-slate-950 text-slate-100 overflow-y-auto flex flex-col">
       {/* Header Admin */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-9 h-9 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-inner">
-            <Crown className="w-5 h-5" />
+      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2">
+        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-inner shrink-0">
+            <Crown className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <h1 className="text-sm font-black text-white leading-tight font-display">FasoCarnet Admin Master</h1>
-            <span className="text-[10px] text-emerald-400 font-bold tracking-wider uppercase font-display">
+          <div className="min-w-0">
+            <h1 className="text-xs sm:text-base font-black text-white leading-tight font-display truncate">
+              FasoCarnet Admin Master
+            </h1>
+            <span className="text-[9px] sm:text-[11px] text-emerald-400 font-bold tracking-wider uppercase font-display block truncate">
               Super-Administrateur • Contrôle Total
             </span>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
           <button
             type="button"
             onClick={loadData}
             disabled={isRefreshing}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-emerald-400 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1.5 transition-all disabled:opacity-50"
+            className="px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-emerald-400 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1 sm:space-x-1.5 transition-all disabled:opacity-50 cursor-pointer"
             title="Synchroniser toutes les boutiques du réseau"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{isRefreshing ? 'Actualisation...' : 'Actualiser'}</span>
+            <span className="hidden xs:inline sm:inline">{isRefreshing ? 'Actualisation...' : 'Actualiser'}</span>
           </button>
 
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1.5 transition-all"
+            className="px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1 sm:space-x-1.5 transition-all cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Quitter Admin</span>
@@ -422,84 +424,84 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
       </header>
 
       {/* Navigation tabs */}
-      <div className="max-w-5xl w-full mx-auto p-4 space-y-4 flex-1">
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 bg-slate-900 p-1.5 rounded-2xl border border-slate-800">
+      <div className="max-w-6xl w-full mx-auto p-3 sm:p-5 md:p-6 space-y-4 flex-1 pb-16">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-1 sm:gap-2 bg-slate-900/90 backdrop-blur p-1 sm:p-1.5 rounded-2xl border border-slate-800 shadow-lg">
           <button
             type="button"
             onClick={() => setActiveTab('shops')}
-            className={`py-2 px-1 rounded-xl text-[11px] font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all ${
+            className={`py-2 px-1 sm:px-2 rounded-xl text-[10px] sm:text-xs font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all cursor-pointer ${
               activeTab === 'shops'
                 ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
-            <Store className="w-4 h-4" />
-            <span>Boutiques ({shops.length})</span>
+            <Store className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">Boutiques ({shops.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('analytics')}
-            className={`py-2 px-1 rounded-xl text-[11px] font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all ${
+            className={`py-2 px-1 sm:px-2 rounded-xl text-[10px] sm:text-xs font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all cursor-pointer ${
               activeTab === 'analytics'
                 ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
-            <BarChart3 className="w-4 h-4 text-emerald-300" />
-            <span>Analytics</span>
+            <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-300 shrink-0" />
+            <span className="truncate">Analytics</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('licenses')}
-            className={`py-2 px-1 rounded-xl text-[11px] font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all ${
+            className={`py-2 px-1 sm:px-2 rounded-xl text-[10px] sm:text-xs font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all cursor-pointer ${
               activeTab === 'licenses'
                 ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
-            <Key className="w-4 h-4" />
-            <span>Licences ({licenses.length})</span>
+            <Key className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">Licences ({licenses.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('broadcast')}
-            className={`py-2 px-1 rounded-xl text-[11px] font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all ${
+            className={`py-2 px-1 sm:px-2 rounded-xl text-[10px] sm:text-xs font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all cursor-pointer ${
               activeTab === 'broadcast'
                 ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
-            <Megaphone className={`w-4 h-4 ${broadcast?.isActive ? 'text-amber-400 animate-pulse' : ''}`} />
-            <span>Annonces {broadcast?.isActive ? '•' : ''}</span>
+            <Megaphone className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${broadcast?.isActive ? 'text-amber-400 animate-pulse' : ''}`} />
+            <span className="truncate">Annonces {broadcast?.isActive ? '•' : ''}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('whatsapp')}
-            className={`py-2 px-1 rounded-xl text-[11px] font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all ${
+            className={`py-2 px-1 sm:px-2 rounded-xl text-[10px] sm:text-xs font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all cursor-pointer ${
               activeTab === 'whatsapp'
                 ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
-            <MessageCircle className="w-4 h-4 text-emerald-400" />
-            <span>Relances WhatsApp</span>
+            <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
+            <span className="truncate">Relances</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('security')}
-            className={`py-2 px-1 rounded-xl text-[11px] font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all ${
+            className={`py-2 px-1 sm:px-2 rounded-xl text-[10px] sm:text-xs font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all cursor-pointer ${
               activeTab === 'security'
                 ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
-            <Lock className="w-4 h-4" />
-            <span>Sécurité</span>
+            <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">Sécurité</span>
           </button>
         </div>
 
@@ -507,25 +509,25 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         {activeTab === 'shops' && (
           <div className="space-y-4 animate-in fade-in duration-150">
             {stats && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <div className="bg-slate-900 p-4 rounded-3xl border border-slate-800 space-y-1">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+                <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider font-display">Total Boutiques</span>
-                  <div className="text-2xl font-black text-white font-display">{stats.totalShops}</div>
+                  <div className="text-xl sm:text-2xl font-black text-white font-display">{stats.totalShops}</div>
                 </div>
 
-                <div className="bg-slate-900 p-4 rounded-3xl border border-slate-800 space-y-1">
+                <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
                   <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider font-display">Abonnements Actifs</span>
-                  <div className="text-2xl font-black text-emerald-400 font-display">{stats.activeShops}</div>
+                  <div className="text-xl sm:text-2xl font-black text-emerald-400 font-display">{stats.activeShops}</div>
                 </div>
 
-                <div className="bg-slate-900 p-4 rounded-3xl border border-slate-800 space-y-1">
+                <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
                   <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider font-display">En Essai (10j)</span>
-                  <div className="text-2xl font-black text-amber-400 font-display">{stats.trialShops}</div>
+                  <div className="text-xl sm:text-2xl font-black text-amber-400 font-display">{stats.trialShops}</div>
                 </div>
 
-                <div className="bg-slate-900 p-4 rounded-3xl border border-slate-800 space-y-1">
-                  <span className="text-[10px] font-black text-red-400 uppercase tracking-wider font-display">Expirées / À relancer</span>
-                  <div className="text-2xl font-black text-red-400 font-display">{stats.expiredShops}</div>
+                <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
+                  <span className="text-[10px] font-black text-red-400 uppercase tracking-wider font-display">Expirées / Relances</span>
+                  <div className="text-xl sm:text-2xl font-black text-red-400 font-display">{stats.expiredShops}</div>
                 </div>
               </div>
             )}
@@ -539,19 +541,19 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                   placeholder="Rechercher par boutique, nom, téléphone ou ville..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                 />
               </div>
 
-              <div className="flex space-x-1 bg-slate-900 p-1 rounded-2xl border border-slate-800 overflow-x-auto">
+              <div className="flex space-x-1 bg-slate-900 p-1 rounded-2xl border border-slate-800 overflow-x-auto no-scrollbar shrink-0">
                 {(['all', 'active', 'trial', 'expired', 'suspended'] as const).map((st) => (
                   <button
                     key={st}
                     type="button"
                     onClick={() => setFilterStatus(st)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold capitalize transition-all ${
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold capitalize transition-all whitespace-nowrap cursor-pointer ${
                       filterStatus === st
-                        ? 'bg-emerald-600 text-white'
+                        ? 'bg-emerald-600 text-white shadow-xs'
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
@@ -576,7 +578,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                   return (
                     <div
                       key={shop.id}
-                      className={`bg-slate-900 p-4 sm:p-5 rounded-3xl border transition-all space-y-3 ${
+                      className={`bg-slate-900 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all space-y-3 ${
                         shop.isSuspended
                           ? 'border-red-800/80 bg-red-950/20'
                           : shop.statusType === 'active'
@@ -586,12 +588,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                           : 'border-red-900/60 bg-red-950/10'
                       }`}
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <h3 className="font-black text-white text-base tracking-tight font-display">{shop.name}</h3>
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-black text-white text-sm sm:text-base tracking-tight font-display truncate">{shop.name}</h3>
                             <span
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider font-display ${
+                              className={`px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider font-display shrink-0 ${
                                 shop.isSuspended
                                   ? 'bg-red-600 text-white'
                                   : shop.statusType === 'active'
@@ -609,50 +611,52 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                             <span>📞 {shop.phone}</span>
                             {shop.ownerName && <span>👤 Patron : <strong className="text-slate-200">{shop.ownerName}</strong></span>}
                             {shop.city && <span>📍 <strong className="text-slate-300">{shop.city}</strong></span>}
-                            <span>⏳ Expire : <strong className="text-slate-200">{shop.formattedExpiresAt}</strong> ({shop.daysRemaining}j restants)</span>
+                            <span>⏳ Expire : <strong className="text-slate-200">{shop.formattedExpiresAt}</strong> ({shop.daysRemaining}j)</span>
                           </div>
                         </div>
 
-                        <div className="text-left sm:text-right bg-slate-800/60 p-2.5 rounded-2xl border border-slate-700/60">
-                          <span className="text-[10px] text-slate-400 uppercase font-black block font-display">Chiffre d'Affaires</span>
-                          <span className="text-sm font-black text-emerald-400 font-display">{formatCurrency(shop.totalSalesVolume)}</span>
-                          <span className="text-[10px] text-slate-400 block">{shop.salesCount} vente(s) • {shop.customersCount} client(s)</span>
+                        <div className="text-left lg:text-right bg-slate-800/60 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border border-slate-700/60 shrink-0 flex lg:block justify-between items-center">
+                          <div>
+                            <span className="text-[10px] text-slate-400 uppercase font-black block font-display">Chiffre d'Affaires</span>
+                            <span className="text-sm sm:text-base font-black text-emerald-400 font-display">{formatCurrency(shop.totalSalesVolume)}</span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 block lg:mt-0.5">{shop.salesCount} vente(s) • {shop.customersCount} client(s)</span>
                         </div>
                       </div>
 
                       {/* Actions Rapides */}
-                      <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="pt-2.5 border-t border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-2.5 text-xs">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase mr-1">Prolonger :</span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase mr-1 shrink-0">Prolonger :</span>
                           <button
                             type="button"
                             onClick={() => handleExtendShop(shop.id, 1)}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white text-[10px] font-bold rounded-lg border border-slate-700 transition-all font-display"
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white text-[10px] font-bold rounded-lg border border-slate-700 transition-all font-display cursor-pointer"
                           >
                             +1 Mois
                           </button>
                           <button
                             type="button"
                             onClick={() => handleExtendShop(shop.id, 6)}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white text-[10px] font-bold rounded-lg border border-slate-700 transition-all font-display"
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white text-[10px] font-bold rounded-lg border border-slate-700 transition-all font-display cursor-pointer"
                           >
                             +6 Mois
                           </button>
                           <button
                             type="button"
                             onClick={() => handleExtendShop(shop.id, 12)}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white text-[10px] font-bold rounded-lg border border-slate-700 transition-all font-display"
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white text-[10px] font-bold rounded-lg border border-slate-700 transition-all font-display cursor-pointer"
                           >
                             +1 An
                           </button>
                         </div>
 
-                        <div className="flex items-center space-x-2 ml-auto">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:space-x-2 w-full md:w-auto justify-between md:justify-end">
                           {/* Bouton Suspension / Déblocage */}
                           <button
                             type="button"
                             onClick={() => handleToggleSuspension(shop.id, shop.isSuspended)}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center space-x-1 transition-all ${
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center space-x-1 transition-all cursor-pointer ${
                               shop.isSuspended
                                 ? 'bg-amber-600 hover:bg-amber-500 text-white'
                                 : 'bg-slate-800 hover:bg-red-900/60 text-slate-300 hover:text-red-200 border border-slate-700'
@@ -667,7 +671,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                             href={waReminderUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded-lg flex items-center space-x-1 shadow-sm transition-all"
+                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded-lg flex items-center space-x-1 shadow-sm transition-all cursor-pointer"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
                             <span>Relancer WhatsApp</span>
@@ -676,7 +680,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                           <button
                             type="button"
                             onClick={() => handleDeleteShop(shop.id, shop.name)}
-                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-all"
+                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-all cursor-pointer"
                             title="Supprimer la boutique"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -695,15 +699,15 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         {activeTab === 'analytics' && analytics && (
           <div className="space-y-4 animate-in fade-in duration-150">
             {/* Header Analytics avec Export CSV */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 p-5 rounded-3xl border border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 shadow-sm">
               <div>
-                <h3 className="text-base font-black text-white font-display">Télémétrie Globale & Démographie</h3>
+                <h3 className="text-sm sm:text-base font-black text-white font-display">Télémétrie Globale & Démographie</h3>
                 <p className="text-xs text-slate-400 mt-0.5">Données d'utilisation en temps réel de tous les appareils connectés</p>
               </div>
               <button
                 type="button"
                 onClick={handleExportCsv}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/25 transition-all font-display"
+                className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/25 transition-all font-display cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 <span>Exporter Données (CSV / Excel)</span>
@@ -711,39 +715,39 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
             </div>
 
             {/* Cartes KPIs Réseau */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div className="bg-slate-900 p-4 rounded-3xl border border-slate-800 space-y-1">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+              <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider font-display">Appareils / Installs</span>
-                <div className="text-2xl font-black text-white font-display">{analytics.totalInstalls}</div>
+                <div className="text-xl sm:text-2xl font-black text-white font-display">{analytics.totalInstalls}</div>
                 <span className="text-[10px] text-emerald-400 font-bold block">{analytics.activeInstallsToday} actif(s) aujourd'hui</span>
               </div>
 
-              <div className="bg-slate-900 p-4 rounded-3xl border border-slate-800 space-y-1">
+              <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
                 <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider font-display">Volume Total Réseau</span>
-                <div className="text-xl font-black text-emerald-400 font-display truncate">{formatCurrency(analytics.totalNetworkSalesVolume)}</div>
+                <div className="text-base sm:text-xl font-black text-emerald-400 font-display truncate">{formatCurrency(analytics.totalNetworkSalesVolume)}</div>
                 <span className="text-[10px] text-slate-400 block">{analytics.totalNetworkSalesCount} transactions</span>
               </div>
 
-              <div className="bg-slate-900 p-4 rounded-3xl border border-slate-800 space-y-1">
+              <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
                 <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider font-display">Dettes en Circulation</span>
-                <div className="text-xl font-black text-amber-400 font-display truncate">{formatCurrency(analytics.totalNetworkDebtsVolume)}</div>
+                <div className="text-base sm:text-xl font-black text-amber-400 font-display truncate">{formatCurrency(analytics.totalNetworkDebtsVolume)}</div>
                 <span className="text-[10px] text-slate-400 block">{analytics.totalNetworkCustomersCount} clients au total</span>
               </div>
 
-              <div className="bg-slate-900 p-4 rounded-3xl border border-slate-800 space-y-1">
+              <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
                 <span className="text-[10px] font-black text-sky-400 uppercase tracking-wider font-display">Actifs (7 Derniers Jours)</span>
-                <div className="text-2xl font-black text-sky-400 font-display">{analytics.activeInstallsThisWeek}</div>
+                <div className="text-xl sm:text-2xl font-black text-sky-400 font-display">{analytics.activeInstallsThisWeek}</div>
                 <span className="text-[10px] text-slate-400 block">Sur {analytics.totalInstalls} terminaux</span>
               </div>
             </div>
 
             {/* Graphiques Répartition Opérateurs & Plateformes */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
               {/* Opérateurs Télécom & Mobile Money */}
-              <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-4">
+              <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
                 <div className="flex items-center space-x-2 text-white border-b border-slate-800 pb-3">
                   <Radio className="w-5 h-5 text-orange-400" />
-                  <h4 className="font-bold text-sm font-display">Répartition par Opérateur (Burkina Faso)</h4>
+                  <h4 className="font-bold text-xs sm:text-sm font-display">Répartition par Opérateur (Burkina Faso)</h4>
                 </div>
 
                 <div className="space-y-3 text-xs">
@@ -826,10 +830,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               </div>
 
               {/* Répartition par Plateforme OS */}
-              <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-4">
+              <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
                 <div className="flex items-center space-x-2 text-white border-b border-slate-800 pb-3">
                   <Smartphone className="w-5 h-5 text-emerald-400" />
-                  <h4 className="font-bold text-sm font-display">Plateformes & Appareils</h4>
+                  <h4 className="font-bold text-xs sm:text-sm font-display">Plateformes & Appareils</h4>
                 </div>
 
                 <div className="space-y-3 text-xs">
@@ -894,21 +898,21 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
             </div>
 
             {/* Villes & Provenance Démographique */}
-            <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-3">
+            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-3 shadow-sm">
               <div className="flex items-center space-x-2 text-white border-b border-slate-800 pb-3">
                 <MapPin className="w-5 h-5 text-amber-400" />
-                <h4 className="font-bold text-sm font-display">Provenance Géographique (Villes)</h4>
+                <h4 className="font-bold text-xs sm:text-sm font-display">Provenance Géographique (Villes)</h4>
               </div>
 
               {analytics.cityStats.length === 0 ? (
                 <p className="text-xs text-slate-500">Aucune ville renseignée pour le moment.</p>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-2.5 pt-1">
                   {analytics.cityStats.map((c) => (
-                    <div key={c.city} className="bg-slate-800/60 p-3 rounded-2xl border border-slate-700/60 flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-200">{c.city}</span>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black font-mono">
-                        {c.count} boutique(s)
+                    <div key={c.city} className="bg-slate-800/60 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border border-slate-700/60 flex items-center justify-between gap-1.5">
+                      <span className="text-xs font-bold text-slate-200 truncate">{c.city}</span>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black font-mono shrink-0">
+                        {c.count}
                       </span>
                     </div>
                   ))}
@@ -921,21 +925,21 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         {/* TAB 3 : GÉNÉRATEUR DE LICENCES */}
         {activeTab === 'licenses' && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            <form onSubmit={handleGenerateKeys} className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-4">
+            <form onSubmit={handleGenerateKeys} className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
               <div className="flex items-center space-x-2 text-emerald-400 border-b border-slate-800 pb-3">
                 <Sparkles className="w-5 h-5" />
-                <h3 className="font-bold text-sm text-white font-display">Générateur de Clés Prépayées</h3>
+                <h3 className="font-bold text-xs sm:text-sm text-white font-display">Générateur de Clés Prépayées</h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                 <div>
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
+                  <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
                     Formule / Durée
                   </label>
                   <select
                     value={genPlan}
                     onChange={(e: any) => setGenPlan(e.target.value)}
-                    className="w-full p-3 bg-slate-800 border border-slate-700 rounded-2xl text-xs font-bold text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-bold text-white outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
                   >
                     <option value="monthly">1 Mois (2 000 FCFA)</option>
                     <option value="semi-annual">6 Mois (10 000 FCFA)</option>
@@ -944,13 +948,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
+                  <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
                     Quantité de clés
                   </label>
                   <select
                     value={genCount}
                     onChange={(e) => setGenCount(parseInt(e.target.value) || 1)}
-                    className="w-full p-3 bg-slate-800 border border-slate-700 rounded-2xl text-xs font-bold text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-bold text-white outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
                   >
                     <option value={1}>1 Clé</option>
                     <option value={5}>5 Clés (Lot)</option>
@@ -960,7 +964,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
+                  <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
                     Note / Destinataire (Optionnel)
                   </label>
                   <input
@@ -968,7 +972,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                     placeholder="Ex: Paiement OM 70123456"
                     value={genNotes}
                     onChange={(e) => setGenNotes(e.target.value)}
-                    className="w-full p-3 bg-slate-800 border border-slate-700 rounded-2xl text-xs font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
@@ -976,19 +980,19 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               <button
                 type="submit"
                 disabled={isGenerating}
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-lg shadow-emerald-600/20 active:scale-98 transition-all flex items-center justify-center space-x-2 text-xs font-display"
+                className="w-full py-3 sm:py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl sm:rounded-2xl shadow-lg shadow-emerald-600/20 active:scale-98 transition-all flex items-center justify-center space-x-2 text-xs font-display cursor-pointer disabled:opacity-50"
               >
                 <Plus className="w-4 h-4" />
                 <span>{isGenerating ? 'Génération en cours...' : '⚡ Générer les Clés d\'Activation'}</span>
               </button>
             </form>
 
-            <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 className="font-bold text-sm text-white font-display">
+            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-3 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-800 pb-3">
+                <h3 className="font-bold text-xs sm:text-sm text-white font-display">
                   Clés Créées ({licenses.length})
                 </h3>
-                <span className="text-[11px] text-slate-400 font-medium">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium">
                   {licenses.filter(l => !l.isUsed).length} disponible(s) • {licenses.filter(l => l.isUsed).length} utilisée(s)
                 </span>
               </div>
@@ -1006,10 +1010,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                       <div key={lic.id} className="pt-2.5 pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                         <div className="space-y-0.5">
                           <div className="flex items-center space-x-2">
-                            <span className="font-mono font-black text-emerald-400 text-sm tracking-wider">
+                            <span className="font-mono font-black text-emerald-400 text-xs sm:text-sm tracking-wider">
                               {lic.code}
                             </span>
-                            <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase font-display ${
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase font-display ${
                               lic.isUsed 
                                 ? 'bg-slate-800 text-slate-400' 
                                 : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
@@ -1025,11 +1029,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                           </span>
                         </div>
 
-                        <div className="flex items-center space-x-1.5 self-end sm:self-center">
+                        <div className="flex items-center space-x-1.5 self-start sm:self-center">
                           <button
                             type="button"
                             onClick={() => handleCopyCode(lic.code)}
-                            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1 transition-all"
+                            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1 transition-all cursor-pointer"
                             title="Copier le code"
                           >
                             {copiedKey === lic.code ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -1040,7 +1044,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                             href={waShareUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center space-x-1 shadow-sm transition-all"
+                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center space-x-1 shadow-sm transition-all cursor-pointer"
                             title="Partager au client sur WhatsApp"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
@@ -1050,7 +1054,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                           <button
                             type="button"
                             onClick={() => handleDeleteLicense(lic.id)}
-                            className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-950/40 rounded-xl transition-all"
+                            className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-950/40 rounded-xl transition-all cursor-pointer"
                             title="Supprimer cette clé de licence"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1068,14 +1072,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         {/* TAB 4 : ANNONCES & BROADCAST */}
         {activeTab === 'broadcast' && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            <form onSubmit={handleSaveBroadcast} className="bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <form onSubmit={handleSaveBroadcast} className="bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                 <div className="flex items-center space-x-2 text-amber-400">
                   <Megaphone className="w-5 h-5" />
-                  <h3 className="font-bold text-sm text-white font-display">Diffusion de Message Broadcast aux Commerçants</h3>
+                  <h3 className="font-bold text-xs sm:text-sm text-white font-display">Diffusion de Message Broadcast aux Commerçants</h3>
                 </div>
                 {broadcast?.isActive && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase font-display border border-emerald-500/30">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[9px] sm:text-[10px] font-black uppercase font-display border border-emerald-500/30 self-start sm:self-auto">
                     En Ligne sur les Téléphones
                   </span>
                 )}
@@ -1083,7 +1087,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
+                  <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
                     Titre de l'Annonce *
                   </label>
                   <input
@@ -1092,15 +1096,15 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                     placeholder="Ex: 🚀 Mise à jour disponible / 🎁 Promo Annuelle"
                     value={broadcastTitle}
                     onChange={(e) => setBroadcastTitle(e.target.value)}
-                    className="w-full p-3 bg-slate-800 border border-slate-700 rounded-2xl text-xs font-bold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-bold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
+                  <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
                     Type d'Annonce & Style
                   </label>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
                       { id: 'info', label: 'ℹ️ Info', color: 'border-blue-500 bg-blue-500/20 text-blue-300' },
                       { id: 'promo', label: '🎁 Promo', color: 'border-emerald-500 bg-emerald-500/20 text-emerald-300' },
@@ -1111,8 +1115,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                         key={m.id}
                         type="button"
                         onClick={() => setBroadcastType(m.id as any)}
-                        className={`py-2 text-xs font-bold rounded-xl border-2 transition-all ${
-                          broadcastType === m.id ? m.color : 'border-slate-800 text-slate-400 bg-slate-800/40'
+                        className={`py-2 px-2 text-xs font-bold rounded-xl border-2 transition-all cursor-pointer ${
+                          broadcastType === m.id ? m.color : 'border-slate-800 text-slate-400 bg-slate-800/40 hover:text-white'
                         }`}
                       >
                         {m.label}
@@ -1122,7 +1126,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
+                  <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
                     Message Complet à Afficher *
                   </label>
                   <textarea
@@ -1131,20 +1135,20 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                     placeholder="Ex: Profitez dès aujourd'hui du forfait annuel à 20 000 FCFA avec assistance 24/7..."
                     value={broadcastMessage}
                     onChange={(e) => setBroadcastMessage(e.target.value)}
-                    className="w-full p-3 bg-slate-800 border border-slate-700 rounded-2xl text-xs font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-amber-500"
                   ></textarea>
                 </div>
               </div>
 
               {broadcastSuccess && (
                 <p className="text-xs text-emerald-400 font-semibold bg-emerald-950/40 p-3 rounded-2xl border border-emerald-800/50 flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span>{broadcastSuccess}</span>
                 </p>
               )}
 
               {/* Aperçu en direct */}
-              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1">
+              <div className="bg-slate-950 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-800 space-y-1">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-display">Aperçu pour le commerçant :</span>
                 <div className={`p-3 rounded-xl text-xs flex items-start space-x-2.5 ${
                   broadcastType === 'promo'
@@ -1163,12 +1167,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                 </div>
               </div>
 
-              <div className="flex space-x-2 pt-1">
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
                 {broadcast?.isActive && (
                   <button
                     type="button"
                     onClick={handleDisableBroadcast}
-                    className="w-1/3 py-3.5 bg-slate-800 hover:bg-red-950/60 text-slate-300 hover:text-red-300 font-bold rounded-2xl text-xs transition-all border border-slate-700"
+                    className="w-full sm:w-1/3 py-3 sm:py-3.5 bg-slate-800 hover:bg-red-950/60 text-slate-300 hover:text-red-300 font-bold rounded-xl sm:rounded-2xl text-xs transition-all border border-slate-700 cursor-pointer"
                   >
                     Désactiver l'Annonce
                   </button>
@@ -1176,7 +1180,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                 <button
                   type="submit"
                   disabled={isSavingBroadcast}
-                  className={`${broadcast?.isActive ? 'w-2/3' : 'w-full'} py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs shadow-lg shadow-amber-500/20 active:scale-98 transition-all flex items-center justify-center space-x-2 font-display`}
+                  className={`${broadcast?.isActive ? 'w-full sm:w-2/3' : 'w-full'} py-3 sm:py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl sm:rounded-2xl text-xs shadow-lg shadow-amber-500/20 active:scale-98 transition-all flex items-center justify-center space-x-2 font-display cursor-pointer disabled:opacity-50`}
                 >
                   <Send className="w-4 h-4" />
                   <span>{isSavingBroadcast ? 'Diffusion...' : 'Diffuser sur Tous les Téléphones'}</span>
@@ -1190,23 +1194,23 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         {activeTab === 'whatsapp' && (
           <div className="space-y-4 animate-in fade-in duration-150">
             {/* Header & Exportation Carnet / Numéros */}
-            <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-4">
+            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3.5">
                 <div className="flex items-center space-x-2.5 text-emerald-400">
-                  <div className="p-2 rounded-xl bg-emerald-950/60 border border-emerald-800/60">
+                  <div className="p-2 rounded-xl bg-emerald-950/60 border border-emerald-800/60 shrink-0">
                     <MessageCircle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-sm text-white font-display">Collecte & Campagnes WhatsApp</h3>
-                    <p className="text-[11px] text-slate-400">Relances ciblées, promotions et diffusion de masse sur les numéros commerçants</p>
+                    <h3 className="font-extrabold text-xs sm:text-sm text-white font-display">Collecte & Campagnes WhatsApp</h3>
+                    <p className="text-[10px] sm:text-[11px] text-slate-400">Relances ciblées, promotions et diffusion de masse sur les numéros commerçants</p>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={handleExportVCard}
-                    className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-md flex items-center space-x-1.5 transition-all cursor-pointer font-display"
+                    className="flex-1 sm:flex-initial px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display"
                     title="Télécharger tous les contacts dans un fichier .vcf pour l'importer sur votre smartphone"
                   >
                     <Download className="w-3.5 h-3.5" />
@@ -1216,7 +1220,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                   <button
                     type="button"
                     onClick={handleCopyAllPhones}
-                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 flex items-center space-x-1.5 transition-all cursor-pointer font-display"
+                    className="flex-1 sm:flex-initial px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display"
                     title="Copier tous les numéros au format international (+226...)"
                   >
                     <Copy className="w-3.5 h-3.5" />
@@ -1233,29 +1237,29 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               )}
 
               {/* Métriques rapides des contacts */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800/80">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5">
+                <div className="bg-slate-950 p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-800/80">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block font-display">Total Contacts</span>
-                  <div className="text-xl font-black text-white font-display">{shops.length} boutiques</div>
+                  <div className="text-lg sm:text-xl font-black text-white font-display">{shops.length} boutiques</div>
                 </div>
 
-                <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800/80">
+                <div className="bg-slate-950 p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-800/80">
                   <span className="text-[10px] font-black text-red-400 uppercase tracking-wider block font-display">À Relancer (Expirés)</span>
-                  <div className="text-xl font-black text-red-400 font-display">
+                  <div className="text-lg sm:text-xl font-black text-red-400 font-display">
                     {shops.filter(s => s.daysRemaining <= 0 || s.statusType === 'expired').length}
                   </div>
                 </div>
 
-                <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800/80">
-                  <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider block font-display">En Période d'Essai</span>
-                  <div className="text-xl font-black text-amber-400 font-display">
+                <div className="bg-slate-950 p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-800/80">
+                  <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider block font-display">En Essai</span>
+                  <div className="text-lg sm:text-xl font-black text-amber-400 font-display">
                     {shops.filter(s => s.statusType === 'trial').length}
                   </div>
                 </div>
 
-                <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800/80">
+                <div className="bg-slate-950 p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-800/80">
                   <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider block font-display">Licences Actives</span>
-                  <div className="text-xl font-black text-emerald-400 font-display">
+                  <div className="text-lg sm:text-xl font-black text-emerald-400 font-display">
                     {shops.filter(s => s.statusType === 'active' || s.daysRemaining > 0).length}
                   </div>
                 </div>
@@ -1263,7 +1267,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
             </div>
 
             {/* Générateur de Modèle de Message */}
-            <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-4">
+            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
               <div className="flex items-center space-x-2 text-emerald-400 border-b border-slate-800 pb-3">
                 <Send className="w-4 h-4" />
                 <h4 className="font-bold text-xs text-white uppercase tracking-wider font-display">
@@ -1288,7 +1292,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                         setWhatsappCustomText(getTemplateText(t.id as any));
                       }
                     }}
-                    className={`py-2 px-3 text-xs font-bold rounded-xl border transition-all ${
+                    className={`py-2 px-2.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
                       whatsappTemplateType === t.id
                         ? 'bg-emerald-600 border-emerald-500 text-white shadow-xs'
                         : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
@@ -1301,7 +1305,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
 
               {/* Éditeur de Message */}
               <div>
-                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
+                <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
                   Contenu du Message (Variables disponibles : <code className="text-emerald-400">{`{nom_boutique}`}</code>, <code className="text-emerald-400">{`{date_fin}`}</code>, <code className="text-emerald-400">{`{jours_restants}`}</code>, <code className="text-emerald-400">{`{ville}`}</code>)
                 </label>
                 <textarea
@@ -1313,15 +1317,15 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                       setWhatsappTemplateType('custom');
                     }
                   }}
-                  className="w-full p-3 bg-slate-800 border border-slate-700 rounded-2xl text-xs font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500 leading-relaxed font-sans"
+                  className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500 leading-relaxed font-sans"
                   placeholder="Rédigez ici votre message personnalisé..."
                 />
               </div>
             </div>
 
             {/* Liste Filtrée des Commerçants et Actions Individuelles */}
-            <div className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-800 pb-3">
                 <div className="flex items-center space-x-2">
                   <Users className="w-4 h-4 text-slate-400" />
                   <h4 className="font-bold text-xs text-white uppercase tracking-wider font-display">
@@ -1330,7 +1334,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                 </div>
 
                 {/* Filtres de Statut */}
-                <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 sm:pb-0">
+                <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
                   {[
                     { id: 'all', label: 'Tous' },
                     { id: 'expired', label: 'À Relancer' },
@@ -1341,9 +1345,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                       key={f.id}
                       type="button"
                       onClick={() => setWhatsappFilter(f.id as any)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer ${
                         whatsappFilter === f.id
-                          ? 'bg-emerald-600 text-white'
+                          ? 'bg-emerald-600 text-white shadow-xs'
                           : 'bg-slate-800 text-slate-400 hover:text-white'
                       }`}
                     >
@@ -1355,13 +1359,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
 
               {/* Recherche rapide */}
               <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Filtrer par boutique, numéro, patron ou ville..."
                   value={whatsappSearch}
                   onChange={(e) => setWhatsappSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-2xl text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500 font-sans"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500 font-sans"
                 />
               </div>
 
@@ -1378,12 +1382,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                     return (
                       <div
                         key={shop.id}
-                        className="p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition-all"
+                        className="p-3 sm:p-3.5 bg-slate-950/60 rounded-xl sm:rounded-2xl border border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-slate-700 transition-all"
                       >
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-extrabold text-white text-xs font-display">{shop.name}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-extrabold text-white text-xs sm:text-sm font-display truncate">{shop.name}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shrink-0 ${
                               shop.daysRemaining <= 0
                                 ? 'bg-red-900/60 text-red-300 border border-red-700/50'
                                 : shop.statusType === 'trial'
@@ -1417,12 +1421,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                         </div>
 
                         {/* Boutons d'Action WhatsApp */}
-                        <div className="flex items-center space-x-2 shrink-0">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:space-x-2 shrink-0 self-start md:self-center">
                           <a
                             href={whatsappUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-sm flex items-center space-x-1.5 active:scale-95 transition-all font-display"
+                            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-sm flex items-center space-x-1.5 active:scale-95 transition-all font-display cursor-pointer"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
                             <span>Relancer WhatsApp</span>
@@ -1433,7 +1437,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                               href={ownerWhatsappUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-2.5 py-2 bg-slate-800 hover:bg-amber-900/50 text-amber-300 border border-slate-700 text-xs rounded-xl flex items-center space-x-1 active:scale-95 transition-all"
+                              className="px-2.5 py-2 bg-slate-800 hover:bg-amber-900/50 text-amber-300 border border-slate-700 text-xs rounded-xl flex items-center space-x-1 active:scale-95 transition-all cursor-pointer"
                               title="Envoyer au propriétaire / patron"
                             >
                               <span>Patron</span>
@@ -1455,7 +1459,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                               setCopiedShopMessageId(shop.id);
                               setTimeout(() => setCopiedShopMessageId(null), 2500);
                             }}
-                            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors"
+                            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors cursor-pointer"
                             title="Copier le message personnalisé pour cette boutique"
                           >
                             {copiedShopMessageId === shop.id ? (
@@ -1477,14 +1481,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         {/* TAB 6 : SÉCURITÉ ADMIN */}
         {activeTab === 'security' && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            <form onSubmit={handleChangePassword} className="bg-slate-900 p-5 rounded-3xl border border-slate-800 space-y-4">
+            <form onSubmit={handleChangePassword} className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm max-w-xl">
               <div className="flex items-center space-x-2 text-emerald-400 border-b border-slate-800 pb-3">
                 <Lock className="w-5 h-5" />
-                <h3 className="font-bold text-sm text-white font-display">Changer le Mot de Passe Super-Admin</h3>
+                <h3 className="font-bold text-xs sm:text-sm text-white font-display">Changer le Mot de Passe Super-Admin</h3>
               </div>
 
               <div>
-                <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
+                <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
                   Nouveau Mot de Passe Administrateur
                 </label>
                 <input
@@ -1493,7 +1497,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                   placeholder="Entrez le nouveau mot de passe secret"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full p-3 bg-slate-800 border border-slate-700 rounded-2xl text-xs font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -1505,7 +1509,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
 
               <button
                 type="submit"
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-xs shadow-md transition-all font-display"
+                className="w-full py-3 sm:py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl sm:rounded-2xl text-xs shadow-md transition-all font-display cursor-pointer"
               >
                 Mettre à jour le mot de passe
               </button>
