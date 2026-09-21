@@ -3,7 +3,7 @@ import { ShopProfile, LicenseKey, ExtendedAdminAnalytics, AdminBroadcastMessage,
 import { subscriptionService, SUBSCRIPTION_PLANS, DEFAULT_DEPOSIT_NUMBERS } from './subscriptionService';
 import { syncService } from './syncService';
 import { detectBurkinaOperator, detectPlatform } from '../../utils/telemetry';
-import { verifyHash, hashPassword, isHashed } from '../../utils/crypto';
+import { verifyHash, hashPassword, isHashed, generateSignedLicenseKey } from '../../utils/crypto';
 
 export interface AdminStats {
   totalShops: number;
@@ -287,14 +287,10 @@ export const adminService = {
     const generated: LicenseKey[] = [];
 
     for (let i = 0; i < count; i++) {
-      const randomCode = Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-      let prefix = 'FASO-1M-';
-      if (plan === 'semi-annual') prefix = 'FASO-6M-';
-      else if (plan === 'annual') prefix = 'FASO-1AN-';
-
+      const code = generateSignedLicenseKey(plan);
       const key: LicenseKey = {
         id: `lic_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        code: `${prefix}${randomCode}`,
+        code,
         plan,
         durationDays,
         price,

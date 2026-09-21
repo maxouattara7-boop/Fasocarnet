@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { hashPin, hashPassword, verifyHash, isHashed } from './crypto';
+import { 
+  hashPin, 
+  hashPassword, 
+  verifyHash, 
+  isHashed,
+  generateSignedLicenseKey,
+  verifyLicenseSignature,
+  generateShopAuthToken,
+  verifyShopAuthToken
+} from './crypto';
 
 describe('crypto security utility', () => {
   it('hashes a PIN with salt in sha256$<salt>$<hash> format', () => {
@@ -33,5 +42,44 @@ describe('crypto security utility', () => {
     expect(hash1).not.toBe(hash2); // Différents sels
     expect(verifyHash('1111', hash1)).toBe(true);
     expect(verifyHash('1111', hash2)).toBe(true);
+  });
+
+  describe('cryptographic license keys', () => {
+    it('generates and verifies valid signed license keys for all plan durations', () => {
+      const monthlyKey = generateSignedLicenseKey('monthly');
+      const monthlyRes = verifyLicenseSignature(monthlyKey);
+      expect(monthlyRes.isValid).toBe(true);
+      expect(monthlyRes.plan).toBe('monthly');
+      expect(monthlyRes.durationDays).toBe(30);
+
+      const semiKey = generateSignedLicenseKey('semi-annual');
+      const semiRes = verifyLicenseSignature(semiKey);
+      expect(semiRes.isValid).toBe(true);
+      expect(semiRes.plan).toBe('semi-annual');
+      expect(semiRes.durationDays).toBe(180);
+
+      const annualKey = generateSignedLicenseKey('annual');
+      const annualRes = verifyLicenseSignature(annualKey);
+      expect(annualRes.isValid).toBe(true);
+      expect(annualRes.plan).toBe('annual');
+      expect(annualRes.durationDays).toBe(365);
+    });
+
+    it('rejects tampered or forged license keys', () => {
+      expect(verifyLicenseSignature('FASO-1AN-FAKE-0000').isValid).toBe(false);
+      expect(verifyLicenseSignature('FASO-6M-ABCD-EFGH').isValid).toBe(false);
+      expect(verifyLicenseSignature('RANDOM_CODE_123').isValid).toBe(false);
+      expect(verifyLicenseSignature('FASO-1M-AAAA').isValid).toBe(false);
+    });
+  });
+
+  describe('shop authorization tokens', () => {
+    it('generates and validates shop auth tokens', () => {
+      const token = generateShopAuthToken('shop_123', '70000000');
+      expect(token).toMatch(/^fct_shop_123_[a-f0-9]{24}$/);
+      expect(verifyShopAuthToken(token, 'shop_123', '70000000')).toBe(true);
+      expect(verifyShopAuthToken(token, 'shop_123', '70000001')).toBe(false);
+      expect(verifyShopAuthToken(token, 'shop_999', '70000000')).toBe(false);
+    });
   });
 });

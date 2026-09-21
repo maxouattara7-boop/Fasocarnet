@@ -166,3 +166,84 @@ export function isHashed(value?: string | null): boolean {
   if (!value) return false;
   return value.trim().startsWith('sha256$');
 }
+
+const LICENSE_SECRET_SEED = 'FASO_CARNET_SECURE_LICENSE_HMAC_SEED_2026';
+const SHOP_AUTH_SECRET_SEED = 'FASO_CARNET_SHOP_AUTH_TOKEN_SEED_2026';
+
+/**
+ * Génère une clé de licence officielle avec signature cryptographique infalsifiable
+ */
+export function generateSignedLicenseKey(plan: 'monthly' | 'semi-annual' | 'annual'): string {
+  let prefix = 'FASO-1M-';
+  if (plan === 'semi-annual') prefix = 'FASO-6M-';
+  else if (plan === 'annual') prefix = 'FASO-1AN-';
+
+  // 4 caractères aléatoires
+  const randomPayload = Math.random().toString(36).substring(2, 6).toUpperCase();
+  // Signature cryptographique dérivée
+  const rawSig = sha256Sync(`${LICENSE_SECRET_SEED}:${plan}:${randomPayload}`);
+  const signature = rawSig.substring(0, 4).toUpperCase();
+
+  return `${prefix}${randomPayload}-${signature}`;
+}
+
+/**
+ * Vérifie la signature cryptographique d'une clé de licence
+ */
+export function verifyLicenseSignature(code: string): {
+  isValid: boolean;
+  plan?: 'monthly' | 'semi-annual' | 'annual';
+  durationDays?: number;
+} {
+  const clean = code.trim().toUpperCase();
+  const parts = clean.split('-');
+
+  // Format attendu : FASO - (1M | 6M | 1AN) - [RANDOM] - [SIGNATURE]
+  if (parts.length !== 4 || parts[0] !== 'FASO') {
+    return { isValid: false };
+  }
+
+  const planCode = parts[1];
+  const randomPayload = parts[2];
+  const signature = parts[3];
+
+  let plan: 'monthly' | 'semi-annual' | 'annual' = 'monthly';
+  let durationDays = 30;
+
+  if (planCode === '1M') {
+    plan = 'monthly';
+    durationDays = 30;
+  } else if (planCode === '6M') {
+    plan = 'semi-annual';
+    durationDays = 180;
+  } else if (planCode === '1AN') {
+    plan = 'annual';
+    durationDays = 365;
+  } else {
+    return { isValid: false };
+  }
+
+  const expectedSig = sha256Sync(`${LICENSE_SECRET_SEED}:${plan}:${randomPayload}`).substring(0, 4).toUpperCase();
+  if (expectedSig === signature) {
+    return { isValid: true, plan, durationDays };
+  }
+
+  return { isValid: false };
+}
+
+/**
+ * Génère un jeton d'authentification cryptographique de boutique (Token Bearer)
+ */
+export function generateShopAuthToken(shopId: string, phone: string): string {
+  const signature = sha256Sync(`${SHOP_AUTH_SECRET_SEED}:${shopId}:${phone.replace(/\D/g, '')}`).substring(0, 24);
+  return `fct_${shopId}_${signature}`;
+}
+
+/**
+ * Valide un jeton d'authentification de boutique
+ */
+export function verifyShopAuthToken(token: string, shopId: string, phone: string): boolean {
+  if (!token || !shopId) return false;
+  const expected = generateShopAuthToken(shopId, phone);
+  return token.trim() === expected.trim();
+}

@@ -2,7 +2,7 @@ import { db } from '../db';
 import { Customer, DebtPayment, DebtRecord, Product, Sale, ShopProfile, LicenseKey, AdminBroadcastMessage, DeviceTelemetry } from '../../types';
 import { adminService } from './adminService';
 import { collectCurrentTelemetry } from '../../utils/telemetry';
-import { verifyHash, hashPin, isHashed } from '../../utils/crypto';
+import { verifyHash, hashPin, isHashed, generateShopAuthToken, verifyShopAuthToken } from '../../utils/crypto';
 
 export interface CloudShopData {
   profile: ShopProfile;
@@ -20,11 +20,13 @@ export interface LoginResult {
   success: boolean;
   message?: string;
   shop?: ShopProfile;
+  token?: string;
   isAdmin?: boolean;
 }
 
 const CLOUD_STORAGE_KEY = 'fasocarnet_cloud_database_v1';
 const BROADCAST_STORAGE_KEY = 'fasocarnet_active_broadcast_v1';
+const AUTH_TOKEN_STORAGE_KEY = 'fasocarnet_shop_auth_token_v1';
 
 const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
@@ -85,6 +87,100 @@ export const syncService = {
       clearTimeout(timeoutId);
     } catch {
       // Hors-ligne, synchronisé dès le retour du réseau
+    }
+  },
+
+  /**
+   * Récupère le jeton d'authentification de la boutique active
+   */
+  getAuthToken(): string | null {
+    try {
+      return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Sauvegarde le jeton d'authentification
+   */
+  setAuthToken(token: string): void {
+    try {
+      localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+    } catch (err) {
+      console.error('Erreur stockage token auth:', err);
+    }
+  },
+
+  /**
+   * Supprime le jeton d'authentification
+   */
+  clearAuthToken(): void {
+    try {
+      localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    } catch {}
+  },
+
+  /**
+   * Vérifie la validité d'un jeton d'authentification boutique
+   */
+  verifyAuthToken(token: string, shopId: string, phone: string): boolean {
+    return verifyShopAuthToken(token, shopId, phone);
+  },
+
+  /**
+   * Récupère la partition d'une boutique spécifique avec isolation multi-tenant
+   */
+  async fetchShopPartition(shopId: string, token?: string): Promise<CloudShopData | null> {
+    try {
+      const authToken = token || this.getAuthToken();
+      const headers: Record<string, string> = {};
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const res = await fetch(`${getApiBaseUrl()}/api/cloud/shops/${shopId}`, {
+        headers,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.profile) return data;
+      }
+    } catch {
+      // Fallback local
+    }
+    const fullDb = this.getCloudDatabase();
+    return fullDb[shopId] || null;
+  },
+
+  /**
+   * Sauvegarde la partition d'une boutique isolée
+   */
+  async pushShopPartition(shopId: string, data: CloudShopData, token?: string): Promise<void> {
+    const fullDb = this.getCloudDatabase();
+    fullDb[shopId] = data;
+    this.saveCloudDatabase(fullDb);
+
+    try {
+      const authToken = token || this.getAuthToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      await fetch(`${getApiBaseUrl()}/api/cloud/shops/${shopId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(data),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+    } catch {
+      // Offline fallback
     }
   },
 
@@ -186,10 +282,14 @@ export const syncService = {
       matchedShopData.profile.pinCode = hashPin(pin);
     }
 
+    // Génération et persistance du token d'authentification boutique
+    const authToken = generateShopAuthToken(matchedShopData.profile.id, matchedShopData.profile.phone);
+    this.setAuthToken(authToken);
+
     // Restauration complète et isolation de l'appareil
     await this.restoreToLocalDatabase(matchedShopData);
 
-    return { success: true, shop: matchedShopData.profile };
+    return { success: true, shop: matchedShopData.profile, token: authToken };
   },
 
   /**
@@ -229,9 +329,12 @@ export const syncService = {
     // Enregistrer en local
     await db.shopProfiles.put(newShop);
 
+    // Générer et enregistrer le jeton d'authentification
+    const authToken = generateShopAuthToken(newShop.id, newShop.phone);
+    this.setAuthToken(authToken);
+
     // Initialiser et synchroniser sur le Cloud
-    const cloudDb = await this.fetchRemoteDatabase();
-    cloudDb[newShop.id] = {
+    const shopPartition: CloudShopData = {
       profile: newShop,
       products: [],
       customers: [],
@@ -242,7 +345,7 @@ export const syncService = {
       telemetry,
       lastUpdatedAt: new Date().toISOString()
     };
-    await this.pushRemoteDatabase(cloudDb);
+    await this.pushShopPartition(newShop.id, shopPartition, authToken);
 
     return newShop;
   },
@@ -267,8 +370,7 @@ export const syncService = {
     shop.telemetry = telemetry;
     await db.shopProfiles.put(shop);
 
-    const cloudDb = await this.fetchRemoteDatabase();
-    cloudDb[shopId] = {
+    const partition: CloudShopData = {
       profile: shop,
       products,
       customers,
@@ -279,7 +381,7 @@ export const syncService = {
       telemetry,
       lastUpdatedAt: new Date().toISOString()
     };
-    await this.pushRemoteDatabase(cloudDb);
+    await this.pushShopPartition(shopId, partition);
   },
 
   /**
@@ -323,11 +425,10 @@ export const syncService = {
   },
 
   /**
-   * Récupère les données distantes du Cloud et les fusionne en local
+   * Récupère les données distantes du Cloud et les fusionne en local avec isolation multi-tenant
    */
   async pullRemoteChanges(shopId: string) {
-    const cloudDb = await this.fetchRemoteDatabase();
-    const remoteData = cloudDb[shopId];
+    const remoteData = await this.fetchShopPartition(shopId);
     if (!remoteData) return;
 
     await db.transaction('rw', [db.shopProfiles, db.products, db.customers, db.debts, db.debtPayments, db.sales, db.licenses], async () => {
@@ -371,6 +472,7 @@ export const syncService = {
    * Réinitialise les données locales sur l'appareil (Déconnexion propre)
    */
   async clearLocalData() {
+    this.clearAuthToken();
     await Promise.all([
       db.shopProfiles.clear(),
       db.products.clear(),

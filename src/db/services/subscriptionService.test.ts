@@ -3,6 +3,7 @@ import 'fake-indexeddb/auto';
 import { subscriptionService } from './subscriptionService';
 import { db } from '../db';
 import { ShopProfile } from '../../types';
+import { generateSignedLicenseKey } from '../../utils/crypto';
 
 describe('subscriptionService', () => {
   beforeEach(async () => {
@@ -28,7 +29,7 @@ describe('subscriptionService', () => {
     expect(info.canUseApp).toBe(true);
   });
 
-  it('activates 1 year license key successfully', async () => {
+  it('activates 1 year signed license key successfully and rejects fake keys', async () => {
     const mockProfile: ShopProfile = {
       id: 'shop_123',
       name: 'Alimentation Ouaga',
@@ -40,7 +41,14 @@ describe('subscriptionService', () => {
     };
     await db.shopProfiles.put(mockProfile);
 
-    const result = await subscriptionService.activateLicenseKey('shop_123', 'FASO-PRO-1AN-2026');
+    // Rejette une fausse clé forgée
+    const fakeResult = await subscriptionService.activateLicenseKey('shop_123', 'FASO-PRO-1AN-2026');
+    expect(fakeResult.success).toBe(false);
+    expect(fakeResult.message).toContain('invalide');
+
+    // Accepte une vraie clé signée par FasoCarnet
+    const signedKey = generateSignedLicenseKey('annual');
+    const result = await subscriptionService.activateLicenseKey('shop_123', signedKey);
     expect(result.success).toBe(true);
     expect(result.shop?.subscriptionPlan).toBe('annual');
     expect(result.shop?.subscriptionStatus).toBe('active');

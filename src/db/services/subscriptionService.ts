@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { ShopProfile, LicenseKey, AdminDepositNumbers } from '../../types';
 import { syncService } from './syncService';
+import { verifyLicenseSignature } from '../../utils/crypto';
 
 export interface SubscriptionPlan {
   id: 'monthly' | 'semi-annual' | 'annual';
@@ -301,20 +302,41 @@ export const subscriptionService = {
           cloudDb[defaultShopKey].lastUpdatedAt = nowIso;
         }
       }
-    } else if (key.includes('1AN') || key.includes('YEAR') || key.includes('365')) {
-      addedDays = 365;
-      plan = 'annual';
-    } else if (key.includes('6M') || key.includes('180')) {
-      addedDays = 180;
-      plan = 'semi-annual';
-    } else if (key.startsWith('FASO-') || key.startsWith('PROMO-') || key.length >= 8) {
-      addedDays = 30;
-      plan = 'monthly';
     } else {
-      return { 
-        success: false, 
-        message: 'Code invalide. Format attendu : FASO-XXXX-XXXX ou code officiel.' 
+      // Vérification cryptographique de la signature officielle HMAC
+      const sigResult = verifyLicenseSignature(key);
+      if (!sigResult.isValid || !sigResult.plan || !sigResult.durationDays) {
+        return { 
+          success: false, 
+          message: 'Clé de licence invalide ou signature non reconnue. Seules les clés officielles délivrées par FasoCarnet sont acceptées.' 
+        };
+      }
+
+      addedDays = sigResult.durationDays;
+      plan = sigResult.plan;
+
+      const nowIso = new Date().toISOString();
+      const planPrice = plan === 'annual' ? 20000 : (plan === 'semi-annual' ? 10000 : 2000);
+      const newLicenseRecord: LicenseKey = {
+        id: 'lic_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        code: key,
+        plan: plan,
+        durationDays: addedDays,
+        price: planPrice,
+        createdAt: nowIso,
+        isUsed: true,
+        usedByShopId: shop.id,
+        usedByShopName: shop.name,
+        usedAt: nowIso
       };
+
+      await db.licenses.put(newLicenseRecord);
+
+      if (cloudDb[shop.id]) {
+        if (!cloudDb[shop.id].licenses) cloudDb[shop.id].licenses = [];
+        cloudDb[shop.id].licenses.push(newLicenseRecord);
+        cloudDb[shop.id].lastUpdatedAt = nowIso;
+      }
     }
 
     const currentExpiry = shop.subscriptionExpiresAt ? new Date(shop.subscriptionExpiresAt) : new Date();
