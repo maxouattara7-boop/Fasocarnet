@@ -24,12 +24,15 @@ import {
   VolumeX,
   Mic,
   Vibrate,
-  VibrateOff
+  VibrateOff,
+  RefreshCw
 } from 'lucide-react';
 import { soundEffects } from '../../utils/soundEffects';
 import { isHapticsEnabled, setHapticsEnabled, triggerHaptic, triggerDoubleHaptic } from '../../utils/haptics';
 import { productsService } from '../../db/services/productsService';
 import { subscriptionService, SUBSCRIPTION_PLANS, SubscriptionPlan, OFFICIAL_PAYMENT_CHANNELS } from '../../db/services/subscriptionService';
+import { updateService, AppUpdateInfo, CURRENT_APP_VERSION } from '../../services/updateService';
+import { UpdateModal } from '../common/UpdateModal';
 import { Product } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -127,6 +130,29 @@ export const SettingsView: React.FC = () => {
     navigator.clipboard.writeText(num);
     setCopiedNumber(num);
     setTimeout(() => setCopiedNumber(null), 2000);
+  };
+
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [updateCheckStatus, setUpdateCheckStatus] = useState<string | null>(null);
+  const [manualUpdateInfo, setManualUpdateInfo] = useState<AppUpdateInfo | null>(null);
+
+  const handleManualCheckUpdate = async () => {
+    setIsCheckingUpdate(true);
+    setUpdateCheckStatus(null);
+    try {
+      const res = await updateService.checkForUpdate();
+      if (res.hasUpdate && res.updateInfo) {
+        setManualUpdateInfo(res.updateInfo);
+      } else {
+        setUpdateCheckStatus(`FasoCarnet v${CURRENT_APP_VERSION} est à jour !`);
+        setTimeout(() => setUpdateCheckStatus(null), 4000);
+      }
+    } catch {
+      setUpdateCheckStatus('Impossible de vérifier (vérifiez votre connexion internet)');
+      setTimeout(() => setUpdateCheckStatus(null), 4000);
+    } finally {
+      setIsCheckingUpdate(false);
+    }
   };
 
   const subInfo = subscriptionService.getSubscriptionInfo(shopProfile);
@@ -472,6 +498,40 @@ export const SettingsView: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Version de l'application & Mises à jour */}
+          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-100 shadow-xs space-y-2.5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <div className="flex items-center space-x-2 text-emerald-900">
+                <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-xs tracking-tight">Version de l'Application</h3>
+                  <p className="text-[10px] text-slate-500">Version installée : v{CURRENT_APP_VERSION}</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-black text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                v{CURRENT_APP_VERSION}
+              </span>
+            </div>
+
+            {updateCheckStatus && (
+              <p className="text-[11px] font-bold text-emerald-800 bg-emerald-50 p-2 rounded-lg border border-emerald-200 animate-in fade-in">
+                {updateCheckStatus}
+              </p>
+            )}
+
+            <button
+              type="button"
+              disabled={isCheckingUpdate}
+              onClick={handleManualCheckUpdate}
+              className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all active:scale-98 cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isCheckingUpdate ? 'animate-spin text-emerald-600' : 'text-slate-600'}`} />
+              <span>{isCheckingUpdate ? 'Recherche de mise à jour...' : 'Vérifier les Mises à Jour'}</span>
+            </button>
           </div>
 
           {/* Déconnexion */}
@@ -990,6 +1050,15 @@ export const SettingsView: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Mise à Jour Manuelle */}
+      {manualUpdateInfo && (
+        <UpdateModal
+          updateInfo={manualUpdateInfo}
+          isOpen={!!manualUpdateInfo}
+          onClose={() => setManualUpdateInfo(null)}
+        />
       )}
     </div>
   );

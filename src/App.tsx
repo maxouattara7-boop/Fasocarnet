@@ -15,15 +15,29 @@ import { syncService } from './db/services/syncService';
 import { AdminBroadcastMessage } from './types';
 import { Crown, Megaphone, ShieldAlert, MessageCircle, X } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
+import { updateService, AppUpdateInfo } from './services/updateService';
+import { UpdateModal } from './components/common/UpdateModal';
 
 export const App: React.FC = () => {
   const { isInitialized, activeTab, setActiveTab, activeShopId, shopProfile, loadCurrentShop, isAdminOpen, setIsAdminOpen } = useAppStore();
   const [broadcast, setBroadcast] = useState<AdminBroadcastMessage | null>(null);
   const [dismissedBroadcastId, setDismissedBroadcastId] = useState<string | null>(null);
   const [showBroadcastDetail, setShowBroadcastDetail] = useState(false);
+  const [availableUpdate, setAvailableUpdate] = useState<AppUpdateInfo | null>(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   useEffect(() => {
     loadCurrentShop();
+    
+    // Vérification des mises à jour distantes au lancement
+    updateService.checkForUpdate().then(({ hasUpdate, updateInfo }) => {
+      if (hasUpdate && updateInfo) {
+        if (updateInfo.mandatory || !updateService.isDismissed(updateInfo.version)) {
+          setAvailableUpdate(updateInfo);
+          setShowUpdateModal(true);
+        }
+      }
+    });
   }, [loadCurrentShop]);
 
   useEffect(() => {
@@ -252,6 +266,13 @@ export const App: React.FC = () => {
 
       <BottomNav />
       <PinLockModal />
+      {availableUpdate && (
+        <UpdateModal
+          updateInfo={availableUpdate}
+          isOpen={showUpdateModal}
+          onClose={() => setShowUpdateModal(false)}
+        />
+      )}
     </div>
   );
 };

@@ -1,0 +1,9 @@
+{
+  "version": "1.2.2",
+  "versionCode": 6,
+  "releaseDate": "2026-09-21",
+  "title": "Mise à jour FasoCarnet v1.2.2",
+  "releaseNotes": "Harmonisation des polices, section Bilan avec regroupement CASH déroulant, formulaires optimisés et système de mise à jour automatique.",
+  "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
+  "mandatory": false
+}
