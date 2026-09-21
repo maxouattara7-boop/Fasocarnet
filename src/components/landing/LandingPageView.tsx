@@ -139,7 +139,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
 
                   <p className="text-xs text-slate-500 font-medium flex items-center justify-center lg:justify-start space-x-1.5 sm:space-x-2">
                     <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Version 1.2.0 • 10 jours gratuits • 100% Sécurisé</span>
+                    <span>10 jours gratuits • 100% Sécurisé</span>
                   </p>
                 </div>
 
