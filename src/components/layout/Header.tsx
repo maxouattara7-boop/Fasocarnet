@@ -9,16 +9,15 @@ export const Header: React.FC = () => {
   return (
     <header className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white px-3.5 py-2.5 shadow-md sticky top-0 z-30 border-b border-emerald-700/40 backdrop-blur-md">
       <div className="max-w-md mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-2.5 min-w-0">
+        <div className="flex items-center space-x-2.5 min-w-0 flex-1">
           <Logo size="sm" showText={false} />
           <div className="min-w-0 flex-1">
-            <h1 className="font-extrabold text-xs sm:text-sm leading-tight truncate max-w-[170px] text-white tracking-tight">
+            <span className="text-[10px] text-emerald-200/90 font-semibold block leading-tight truncate">
+              Bienvenue sur votre espace de gestion
+            </span>
+            <h1 className="font-extrabold text-xs sm:text-sm leading-tight truncate text-white tracking-tight font-display">
               {shopProfile?.name || 'FasoCarnet'}
             </h1>
-            <div className="flex items-center space-x-1.5 text-[10px] text-emerald-200/90 font-medium">
-              <span className={`w-1.5 h-1.5 rounded-full ring-2 ring-emerald-900/50 ${isOnline ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`}></span>
-              <span className="truncate">{isOnline ? 'En ligne • Synchronisé' : '100% Hors-ligne'}</span>
-            </div>
           </div>
         </div>
 
