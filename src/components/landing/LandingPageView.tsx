@@ -22,26 +22,13 @@ interface LandingPageViewProps {
   onOpenApp?: () => void;
 }
 
-const APK_DOWNLOAD_URL = 'https://github.com/maxouattara7-boop/Fasocarnet/releases/download/v1.2.0/FasoCarnet-v1.2.0-Android.apk';
+const APK_DOWNLOAD_URL = '/downloads/FasoCarnet-v1.2.0-Android.apk';
 
 export const LandingPageView: React.FC<LandingPageViewProps> = () => {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showFaqModal, setShowFaqModal] = useState(false);
   const [showCguModal, setShowCguModal] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
-
-  const handleTriggerApkDownload = () => {
-    setShowDownloadModal(true);
-    // Déclenchement du téléchargement direct de l'APK depuis GitHub Releases
-    const link = document.createElement('a');
-    link.href = APK_DOWNLOAD_URL;
-    link.download = 'FasoCarnet-v1.2.0-Android.apk';
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
@@ -97,14 +84,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
           </nav>
 
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <button
-              type="button"
-              onClick={handleTriggerApkDownload}
+            <a
+              href={APK_DOWNLOAD_URL}
+              download="FasoCarnet-v1.2.0-Android.apk"
+              onClick={() => setShowDownloadModal(true)}
               className="px-3.5 sm:px-5 py-2 sm:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl sm:rounded-2xl text-xs sm:text-sm shadow-md sm:shadow-lg shadow-emerald-600/20 flex items-center space-x-1.5 sm:space-x-2 active:scale-95 transition-all cursor-pointer shrink-0"
             >
               <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
               <span>Télécharger l'APK</span>
-            </button>
+            </a>
           </div>
         </div>
       </header>
@@ -138,14 +126,15 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
                 {/* Bloc Téléchargement Principal */}
                 <div className="pt-1 sm:pt-2 space-y-3 sm:space-y-4">
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-4">
-                    <button
-                      type="button"
-                      onClick={handleTriggerApkDownload}
-                      className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl text-sm sm:text-base shadow-xl shadow-emerald-600/25 flex items-center justify-center space-x-2.5 sm:space-x-3 active:scale-95 transition-transform cursor-pointer group"
+                    <a
+                      href={APK_DOWNLOAD_URL}
+                      download="FasoCarnet-v1.2.0-Android.apk"
+                      onClick={() => setShowDownloadModal(true)}
+                      className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl text-sm sm:text-base shadow-xl shadow-emerald-600/25 flex items-center justify-center space-x-2.5 sm:space-x-3 active:scale-95 transition-transform cursor-pointer group text-center"
                     >
                       <Download className="w-5 h-5 group-hover:translate-y-0.5 transition-transform stroke-[2.5]" />
                       <span>Télécharger l'APK Android</span>
-                    </button>
+                    </a>
                   </div>
 
                   <p className="text-xs text-slate-500 font-medium flex items-center justify-center lg:justify-start space-x-1.5 sm:space-x-2">
