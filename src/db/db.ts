@@ -12,10 +12,10 @@ export class FasoCarnetDB extends Dexie {
 
   constructor() {
     super('FasoCarnetDB');
-    this.version(3).stores({
+    this.version(4).stores({
       shopProfiles: 'id',
       customers: 'id, name, phone, totalDebt',
-      products: 'id, name, price, createdAt',
+      products: 'id, name, price, barcode, createdAt',
       sales: 'id, paymentMethod, isCredit, customerId, createdAt',
       debts: 'id, customerId, status, createdAt',
       debtPayments: 'id, debtId, customerId, createdAt',

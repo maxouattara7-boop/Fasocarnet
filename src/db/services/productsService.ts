@@ -6,16 +6,30 @@ export const productsService = {
     return await db.products.orderBy('name').toArray();
   },
 
-  async create(name: string, price: number, category?: string): Promise<Product> {
+  async create(name: string, price: number, barcode?: string, category?: string): Promise<Product> {
     const newProduct: Product = {
       id: `prod_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       name: name.trim(),
       price: Math.max(0, price),
+      barcode: barcode?.trim() || undefined,
       category: category?.trim(),
       createdAt: new Date().toISOString()
     };
     await db.products.put(newProduct);
     return newProduct;
+  },
+
+  async findByBarcode(barcode: string): Promise<Product | undefined> {
+    const cleanCode = barcode.trim();
+    if (!cleanCode) return undefined;
+    return await db.products.where('barcode').equals(cleanCode).first();
+  },
+
+  async update(id: string, updates: Partial<Product>): Promise<void> {
+    await db.products.update(id, {
+      ...updates,
+      updatedAt: new Date().toISOString()
+    });
   },
 
   async delete(id: string): Promise<void> {

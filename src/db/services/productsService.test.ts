@@ -23,4 +23,22 @@ describe('productsService', () => {
     expect(afterDelete.length).toBe(1);
     expect(afterDelete[0].id).toBe(p2.id);
   });
+
+  it('handles barcode associations and lookups', async () => {
+    const pWithBarcode = await productsService.create('Coca-Cola 33cl', 500, '5449000000996');
+    expect(pWithBarcode.barcode).toBe('5449000000996');
+
+    const found = await productsService.findByBarcode('5449000000996');
+    expect(found).toBeDefined();
+    expect(found?.name).toBe('Coca-Cola 33cl');
+    expect(found?.price).toBe(500);
+
+    const notFound = await productsService.findByBarcode('0000000000000');
+    expect(notFound).toBeUndefined();
+
+    // Update with new barcode
+    await productsService.update(pWithBarcode.id, { barcode: '1234567890128' });
+    const updated = await productsService.findByBarcode('1234567890128');
+    expect(updated?.id).toBe(pWithBarcode.id);
+  });
 });

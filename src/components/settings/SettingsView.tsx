@@ -29,7 +29,9 @@ import {
   Download,
   Upload,
   Headphones,
-  FileJson
+  FileJson,
+  Barcode,
+  Camera
 } from 'lucide-react';
 import { soundEffects } from '../../utils/soundEffects';
 import { hashPin } from '../../utils/crypto';
@@ -39,6 +41,7 @@ import { subscriptionService, SUBSCRIPTION_PLANS, SubscriptionPlan, getPaymentCh
 import { syncService } from '../../db/services/syncService';
 import { updateService, AppUpdateInfo, CURRENT_APP_VERSION } from '../../services/updateService';
 import { UpdateModal } from '../common/UpdateModal';
+import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
 import { Product } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -82,6 +85,8 @@ export const SettingsView: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [newProductName, setNewProductName] = useState('');
   const [newProductPrice, setNewProductPrice] = useState('');
+  const [newProductBarcode, setNewProductBarcode] = useState('');
+  const [isBarcodeModalOpen, setIsBarcodeModalOpen] = useState(false);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
 
   // Gestion de l'Abonnement & Licence
@@ -258,9 +263,10 @@ export const SettingsView: React.FC = () => {
 
     setIsAddingProduct(true);
     try {
-      await productsService.create(newProductName.trim(), price);
+      await productsService.create(newProductName.trim(), price, newProductBarcode.trim() || undefined);
       setNewProductName('');
       setNewProductPrice('');
+      setNewProductBarcode('');
       await loadProducts();
     } catch (err) {
       console.error(err);
@@ -743,6 +749,27 @@ export const SettingsView: React.FC = () => {
                   onChange={(e) => setNewProductPrice(e.target.value)}
                   className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-black text-emerald-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all placeholder:text-slate-400 focus:placeholder:opacity-0"
                 />
+                <div className="flex space-x-1.5">
+                  <div className="relative flex-1">
+                    <Barcode className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Code-barres (optionnel)"
+                      value={newProductBarcode}
+                      onChange={(e) => setNewProductBarcode(e.target.value)}
+                      className="w-full pl-8 pr-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono font-medium text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsBarcodeModalOpen(true)}
+                    className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-lg text-xs font-bold flex items-center space-x-1 transition-all shrink-0 cursor-pointer shadow-2xs"
+                    title="Scanner le code-barres avec la caméra"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>Scanner</span>
+                  </button>
+                </div>
               </div>
 
               <button
@@ -765,7 +792,15 @@ export const SettingsView: React.FC = () => {
                 {products.map((prod) => (
                   <div key={prod.id} className="pt-2 pb-1.5 flex items-center justify-between text-xs">
                     <div>
-                      <span className="font-bold text-slate-800 block text-xs">{prod.name}</span>
+                      <div className="flex items-center space-x-1.5">
+                        <span className="font-bold text-slate-800 text-xs">{prod.name}</span>
+                        {prod.barcode && (
+                          <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.2 bg-amber-50 border border-amber-200 text-amber-800 rounded font-mono text-[9px] font-semibold">
+                            <Barcode className="w-2.5 h-2.5" />
+                            <span>{prod.barcode}</span>
+                          </span>
+                        )}
+                      </div>
                       <span className="text-emerald-700 font-extrabold text-[11px] tracking-tight">{formatCurrency(prod.price)}</span>
                     </div>
                     <button
@@ -1210,6 +1245,17 @@ export const SettingsView: React.FC = () => {
           onClose={() => setManualUpdateInfo(null)}
         />
       )}
+
+      {/* Modal Scanner Code-Barres Caméra */}
+      <BarcodeScannerModal
+        isOpen={isBarcodeModalOpen}
+        onClose={() => setIsBarcodeModalOpen(false)}
+        onScan={(code) => {
+          setNewProductBarcode(code);
+          setIsBarcodeModalOpen(false);
+          triggerDoubleHaptic();
+        }}
+      />
     </div>
   );
 };

@@ -42,6 +42,7 @@ export interface Product {
   shopId?: string;
   name: string;
   price: number;
+  barcode?: string;
   category?: string;
   createdAt: string;
   updatedAt?: string;
