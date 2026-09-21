@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { Customer } from '../../types';
+import { Customer, DebtRecord } from '../../types';
 
 export const customersService = {
   async getAll(): Promise<Customer[]> {
@@ -18,17 +18,70 @@ export const customersService = {
       .toArray();
   },
 
-  async create(data: Omit<Customer, 'id' | 'totalDebt' | 'createdAt' | 'updatedAt'>): Promise<Customer> {
+  async create(data: { name: string; phone: string; initialDebt?: number; notes?: string }): Promise<Customer> {
+    const cleanPhone = data.phone.trim();
+    const cleanName = data.name.trim();
+    const initialDebt = Math.max(0, Number(data.initialDebt) || 0);
+
+    // Vérifier si un client existe déjà avec ce numéro de téléphone
+    const allCustomers = await db.customers.toArray();
+    const existing = allCustomers.find(c => c.phone.replace(/\D/g, '') === cleanPhone.replace(/\D/g, ''));
+
+    if (existing) {
+      const updatedDebt = (existing.totalDebt || 0) + initialDebt;
+      const updatedCustomer: Customer = {
+        ...existing,
+        name: cleanName || existing.name,
+        notes: data.notes?.trim() || existing.notes,
+        totalDebt: updatedDebt,
+        updatedAt: new Date().toISOString()
+      };
+      await db.customers.put(updatedCustomer);
+
+      if (initialDebt > 0) {
+        const debtRecord: DebtRecord = {
+          id: `debt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          customerId: existing.id,
+          customerName: updatedCustomer.name,
+          customerPhone: updatedCustomer.phone,
+          initialAmount: initialDebt,
+          remainingAmount: initialDebt,
+          status: 'PENDING',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        await db.debts.put(debtRecord);
+      }
+
+      return updatedCustomer;
+    }
+
     const newCustomer: Customer = {
       id: `cust_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      name: data.name.trim(),
-      phone: data.phone.trim(),
-      notes: data.notes?.trim(),
-      totalDebt: 0,
+      name: cleanName,
+      phone: cleanPhone,
+      notes: data.notes?.trim() || undefined,
+      totalDebt: initialDebt,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     await db.customers.put(newCustomer);
+
+    if (initialDebt > 0) {
+      const debtRecord: DebtRecord = {
+        id: `debt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        customerId: newCustomer.id,
+        customerName: newCustomer.name,
+        customerPhone: newCustomer.phone,
+        initialAmount: initialDebt,
+        remainingAmount: initialDebt,
+        status: 'PENDING',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      await db.debts.put(debtRecord);
+    }
+
     return newCustomer;
   },
 

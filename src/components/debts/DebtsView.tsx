@@ -52,7 +52,7 @@ export const DebtsView: React.FC = () => {
         </p>
       </div>
 
-      {/* Barre de recherche et Bouton d'ajout */}
+      {/* Barre de recherche et Bouton d'ajout de dette */}
       <div className="flex items-center space-x-2">
         <div className="relative flex-1">
           <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3" />
@@ -68,10 +68,11 @@ export const DebtsView: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsNewCustomerModalOpen(true)}
-          className="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center flex-shrink-0"
-          title="Nouveau Client"
+          className="px-3 py-2 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-xs rounded-xl shadow-sm active:scale-95 transition-all flex items-center space-x-1.5 shrink-0 cursor-pointer"
+          title="Ajouter une Dette"
         >
           <UserPlus className="w-4 h-4" />
+          <span>+ Ajouter Dette</span>
         </button>
       </div>
 
@@ -81,17 +82,17 @@ export const DebtsView: React.FC = () => {
           <div className="bg-white p-6 rounded-2xl text-center space-y-2.5 border border-gray-100 shadow-xs">
             <AlertCircle className="w-8 h-8 text-gray-300 mx-auto" />
             <div>
-              <h4 className="font-bold text-gray-700 text-xs sm:text-sm">Aucun client trouvé</h4>
+              <h4 className="font-bold text-gray-700 text-xs sm:text-sm">Aucune dette trouvée</h4>
               <p className="text-[11px] text-gray-400 mt-0.5">
-                Créez un nouveau client ou enregistrez une vente à crédit depuis la caisse.
+                Enregistrez une dette directe (emprunt/prêt) ou une vente à crédit depuis la caisse.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setIsNewCustomerModalOpen(true)}
-              className="px-3.5 py-1.5 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 hover:bg-emerald-100"
+              className="px-3.5 py-1.5 bg-amber-50 text-amber-700 font-bold text-xs rounded-xl border border-amber-200 hover:bg-amber-100 cursor-pointer"
             >
-              + Ajouter un premier client
+              + Ajouter une dette
             </button>
           </div>
         ) : (
