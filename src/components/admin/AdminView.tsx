@@ -3,10 +3,12 @@ import {
   Store, Crown, Key, Lock, LogOut, Search, Plus, Copy, Check, Trash2,
   MessageCircle, ArrowLeft, Sparkles, Eye, EyeOff, RefreshCw,
   BarChart3, Smartphone, Radio, Download, Phone, Users,
-  MapPin, Send, CheckCircle2, Megaphone, Wallet, Server, Activity, Globe, Wifi
+  MapPin, Send, CheckCircle2, Megaphone, Wallet, Server, Activity, Globe, Wifi,
+  Database, Code2, AlertTriangle
 } from 'lucide-react';
 import { adminService, AdminStats, ShopAdminDetails } from '../../db/services/adminService';
 import { syncService } from '../../db/services/syncService';
+import { supabaseClient } from '../../db/supabaseClient';
 import { LicenseKey, ExtendedAdminAnalytics, AdminBroadcastMessage } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -103,6 +105,95 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  // Supabase PostgreSQL Cloud Management
+  const [supabaseUrl, setSupabaseUrl] = useState(supabaseClient.getConfig().url);
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState(supabaseClient.getConfig().anonKey);
+  const [isTestingSupabase, setIsTestingSupabase] = useState(false);
+  const [supabaseTestResult, setSupabaseTestResult] = useState<{ success: boolean; latencyMs: number; message: string } | null>(null);
+  const [supabaseSaveSuccess, setSupabaseSaveSuccess] = useState('');
+  const [showSqlSchema, setShowSqlSchema] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
+
+  const handleTestSupabase = async () => {
+    setIsTestingSupabase(true);
+    setSupabaseTestResult(null);
+    try {
+      const res = await supabaseClient.testConnection(supabaseUrl, supabaseAnonKey);
+      setSupabaseTestResult(res);
+    } finally {
+      setIsTestingSupabase(false);
+    }
+  };
+
+  const handleSaveSupabase = (e: React.FormEvent) => {
+    e.preventDefault();
+    supabaseClient.setConfig(supabaseUrl, supabaseAnonKey);
+    setSupabaseSaveSuccess('Identifiants Supabase enregistrés avec succès !');
+    setTimeout(() => setSupabaseSaveSuccess(''), 3000);
+  };
+
+  const handleCopySqlScript = () => {
+    const sqlScript = `-- ==============================================================================
+-- SCHEMA SUPABASE CLOUD POUR FASOCARNET
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.shops (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    owner_name TEXT,
+    owner_phone TEXT,
+    city TEXT,
+    pin_code TEXT,
+    subscription_plan TEXT DEFAULT 'trial',
+    subscription_status TEXT DEFAULT 'trial',
+    subscription_expires_at TIMESTAMPTZ,
+    data JSONB NOT NULL DEFAULT '{}'::jsonb,
+    telemetry JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_shops_phone ON public.shops(phone);
+CREATE INDEX IF NOT EXISTS idx_shops_owner_phone ON public.shops(owner_phone);
+CREATE INDEX IF NOT EXISTS idx_shops_updated_at ON public.shops(updated_at);
+
+CREATE TABLE IF NOT EXISTS public.licenses (
+    id TEXT PRIMARY KEY,
+    code TEXT NOT NULL UNIQUE,
+    plan TEXT NOT NULL,
+    duration_days INT NOT NULL,
+    price INT NOT NULL DEFAULT 2000,
+    is_used BOOLEAN DEFAULT FALSE,
+    used_by_shop_id TEXT,
+    used_by_shop_name TEXT,
+    used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_licenses_code ON public.licenses(code);
+
+CREATE TABLE IF NOT EXISTS public.broadcasts (
+    id TEXT PRIMARY KEY DEFAULT 'current_broadcast',
+    message JSONB NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.shops ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.licenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.broadcasts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow anon full access on shops" ON public.shops;
+CREATE POLICY "Allow anon full access on shops" ON public.shops FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow anon full access on licenses" ON public.licenses;
+CREATE POLICY "Allow anon full access on licenses" ON public.licenses FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow anon full access on broadcasts" ON public.broadcasts;
+CREATE POLICY "Allow anon full access on broadcasts" ON public.broadcasts FOR ALL USING (true) WITH CHECK (true);`;
+
+    navigator.clipboard.writeText(sqlScript);
+    setCopiedSql(true);
+    setTimeout(() => setCopiedSql(false), 2500);
   };
 
   // WhatsApp Campaigns & Contacts
@@ -1641,6 +1732,184 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                   >
                     <Wallet className="w-4 h-4" />
                     <span>{isSavingDeposit ? 'Enregistrement en cours...' : 'Enregistrer & Synchroniser les Numéros'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* CONFIGURATION SUPABASE POSTGRESQL CLOUD (GRATUIT & HAUTE DISPONIBILITÉ) */}
+            <div className="bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-emerald-900/60 shadow-sm space-y-4 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                <div className="flex items-center space-x-2.5 text-emerald-400">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                    <Database className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="font-bold text-xs sm:text-sm text-white font-display">Supabase Cloud PostgreSQL</h3>
+                      <span className="text-[9px] font-black uppercase px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        100% Gratuit
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400">Base de données cloud PostgreSQL sécurisée avec synchronisation en temps réel</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSqlSchema(!showSqlSchema)}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1.5 transition-all cursor-pointer"
+                  >
+                    <Code2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>{showSqlSchema ? 'Masquer SQL' : 'Script SQL Initialisation'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Accordéon Script SQL */}
+              {showSqlSchema && (
+                <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-300 flex items-center space-x-1.5">
+                      <Code2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Copiez ce script et exécutez-le dans Supabase &gt; SQL Editor :</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopySqlScript}
+                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded-lg flex items-center space-x-1 transition-all cursor-pointer"
+                    >
+                      {copiedSql ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedSql ? 'Copié !' : 'Copier le SQL'}</span>
+                    </button>
+                  </div>
+                  <pre className="p-2.5 bg-slate-900 rounded-xl text-[10px] font-mono text-emerald-300 overflow-x-auto max-h-40 border border-slate-800">
+{`-- Exécutez ce script dans l'onglet SQL Editor de votre projet Supabase :
+CREATE TABLE IF NOT EXISTS public.shops (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    owner_name TEXT,
+    owner_phone TEXT,
+    city TEXT,
+    pin_code TEXT,
+    subscription_plan TEXT DEFAULT 'trial',
+    subscription_status TEXT DEFAULT 'trial',
+    subscription_expires_at TIMESTAMPTZ,
+    data JSONB NOT NULL DEFAULT '{}'::jsonb,
+    telemetry JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_shops_phone ON public.shops(phone);
+CREATE INDEX IF NOT EXISTS idx_shops_owner_phone ON public.shops(owner_phone);
+CREATE INDEX IF NOT EXISTS idx_shops_updated_at ON public.shops(updated_at);
+
+CREATE TABLE IF NOT EXISTS public.licenses (
+    id TEXT PRIMARY KEY,
+    code TEXT NOT NULL UNIQUE,
+    plan TEXT NOT NULL,
+    duration_days INT NOT NULL,
+    price INT NOT NULL DEFAULT 2000,
+    is_used BOOLEAN DEFAULT FALSE,
+    used_by_shop_id TEXT,
+    used_by_shop_name TEXT,
+    used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.broadcasts (
+    id TEXT PRIMARY KEY DEFAULT 'current_broadcast',
+    message JSONB NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.shops ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.licenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.broadcasts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow anon full access on shops" ON public.shops FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow anon full access on licenses" ON public.licenses FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow anon full access on broadcasts" ON public.broadcasts FOR ALL USING (true) WITH CHECK (true);`}
+                  </pre>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveSupabase} className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1 font-display">
+                      Supabase Project URL (ex: https://xyz.supabase.co)
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://votre-projet.supabase.co"
+                      value={supabaseUrl}
+                      onChange={(e) => setSupabaseUrl(e.target.value)}
+                      className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-mono font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1 font-display">
+                      Supabase Anon Public Key (Clé Publique)
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      value={supabaseAnonKey}
+                      onChange={(e) => setSupabaseAnonKey(e.target.value)}
+                      className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-mono font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                {supabaseTestResult && (
+                  <div className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-between ${
+                    supabaseTestResult.success
+                      ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300'
+                      : 'bg-red-950/40 border-red-800 text-red-300'
+                  }`}>
+                    <div className="flex items-center space-x-2">
+                      {supabaseTestResult.success ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      ) : (
+                        <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                      )}
+                      <span>{supabaseTestResult.message}</span>
+                    </div>
+                    {supabaseTestResult.latencyMs > 0 && (
+                      <span className="font-mono text-[11px] px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-300">
+                        {supabaseTestResult.latencyMs} ms
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {supabaseSaveSuccess && (
+                  <p className="text-xs text-emerald-400 font-semibold bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-800/50">
+                    {supabaseSaveSuccess}
+                  </p>
+                )}
+
+                <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    disabled={isTestingSupabase || !supabaseUrl.trim() || !supabaseAnonKey.trim()}
+                    onClick={handleTestSupabase}
+                    className="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl sm:rounded-2xl text-xs flex items-center justify-center space-x-1.5 border border-slate-700 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Activity className={`w-3.5 h-3.5 ${isTestingSupabase ? 'animate-spin text-emerald-400' : 'text-emerald-400'}`} />
+                    <span>{isTestingSupabase ? 'Test en cours...' : 'Tester Connexion Supabase'}</span>
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl sm:rounded-2xl text-xs shadow-md transition-all cursor-pointer"
+                  >
+                    Enregistrer les Identifiants Supabase
                   </button>
                 </div>
               </form>

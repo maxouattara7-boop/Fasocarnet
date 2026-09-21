@@ -3,6 +3,7 @@ import { Customer, DebtPayment, DebtRecord, Product, Sale, ShopProfile, LicenseK
 import { adminService } from './adminService';
 import { collectCurrentTelemetry } from '../../utils/telemetry';
 import { verifyHash, hashPin, isHashed, generateShopAuthToken, verifyShopAuthToken } from '../../utils/crypto';
+import { supabaseClient } from '../supabaseClient';
 
 export interface CloudShopData {
   profile: ShopProfile;
@@ -50,9 +51,25 @@ const getApiBaseUrl = (): string => {
  */
 export const syncService = {
   /**
-   * Récupère la base Cloud depuis le serveur local / réseau avec fallback sur le cache local
+   * Récupère la base Cloud depuis Supabase ou le serveur REST avec fallback sur le cache local
    */
   async fetchRemoteDatabase(): Promise<Record<string, CloudShopData>> {
+    // 1. Priorité Supabase si configuré
+    if (supabaseClient.isConfigured()) {
+      try {
+        const supaData = await supabaseClient.fetchAllShops();
+        if (supaData && Object.keys(supaData).length > 0) {
+          const localCache = this.getCloudDatabase();
+          const merged = { ...localCache, ...supaData };
+          this.saveCloudDatabase(merged);
+          return merged;
+        }
+      } catch (err) {
+        console.warn('[Sync] Fallback depuis Supabase:', err);
+      }
+    }
+
+    // 2. Fallback Serveur REST API
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2500);
@@ -77,10 +94,21 @@ export const syncService = {
   },
 
   /**
-   * Envoie la base Cloud vers le serveur central
+   * Envoie la base Cloud vers Supabase et/ou le serveur central
    */
   async pushRemoteDatabase(data: Record<string, CloudShopData>): Promise<void> {
     this.saveCloudDatabase(data);
+
+    // 1. Sync Supabase si configuré
+    if (supabaseClient.isConfigured()) {
+      for (const shopData of Object.values(data)) {
+        if (shopData && shopData.profile) {
+          supabaseClient.pushShop(shopData).catch(() => {});
+        }
+      }
+    }
+
+    // 2. Sync Serveur REST
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
@@ -138,6 +166,22 @@ export const syncService = {
    * Récupère la partition d'une boutique spécifique avec isolation multi-tenant
    */
   async fetchShopPartition(shopId: string, token?: string): Promise<CloudShopData | null> {
+    // 1. Priorité Supabase si configuré
+    if (supabaseClient.isConfigured()) {
+      try {
+        const supaShop = await supabaseClient.fetchShop(shopId);
+        if (supaShop && supaShop.profile) {
+          const fullDb = this.getCloudDatabase();
+          fullDb[shopId] = supaShop;
+          this.saveCloudDatabase(fullDb);
+          return supaShop;
+        }
+      } catch (err) {
+        console.warn('[Sync] Fallback partition Supabase:', err);
+      }
+    }
+
+    // 2. Fallback Serveur REST
     try {
       const authToken = token || this.getAuthToken();
       const headers: Record<string, string> = {};
@@ -170,6 +214,12 @@ export const syncService = {
     fullDb[shopId] = data;
     this.saveCloudDatabase(fullDb);
 
+    // 1. Sync Supabase
+    if (supabaseClient.isConfigured()) {
+      supabaseClient.pushShop(data).catch(() => {});
+    }
+
+    // 2. Sync Serveur REST
     try {
       const authToken = token || this.getAuthToken();
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -395,6 +445,14 @@ export const syncService = {
    */
   async getBroadcastMessage(): Promise<AdminBroadcastMessage | null> {
     try {
+      if (supabaseClient.isConfigured()) {
+        const supaBroadcast = await supabaseClient.fetchBroadcast();
+        if (supaBroadcast && supaBroadcast.isActive) {
+          localStorage.setItem(BROADCAST_STORAGE_KEY, JSON.stringify(supaBroadcast));
+          return supaBroadcast;
+        }
+      }
+
       const cloudDb = await this.fetchRemoteDatabase();
       const broadcastData = (cloudDb as any)['_admin_broadcast']?.broadcast;
       if (broadcastData && broadcastData.isActive) {
@@ -416,6 +474,10 @@ export const syncService = {
    * Sauvegarde un message d'annonce broadcast (Action Admin)
    */
   async setBroadcastMessage(message: AdminBroadcastMessage | null): Promise<void> {
+    if (supabaseClient.isConfigured()) {
+      supabaseClient.pushBroadcast(message).catch(() => {});
+    }
+
     const cloudDb = await this.fetchRemoteDatabase();
     if (message) {
       (cloudDb as any)['_admin_broadcast'] = {
