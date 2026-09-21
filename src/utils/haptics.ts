@@ -1,3 +1,6 @@
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { Capacitor } from '@capacitor/core';
+
 /**
  * Utilitaire de retours haptiques / vibration mobile
  * Optimisé pour smartphones Android et tablettes (Web & APK Capacitor)
@@ -16,28 +19,43 @@ export const setHapticsEnabled = (enabled: boolean): void => {
 };
 
 /**
- * Déclenche une vibration haptique franche et réactive
+ * Déclenche une vibration haptique franche et réactive (touches calculatrice, touches de caisse)
  */
-export const triggerHaptic = (durationMs: number = 35): void => {
+export const triggerHaptic = (durationMs: number = 40): void => {
   if (!isHapticsEnabled()) return;
+
   try {
-    if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
-      // 35ms à 45ms offre la sensation tactile la plus nette sur les moteurs de vibration Android
+    // 1. Si on est sur l'APK native Android / Capacitor
+    if (Capacitor.isNativePlatform()) {
+      Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {
+        Haptics.vibrate({ duration: durationMs }).catch(() => {});
+      });
+    }
+
+    // 2. Déclenchement via l'API Web Vibration (fonctionne sur Chrome Android et navigateurs mobiles)
+    if (typeof window !== 'undefined' && 'navigator' in window && typeof navigator.vibrate === 'function') {
       navigator.vibrate(durationMs);
     }
   } catch {
-    // Silencieux sur navigateurs desktop
+    // Silencieux si non supporté
   }
 };
 
 /**
- * Vibration double pour actions importantes (validation, addition, encaissement)
+ * Vibration double pour actions importantes (validation, addition +, encaissement)
  */
 export const triggerDoubleHaptic = (): void => {
   if (!isHapticsEnabled()) return;
+
   try {
-    if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
-      navigator.vibrate([30, 40, 40]);
+    if (Capacitor.isNativePlatform()) {
+      Haptics.notification({ type: NotificationType.Success }).catch(() => {
+        Haptics.vibrate({ duration: 60 }).catch(() => {});
+      });
+    }
+
+    if (typeof window !== 'undefined' && 'navigator' in window && typeof navigator.vibrate === 'function') {
+      navigator.vibrate([45, 50, 45]);
     }
   } catch {
     // Silencieux

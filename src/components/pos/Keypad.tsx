@@ -10,7 +10,7 @@ interface KeypadProps {
 
 export const Keypad: React.FC<KeypadProps> = ({ value, onChange, onClear }) => {
   const handleDigit = (digit: string) => {
-    triggerHaptic(35);
+    triggerHaptic(45);
     if (value === '0') {
       if (digit === '0' || digit === '00' || digit === '000') {
         return;
@@ -33,7 +33,7 @@ export const Keypad: React.FC<KeypadProps> = ({ value, onChange, onClear }) => {
   };
 
   const handleDelete = () => {
-    triggerHaptic(30);
+    triggerHaptic(40);
     if (value.endsWith(' + ')) {
       const next = value.slice(0, -3);
       onChange(next.length === 0 ? '0' : next);
@@ -45,7 +45,7 @@ export const Keypad: React.FC<KeypadProps> = ({ value, onChange, onClear }) => {
   };
 
   const handleClear = () => {
-    triggerHaptic(45);
+    triggerHaptic(50);
     onClear();
   };
 

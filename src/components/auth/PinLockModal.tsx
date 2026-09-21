@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { Delete } from 'lucide-react';
 import { Logo } from '../common/Logo';
+import { triggerHaptic, triggerDoubleHaptic } from '../../utils/haptics';
 
 export const PinLockModal: React.FC = () => {
   const { isLocked, setIsLocked, verifyPin, shopProfile } = useAppStore();
@@ -11,6 +12,7 @@ export const PinLockModal: React.FC = () => {
   if (!isLocked) return null;
 
   const handleDigit = (digit: string) => {
+    triggerHaptic(45);
     if (pinInput.length < 4) {
       const nextPin = pinInput + digit;
       setPinInput(nextPin);
@@ -18,6 +20,7 @@ export const PinLockModal: React.FC = () => {
 
       if (nextPin.length === 4) {
         if (verifyPin(nextPin)) {
+          triggerDoubleHaptic();
           setIsLocked(false);
           setPinInput('');
         } else {
@@ -29,6 +32,7 @@ export const PinLockModal: React.FC = () => {
   };
 
   const handleDelete = () => {
+    triggerHaptic(40);
     setPinInput(pinInput.slice(0, -1));
     setErrorMsg('');
   };
