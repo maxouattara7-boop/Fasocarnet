@@ -1,14 +1,22 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { X, Flashlight, Camera, AlertCircle, Sparkles, Check, RefreshCw } from 'lucide-react';
+import { X, Flashlight, Camera, AlertCircle, Sparkles, Check, RefreshCw, ShoppingCart, ArrowRight } from 'lucide-react';
 import { triggerDoubleHaptic, triggerHaptic } from '../../utils/haptics';
+import { formatCurrency } from '../../utils/formatters';
+
+export interface ScannedItemFeedback {
+  name: string;
+  price: number;
+  totalCartAmount?: number;
+}
 
 interface BarcodeScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onScan: (barcode: string) => void;
   title?: string;
-  continuous?: boolean;
+  lastScannedItem?: ScannedItemFeedback | null;
+  onScanNext?: () => void;
 }
 
 const SUPPORTED_FORMATS = [
@@ -27,10 +35,12 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   onClose,
   onScan,
   title = 'Scanner un Code-Barres',
-  continuous = false
+  lastScannedItem,
+  onScanNext
 }) => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
   const [hasTorch, setHasTorch] = useState(false);
   const [isTorchOn, setIsTorchOn] = useState(false);
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
@@ -43,6 +53,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     if (isOpen) {
       setErrorMsg(null);
       setIsStarting(true);
+      setIsPaused(false);
       setLastScannedCode(null);
       startScanner();
     } else {
@@ -74,13 +85,11 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       setIsStarting(true);
       setErrorMsg(null);
 
-      // Petite attente pour le rendu du DOM
       await new Promise((resolve) => setTimeout(resolve, 200));
 
       const element = document.getElementById(readerElementId);
       if (!element) return;
 
-      // Nettoyer toute instance précédente
       await stopScanner();
 
       const html5QrCode = new Html5Qrcode(readerElementId, {
@@ -99,12 +108,10 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         handleSuccess(decodedText);
       };
 
-      // Stratégie 1 : Énumérer les caméras disponibles
       let started = false;
       try {
         const cameras = await Html5Qrcode.getCameras();
         if (cameras && cameras.length > 0) {
-          // Trouver la caméra arrière
           const backCam = cameras.find((c) => {
             const label = c.label.toLowerCase();
             return (
@@ -114,7 +121,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
               label.includes('arrière') ||
               label.includes('environment')
             );
-          }) || cameras[cameras.length - 1]; // Souvent la dernière caméra sur Android
+          }) || cameras[cameras.length - 1];
 
           await html5QrCode.start(
             backCam.id,
@@ -125,10 +132,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           started = true;
         }
       } catch (enumErr) {
-        console.warn('[BarcodeScanner] getCameras() a échoué, essai fallback facingMode:', enumErr);
+        console.warn('[BarcodeScanner] getCameras() fallback:', enumErr);
       }
 
-      // Stratégie 2 : Fallback avec facingMode: 'environment'
       if (!started) {
         try {
           await html5QrCode.start(
@@ -139,8 +145,6 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           );
           started = true;
         } catch (envErr) {
-          console.warn('[BarcodeScanner] facingMode environment a échoué, essai facingMode user:', envErr);
-          // Stratégie 3 : Essayer n'importe quelle caméra disponible
           await html5QrCode.start(
             { facingMode: 'user' },
             config,
@@ -153,8 +157,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
       isScanningRef.current = true;
       setIsStarting(false);
+      setIsPaused(false);
 
-      // Vérifier le support de la torche
       try {
         const capabilities = html5QrCode.getRunningTrackCapabilities();
         if ((capabilities as any)?.torch) {
@@ -180,16 +184,12 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     }
   };
 
-  /**
-   * Forcer la demande explicite de permission caméra (Geste utilisateur direct)
-   */
   const handleRequestPermissionAndRetry = async () => {
     try {
       setIsStarting(true);
       setErrorMsg(null);
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        // Fermer le flux temporaire
         stream.getTracks().forEach((track) => track.stop());
       }
       await startScanner();
@@ -208,37 +208,53 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(1800, audioCtx.currentTime); // Bip aigu de caisse
+      osc.frequency.setValueAtTime(1800, audioCtx.currentTime);
       gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.12);
-    } catch {
-      // Ignorer si audio non disponible
-    }
+    } catch {}
   };
 
   const handleSuccess = (code: string) => {
     const clean = code.trim();
     if (!clean) return;
 
-    // Éviter les scans en rafale du même code en moins de 1.2s
-    if (clean === lastScannedCode) return;
+    if (clean === lastScannedCode && isPaused) return;
 
     playBeep();
     triggerDoubleHaptic();
     setLastScannedCode(clean);
+    setIsPaused(true);
+
+    if (html5QrCodeRef.current && isScanningRef.current) {
+      try {
+        html5QrCodeRef.current.pause();
+      } catch {}
+    }
 
     onScan(clean);
+  };
 
-    if (!continuous) {
-      stopScanner();
-      onClose();
-    } else {
-      setTimeout(() => setLastScannedCode(null), 1200);
+  const handleContinueScanning = () => {
+    setLastScannedCode(null);
+    setIsPaused(false);
+    if (onScanNext) onScanNext();
+
+    if (html5QrCodeRef.current && isScanningRef.current) {
+      try {
+        html5QrCodeRef.current.resume();
+      } catch {
+        startScanner();
+      }
     }
+  };
+
+  const handleFinishAndReturn = () => {
+    stopScanner();
+    onClose();
   };
 
   const toggleTorch = async () => {
@@ -276,7 +292,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             </div>
             <div>
               <h3 className="text-xs font-black tracking-tight">{title}</h3>
-              <p className="text-[10px] text-slate-400 font-semibold">Visez le code-barres de l'article</p>
+              <p className="text-[10px] text-slate-400 font-semibold">
+                {isPaused ? 'Article détecté !' : 'Visez le code-barres de l\'article'}
+              </p>
             </div>
           </div>
 
@@ -295,7 +313,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             )}
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleFinishAndReturn}
               className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
@@ -308,16 +326,14 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           <div id="barcode-scanner-viewport" className="w-full h-full min-h-[260px]" />
 
           {/* Viseur visuel avec coins émeraude et laser animé */}
-          {!errorMsg && (
+          {!errorMsg && !isPaused && (
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-6">
               <div className="relative w-64 h-44 border-2 border-emerald-400/60 rounded-2xl shadow-[0_0_20px_rgba(52,211,153,0.25)] flex flex-col justify-between p-2">
-                {/* Coins renforcés */}
                 <div className="absolute -top-1 -left-1 w-5 h-5 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg" />
                 <div className="absolute -top-1 -right-1 w-5 h-5 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg" />
                 <div className="absolute -bottom-1 -left-1 w-5 h-5 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg" />
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 border-b-4 border-r-4 border-emerald-400 rounded-br-lg" />
 
-                {/* Ligne laser rouge/verte animée */}
                 <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_8px_#34d399] animate-pulse" />
               </div>
             </div>
@@ -349,46 +365,88 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           )}
         </div>
 
-        {/* Dernier code scanné avec badge de confirmation */}
-        {lastScannedCode && (
-          <div className="bg-emerald-950/90 border-t border-emerald-700/60 px-4 py-2 flex items-center justify-between text-xs text-emerald-200">
-            <span className="flex items-center space-x-1.5 font-bold">
-              <Check className="w-4 h-4 text-emerald-400" />
-              <span>Code détecté :</span>
-            </span>
-            <span className="font-mono font-black text-white bg-emerald-800/80 px-2 py-0.5 rounded-md">
-              {lastScannedCode}
-            </span>
+        {/* ========================================================================= */}
+        {/* CARTE DE CONFIRMATION AVEC BOUTON CONTINUER ET BOUTON OK RETOUR CAISSE   */}
+        {/* ========================================================================= */}
+        {lastScannedItem ? (
+          <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-emerald-950 border-t border-emerald-500/40 p-3.5 space-y-2.5 animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center justify-between bg-emerald-900/60 p-2.5 rounded-2xl border border-emerald-500/30">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black">
+                  <Check className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300 block">
+                    ✓ Ajouté à la caisse !
+                  </span>
+                  <h4 className="text-xs font-extrabold text-white truncate max-w-[170px]">
+                    {lastScannedItem.name}
+                  </h4>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-black text-amber-300 block">
+                  {formatCurrency(lastScannedItem.price)}
+                </span>
+                {lastScannedItem.totalCartAmount !== undefined && (
+                  <span className="text-[9px] text-emerald-300 font-semibold">
+                    Total : {formatCurrency(lastScannedItem.totalCartAmount)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* 2 BOUTONS : CONTINUER OU OK CAISSE */}
+            <div className="grid grid-cols-2 gap-2 pt-0.5">
+              <button
+                type="button"
+                onClick={handleContinueScanning}
+                className="py-2.5 px-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-emerald-300 border border-emerald-500/30 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-xs"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Scanner suivant</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleFinishAndReturn}
+                className="py-2.5 px-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-extrabold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-md shadow-emerald-600/30"
+              >
+                <ShoppingCart className="w-3.5 h-3.5" />
+                <span>OK Caisse</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Saisie manuelle alternative si aucun scan en pause */
+          <div className="p-3 bg-slate-950/90 border-t border-slate-800 space-y-2">
+            <form onSubmit={handleManualSubmit} className="flex items-center space-x-2">
+              <input
+                type="text"
+                placeholder="Ou saisir le code-barres manuellement..."
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value)}
+                className="flex-1 bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs font-mono text-white placeholder:text-slate-500 outline-none focus:border-emerald-500 transition-colors"
+              />
+              <button
+                type="submit"
+                disabled={!manualCode.trim()}
+                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs active:scale-95"
+              >
+                OK
+              </button>
+            </form>
+
+            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+              <span>Douchette laser USB/Bluetooth supportée</span>
+              <span className="text-emerald-400 font-bold flex items-center space-x-1">
+                <Sparkles className="w-3 h-3" />
+                <span>100% Hors-Ligne</span>
+              </span>
+            </div>
           </div>
         )}
-
-        {/* Saisie manuelle alternative */}
-        <div className="p-3.5 bg-slate-950/90 border-t border-slate-800 space-y-2">
-          <form onSubmit={handleManualSubmit} className="flex items-center space-x-2">
-            <input
-              type="text"
-              placeholder="Ou saisir le code-barres manuellement..."
-              value={manualCode}
-              onChange={(e) => setManualCode(e.target.value)}
-              className="flex-1 bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs font-mono text-white placeholder:text-slate-500 outline-none focus:border-emerald-500 transition-colors"
-            />
-            <button
-              type="submit"
-              disabled={!manualCode.trim()}
-              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-xs active:scale-95"
-            >
-              OK
-            </button>
-          </form>
-
-          <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-            <span>Douchette laser USB/Bluetooth supportée</span>
-            <span className="text-emerald-400 font-bold flex items-center space-x-1">
-              <Sparkles className="w-3 h-3" />
-              <span>100% Hors-Ligne</span>
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   );

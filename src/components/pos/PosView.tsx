@@ -39,6 +39,7 @@ export const PosView: React.FC = () => {
   const [newBarcodeArticleName, setNewBarcodeArticleName] = useState('');
   const [newBarcodeArticlePrice, setNewBarcodeArticlePrice] = useState('');
   const [scanToast, setScanToast] = useState<string | null>(null);
+  const [lastScannedFeedback, setLastScannedFeedback] = useState<{ name: string; price: number; totalCartAmount: number } | null>(null);
 
   // Buffer pour douchettes laser physiques
   const barcodeBufferRef = useRef<string>('');
@@ -88,6 +89,7 @@ export const PosView: React.FC = () => {
   const handleClear = () => {
     setAmountStr('0');
     setSelectedItems([]);
+    setLastScannedFeedback(null);
   };
 
   const handleSelectProduct = (productId: string) => {
@@ -113,13 +115,15 @@ export const PosView: React.FC = () => {
       ];
     });
 
-    if (amountStr === '0') {
-      setAmountStr(product.price.toString());
-    } else if (amountStr.trim().endsWith('+')) {
-      setAmountStr(amountStr + product.price.toString());
-    } else {
-      setAmountStr(amountStr + ' + ' + product.price.toString());
-    }
+    setAmountStr((prev) => {
+      if (prev === '0') {
+        return product.price.toString();
+      } else if (prev.trim().endsWith('+')) {
+        return prev + product.price.toString();
+      } else {
+        return prev + ' + ' + product.price.toString();
+      }
+    });
   };
 
   /**
@@ -134,8 +138,16 @@ export const PosView: React.FC = () => {
     if (matched) {
       handleSelectProduct(matched.id);
       triggerDoubleHaptic();
-      setScanToast(`✓ ${matched.name} (${formatCurrency(matched.price)})`);
-      setTimeout(() => setScanToast(null), 2500);
+      
+      const newTotal = totalAmount + matched.price;
+      setLastScannedFeedback({
+        name: matched.name,
+        price: matched.price,
+        totalCartAmount: newTotal
+      });
+
+      setScanToast(`✓ ${matched.name} (${formatCurrency(matched.price)}) ajouté !`);
+      setTimeout(() => setScanToast(null), 3000);
     } else {
       // Produit non reconnu dans le catalogue
       triggerHaptic(60);
@@ -157,9 +169,17 @@ export const PosView: React.FC = () => {
     );
     await loadProducts();
     handleSelectProduct(newProd.id);
+    
+    const newTotal = totalAmount + price;
+    setLastScannedFeedback({
+      name: newProd.name,
+      price: newProd.price,
+      totalCartAmount: newTotal
+    });
+
     setScannedUnknownBarcode(null);
     setScanToast(`✓ Article créé : ${newProd.name}`);
-    setTimeout(() => setScanToast(null), 2500);
+    setTimeout(() => setScanToast(null), 3000);
   };
 
   const handleOpenPayment = () => {
@@ -405,11 +425,17 @@ export const PosView: React.FC = () => {
       {/* Modal Scanner Code-Barres Caméra */}
       <BarcodeScannerModal
         isOpen={isBarcodeScannerOpen}
-        onClose={() => setIsBarcodeScannerOpen(false)}
+        onClose={() => {
+          setIsBarcodeScannerOpen(false);
+          setLastScannedFeedback(null);
+        }}
         onScan={(code) => {
           handleBarcodeScanned(code);
         }}
-        continuous={true}
+        lastScannedItem={lastScannedFeedback}
+        onScanNext={() => {
+          setLastScannedFeedback(null);
+        }}
       />
 
       {/* Modal Produit Inconnu Scanné (Création & Ajout Immédiat) */}
