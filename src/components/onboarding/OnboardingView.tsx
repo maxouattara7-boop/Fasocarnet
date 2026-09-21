@@ -112,80 +112,90 @@ export const OnboardingView: React.FC = () => {
   // =========================================================================
   if (viewStep === 'welcome') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-emerald-950 to-slate-950 text-white flex flex-col justify-between p-4 sm:p-6 overflow-y-auto">
-        <div className="max-w-md w-full mx-auto my-auto py-6 space-y-6 flex flex-col items-center text-center">
-          
-          {/* Logo & Badge */}
-          <div className="space-y-3 flex flex-col items-center animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="p-3.5 bg-gradient-to-tr from-emerald-500/20 to-amber-500/20 rounded-3xl border border-emerald-500/30 shadow-2xl backdrop-blur-sm">
-              <Logo size="lg" showText={false} />
-            </div>
-
-            <div className="inline-flex items-center space-x-1.5 px-3.5 py-1 bg-emerald-500/15 border border-emerald-400/30 rounded-full text-xs font-bold text-emerald-300">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>La Solution Digitale des Commerçants</span>
-            </div>
-
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-none pt-1 font-display">
-              FasoCarnet <span className="text-emerald-400">Mobile</span>
-            </h1>
-
-            {/* Phrase d'accroche */}
-            <p className="text-sm sm:text-base text-emerald-100/90 font-medium leading-relaxed max-w-sm px-2">
-              Votre caisse, vos crédits clients et vos bilans en poche. <span className="text-amber-300 font-bold">Simple, rapide et 100% hors-ligne.</span>
-            </p>
+      <div className="h-screen max-h-screen overflow-hidden bg-gradient-to-b from-slate-950 via-emerald-950 to-slate-950 text-white flex flex-col justify-between p-4 sm:p-5 select-none">
+        {/* En-tête / Logo & Accroche */}
+        <div className="flex flex-col items-center text-center pt-2 sm:pt-4 space-y-2 animate-in fade-in slide-in-from-top-3 duration-500">
+          <div className="p-2.5 bg-gradient-to-tr from-emerald-500/20 to-amber-500/20 rounded-2xl border border-emerald-500/30 shadow-xl backdrop-blur-sm">
+            <Logo size="md" showText={false} />
           </div>
 
-          {/* Grille des 3 Atouts Clés */}
-          <div className="w-full space-y-2.5 pt-1 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="bg-slate-900/80 border border-emerald-500/20 p-3.5 rounded-2xl flex items-center space-x-3.5 text-left backdrop-blur-md shadow-lg">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400">
-                <Zap className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-xs font-black text-white uppercase tracking-wider">Caisse Tactile Express</h3>
-                <p className="text-[11px] text-slate-300 line-clamp-1">Encaissez en 3 secondes avec reçus WhatsApp</p>
-              </div>
-            </div>
+          <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 bg-emerald-500/15 border border-emerald-400/30 rounded-full text-[10px] font-bold text-emerald-300">
+            <Sparkles className="w-3 h-3 text-amber-300" />
+            <span>La Solution Digitale des Commerçants</span>
+          </div>
 
-            <div className="bg-slate-900/80 border border-emerald-500/20 p-3.5 rounded-2xl flex items-center space-x-3.5 text-left backdrop-blur-md shadow-lg">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
-                <BookOpen className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-xs font-black text-white uppercase tracking-wider">Carnet de Dettes Intelligent</h3>
-                <p className="text-[11px] text-slate-300 line-clamp-1">Suivez les crédits clients et relancez en 1 clic</p>
-              </div>
-            </div>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-none font-display">
+            FasoCarnet <span className="text-emerald-400">Mobile</span>
+          </h1>
 
-            <div className="bg-slate-900/80 border border-emerald-500/20 p-3.5 rounded-2xl flex items-center space-x-3.5 text-left backdrop-blur-md shadow-lg">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0 text-cyan-400">
-                <WifiOff className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-xs font-black text-white uppercase tracking-wider">100% Hors-Ligne & Multi-Écrans</h3>
-                <p className="text-[11px] text-slate-300 line-clamp-1">Vos données synchronisées sur vos téléphones</p>
-              </div>
+          <p className="text-xs sm:text-sm text-emerald-100/90 font-medium leading-relaxed max-w-xs px-1">
+            Votre caisse, vos crédits clients et vos bilans en poche. <span className="text-amber-300 font-bold">Simple, rapide et 100% hors-ligne.</span>
+          </p>
+        </div>
+
+        {/* Grille des 3 Atouts Clés (Titres sur une seule ligne) */}
+        <div className="w-full max-w-sm mx-auto space-y-2 py-1 animate-in fade-in slide-in-from-bottom-3 duration-600">
+          {/* 1. Caisse Tactile Express */}
+          <div className="bg-slate-900/85 border border-emerald-500/20 p-2.5 sm:p-3 rounded-xl flex items-center space-x-3 text-left backdrop-blur-md shadow-md">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400">
+              <Zap className="w-4 h-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-xs font-black text-white uppercase tracking-wider truncate whitespace-nowrap">
+                Caisse Tactile Express
+              </h3>
+              <p className="text-[10px] text-slate-300 truncate">
+                Encaissez en 3 secondes avec reçus WhatsApp
+              </p>
             </div>
           </div>
 
-          {/* Bouton d'action Continuer */}
-          <div className="w-full pt-2 animate-in fade-in slide-in-from-bottom-6 duration-1000 space-y-2">
-            <button
-              type="button"
-              data-testid="btn-continue"
-              onClick={() => setViewStep('auth')}
-              className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black rounded-2xl text-base shadow-xl shadow-emerald-500/25 active:scale-98 transition-all flex items-center justify-center space-x-2.5 border border-emerald-400/30 cursor-pointer"
-            >
-              <span>Continuer</span>
-              <ArrowRight className="w-5 h-5" />
-            </button>
-            <p className="text-[11px] text-slate-400 mt-2 flex items-center justify-center space-x-1.5">
-              <BurkinaFlag size="sm" />
-              <span>Conçu pour les commerçants du Burkina Faso</span>
-            </p>
+          {/* 2. Carnet de Dettes Intelligent */}
+          <div className="bg-slate-900/85 border border-emerald-500/20 p-2.5 sm:p-3 rounded-xl flex items-center space-x-3 text-left backdrop-blur-md shadow-md">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
+              <BookOpen className="w-4 h-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-xs font-black text-white uppercase tracking-wider truncate whitespace-nowrap">
+                Carnet de Dettes Intelligent
+              </h3>
+              <p className="text-[10px] text-slate-300 truncate">
+                Suivez les crédits clients et relancez en 1 clic
+              </p>
+            </div>
           </div>
 
+          {/* 3. 100% Hors-Ligne */}
+          <div className="bg-slate-900/85 border border-emerald-500/20 p-2.5 sm:p-3 rounded-xl flex items-center space-x-3 text-left backdrop-blur-md shadow-md">
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0 text-cyan-400">
+              <WifiOff className="w-4 h-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-xs font-black text-white uppercase tracking-wider truncate whitespace-nowrap">
+                100% Hors-Ligne
+              </h3>
+              <p className="text-[10px] text-slate-300 truncate">
+                Fonctionne partout, sans coupure ni besoin de réseau
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bouton d'action Continuer & Bas de page */}
+        <div className="w-full max-w-sm mx-auto pb-2 sm:pb-3 space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <button
+            type="button"
+            data-testid="btn-continue"
+            onClick={() => setViewStep('auth')}
+            className="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black rounded-xl text-sm shadow-lg shadow-emerald-500/25 active:scale-98 transition-all flex items-center justify-center space-x-2 border border-emerald-400/30 cursor-pointer"
+          >
+            <span>Continuer</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+          <div className="text-[10px] text-slate-400 flex items-center justify-center space-x-1.5">
+            <BurkinaFlag size="sm" />
+            <span>Conçu pour les commerçants du Burkina Faso</span>
+          </div>
         </div>
       </div>
     );
