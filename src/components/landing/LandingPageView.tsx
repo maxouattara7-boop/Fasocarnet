@@ -22,6 +22,8 @@ interface LandingPageViewProps {
   onOpenApp?: () => void;
 }
 
+const APK_DOWNLOAD_URL = 'https://github.com/maxouattara7-boop/Fasocarnet/releases/download/v1.2.0/FasoCarnet-v1.2.0-Android.apk';
+
 export const LandingPageView: React.FC<LandingPageViewProps> = () => {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showFaqModal, setShowFaqModal] = useState(false);
@@ -30,10 +32,12 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
 
   const handleTriggerApkDownload = () => {
     setShowDownloadModal(true);
-    // Déclenchement du téléchargement direct du fichier APK
+    // Déclenchement du téléchargement direct de l'APK depuis GitHub Releases
     const link = document.createElement('a');
-    link.href = '/downloads/FasoCarnet-v1.2.0-Android.apk';
+    link.href = APK_DOWNLOAD_URL;
     link.download = 'FasoCarnet-v1.2.0-Android.apk';
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -521,6 +525,16 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
               <p className="text-xs text-emerald-700 font-bold">
                 Le fichier <code>FasoCarnet-v1.2.0-Android.apk</code> se télécharge sur votre smartphone.
               </p>
+              <div className="pt-1">
+                <a
+                  href={APK_DOWNLOAD_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] text-emerald-600 hover:text-emerald-700 underline font-semibold inline-flex items-center space-x-1"
+                >
+                  <span>Si le téléchargement ne démarre pas, cliquez ici</span>
+                </a>
+              </div>
             </div>
 
             <div className="p-3.5 sm:p-4 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-200 space-y-2.5 sm:space-y-3 text-xs">
