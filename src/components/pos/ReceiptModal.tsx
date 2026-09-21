@@ -3,6 +3,7 @@ import { Sale } from '../../types';
 import { useAppStore } from '../../store/appStore';
 import { generateReceiptDataUrl, generateReceiptFile, extractReceiptItems } from '../../utils/receiptGenerator';
 import { printViaBluetooth, printViaRawBt, printViaHiddenIframe, isBluetoothSupported } from '../../utils/bluetoothPrinter';
+import { generateWhatsAppReceiptUrl } from '../../utils/whatsapp';
 import { formatDateTime } from '../../utils/formatters';
 import { CheckCircle2, ArrowRight, Download, Share2, Printer, Loader2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
@@ -47,28 +48,57 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
   const handleShareReceiptImage = async () => {
     try {
-      const file = await generateReceiptFile(sale, shopProfile || undefined);
-
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `Reçu de caisse - ${shopProfile?.name || 'FasoCarnet'}`,
-          text: `Voici votre reçu de paiement pour vos achats chez ${shopProfile?.name || 'FasoCarnet'}.`
-        });
-      } else {
-        handleDownloadImage();
+      // 1. Essayer le partage natif de l'image (si supporté par le système)
+      if (navigator.share) {
+        try {
+          const file = await generateReceiptFile(sale, shopProfile || undefined);
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: `Reçu de caisse - ${shopProfile?.name || 'FasoCarnet'}`,
+              text: `Voici votre reçu de paiement pour vos achats chez ${shopProfile?.name || 'FasoCarnet'}.`
+            });
+            return;
+          }
+        } catch (shareErr: any) {
+          if (shareErr.name === 'AbortError') return; // Utilisateur a simplement annulé
+          console.warn('Partage fichier direct non supporté:', shareErr);
+        }
       }
+
+      // 2. Partage WhatsApp direct (100% universel et instantané sur Android & Web)
+      const waUrl = generateWhatsAppReceiptUrl(sale, shopProfile || undefined, sale.customerPhone);
+      window.open(waUrl, '_blank');
     } catch (err) {
-      console.error(err);
+      console.error('Erreur partage:', err);
+      const waUrl = generateWhatsAppReceiptUrl(sale, shopProfile || undefined, sale.customerPhone);
+      window.open(waUrl, '_blank');
     }
   };
 
-  const handleDownloadImage = () => {
-    if (!receiptImageUrl) return;
-    const a = document.createElement('a');
-    a.href = receiptImageUrl;
-    a.download = `recu-${sale.id.slice(-6)}.png`;
-    a.click();
+  const handleDownloadImage = async () => {
+    try {
+      const file = await generateReceiptFile(sale, shopProfile || undefined);
+      const blobUrl = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      const safeShop = (shopProfile?.name || 'fasocarnet').toLowerCase().replace(/[^a-z0-9]/g, '_');
+      a.download = `recu_${safeShop}_${sale.id.slice(-6)}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+      setPrintStatus('✓ Reçu téléchargé sur votre appareil !');
+      setTimeout(() => setPrintStatus(null), 2500);
+    } catch (err) {
+      console.error('Erreur téléchargement blob:', err);
+      if (receiptImageUrl) {
+        const a = document.createElement('a');
+        a.href = receiptImageUrl;
+        a.download = `recu-${sale.id.slice(-6)}.png`;
+        a.click();
+      }
+    }
   };
 
   /**
