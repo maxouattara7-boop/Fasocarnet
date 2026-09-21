@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { ShopProfile, LicenseKey } from '../../types';
+import { ShopProfile, LicenseKey, AdminDepositNumbers } from '../../types';
 import { syncService } from './syncService';
 
 export interface SubscriptionPlan {
@@ -38,15 +38,17 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
 
 export interface SubscriptionInfo {
   status: 'trial' | 'active' | 'grace' | 'expired';
-  statusLabel: string;
   daysRemaining: number;
+  isExpired: boolean;
+  statusLabel: string;
+  badgeBg?: string;
+  badgeText?: string;
   expiresAt: string;
   formattedExpiresAt: string;
-  planName: string;
-  isTrial: boolean;
-  isExpired: boolean;
-  isGrace: boolean;
-  canUseApp: boolean;
+  planName?: string;
+  isTrial?: boolean;
+  isGrace?: boolean;
+  canUseApp?: boolean;
 }
 
 export interface PaymentMethodConfig {
@@ -58,32 +60,64 @@ export interface PaymentMethodConfig {
   badgeBg: string;
 }
 
-export const OFFICIAL_PAYMENT_CHANNELS: PaymentMethodConfig[] = [
-  {
-    id: 'orange',
-    name: 'Orange Money',
-    number: '72990310',
-    merchantName: 'FasoCarnet Service',
-    color: '#ff6600',
-    badgeBg: 'bg-orange-500/10 text-orange-600 border-orange-200'
-  },
-  {
-    id: 'moov',
-    name: 'Moov Money',
-    number: '72990310',
-    merchantName: 'FasoCarnet Service',
-    color: '#005baa',
-    badgeBg: 'bg-blue-500/10 text-blue-600 border-blue-200'
-  },
-  {
-    id: 'wave',
-    name: 'Wave',
-    number: '72990310',
-    merchantName: 'FasoCarnet Service',
-    color: '#1dc4fe',
-    badgeBg: 'bg-sky-500/10 text-sky-600 border-sky-200'
+export const DEFAULT_DEPOSIT_NUMBERS: AdminDepositNumbers = {
+  orangeMoney: '72990310',
+  moovMoney: '03901590',
+  wave: '72990310',
+  merchantName: 'Maxime OUATTARA'
+};
+
+export const getStoredDepositNumbers = (): AdminDepositNumbers => {
+  if (typeof window === 'undefined') return DEFAULT_DEPOSIT_NUMBERS;
+  try {
+    const raw = localStorage.getItem('fasocarnet_admin_deposit_numbers');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        orangeMoney: parsed.orangeMoney || DEFAULT_DEPOSIT_NUMBERS.orangeMoney,
+        moovMoney: parsed.moovMoney || DEFAULT_DEPOSIT_NUMBERS.moovMoney,
+        wave: parsed.wave || DEFAULT_DEPOSIT_NUMBERS.wave,
+        merchantName: parsed.merchantName || DEFAULT_DEPOSIT_NUMBERS.merchantName,
+        updatedAt: parsed.updatedAt
+      };
+    }
+  } catch (e) {
+    console.warn('Erreur lecture numéros de dépôt', e);
   }
-];
+  return DEFAULT_DEPOSIT_NUMBERS;
+};
+
+export const getPaymentChannels = (depositNumbers?: AdminDepositNumbers): PaymentMethodConfig[] => {
+  const current = depositNumbers || getStoredDepositNumbers();
+  return [
+    {
+      id: 'orange',
+      name: 'Orange Money',
+      number: current.orangeMoney,
+      merchantName: current.merchantName || 'FasoCarnet Service',
+      color: '#ff6600',
+      badgeBg: 'bg-orange-500/10 text-orange-600 border-orange-200'
+    },
+    {
+      id: 'moov',
+      name: 'Moov Money',
+      number: current.moovMoney,
+      merchantName: current.merchantName || 'FasoCarnet Service',
+      color: '#005baa',
+      badgeBg: 'bg-blue-500/10 text-blue-600 border-blue-200'
+    },
+    {
+      id: 'wave',
+      name: 'Wave',
+      number: current.wave,
+      merchantName: current.merchantName || 'FasoCarnet Service',
+      color: '#1dc4fe',
+      badgeBg: 'bg-sky-500/10 text-sky-600 border-sky-200'
+    }
+  ];
+};
+
+export const OFFICIAL_PAYMENT_CHANNELS: PaymentMethodConfig[] = getPaymentChannels();
 
 export const subscriptionService = {
   getSubscriptionInfo(profile?: ShopProfile | null): SubscriptionInfo {

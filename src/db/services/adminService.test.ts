@@ -149,5 +149,29 @@ describe('adminService', () => {
     const cleared = await adminService.getBroadcastMessage();
     expect(cleared).toBeNull();
   });
+
+  it('saves and retrieves dynamic Mobile Money deposit numbers', async () => {
+    const defaultDep = await adminService.getDepositNumbers();
+    expect(defaultDep.orangeMoney).toBe('72990310');
+    expect(defaultDep.moovMoney).toBe('03901590');
+    expect(defaultDep.wave).toBe('72990310');
+    expect(defaultDep.merchantName).toBe('Maxime OUATTARA');
+
+    const updated = await adminService.saveDepositNumbers({
+      orangeMoney: '70123456',
+      moovMoney: '60987654',
+      wave: '70123456',
+      merchantName: 'FasoCarnet Support Officiel'
+    });
+
+    expect(updated.orangeMoney).toBe('70123456');
+    expect(updated.moovMoney).toBe('60987654');
+    expect(updated.wave).toBe('70123456');
+    expect(updated.merchantName).toBe('FasoCarnet Support Officiel');
+
+    const fetched = await adminService.getDepositNumbers();
+    expect(fetched.orangeMoney).toBe('70123456');
+    expect(fetched.merchantName).toBe('FasoCarnet Support Officiel');
+  });
 });
 

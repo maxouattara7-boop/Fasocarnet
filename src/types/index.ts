@@ -172,3 +172,11 @@ export interface ExtendedAdminAnalytics {
   };
   cityStats: { city: string; count: number }[];
 }
+
+export interface AdminDepositNumbers {
+  orangeMoney: string;
+  moovMoney: string;
+  wave: string;
+  merchantName?: string;
+  updatedAt?: string;
+}

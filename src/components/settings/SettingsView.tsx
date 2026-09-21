@@ -30,7 +30,7 @@ import {
 import { soundEffects } from '../../utils/soundEffects';
 import { isHapticsEnabled, setHapticsEnabled, triggerHaptic, triggerDoubleHaptic } from '../../utils/haptics';
 import { productsService } from '../../db/services/productsService';
-import { subscriptionService, SUBSCRIPTION_PLANS, SubscriptionPlan, OFFICIAL_PAYMENT_CHANNELS } from '../../db/services/subscriptionService';
+import { subscriptionService, SUBSCRIPTION_PLANS, SubscriptionPlan, getPaymentChannels } from '../../db/services/subscriptionService';
 import { updateService, AppUpdateInfo, CURRENT_APP_VERSION } from '../../services/updateService';
 import { UpdateModal } from '../common/UpdateModal';
 import { Product } from '../../types';
@@ -689,7 +689,7 @@ export const SettingsView: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  {OFFICIAL_PAYMENT_CHANNELS.map((channel) => {
+                  {getPaymentChannels().map((channel) => {
                     const isCopied = copiedNumber === channel.number;
                     return (
                       <div

@@ -3,7 +3,7 @@ import {
   Store, Crown, Key, Lock, LogOut, Search, Plus, Copy, Check, Trash2,
   MessageCircle, ArrowLeft, Sparkles, Eye, EyeOff, RefreshCw,
   BarChart3, Smartphone, Radio, Download, Phone, Users,
-  MapPin, Send, CheckCircle2, Megaphone
+  MapPin, Send, CheckCircle2, Megaphone, Wallet
 } from 'lucide-react';
 import { adminService, AdminStats, ShopAdminDetails } from '../../db/services/adminService';
 import { LicenseKey, ExtendedAdminAnalytics, AdminBroadcastMessage } from '../../types';
@@ -58,6 +58,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [broadcastType, setBroadcastType] = useState<'info' | 'promo' | 'warning' | 'alert'>('info');
   const [isSavingBroadcast, setIsSavingBroadcast] = useState(false);
   const [broadcastSuccess, setBroadcastSuccess] = useState('');
+
+  // Deposit Numbers (Orange, Moov, Wave)
+  const [depositOrange, setDepositOrange] = useState('72990310');
+  const [depositMoov, setDepositMoov] = useState('03901590');
+  const [depositWave, setDepositWave] = useState('72990310');
+  const [depositMerchant, setDepositMerchant] = useState('Maxime OUATTARA');
+  const [isSavingDeposit, setIsSavingDeposit] = useState(false);
+  const [depositSuccessMsg, setDepositSuccessMsg] = useState('');
 
   // WhatsApp Campaigns & Contacts
   const [whatsappFilter, setWhatsappFilter] = useState<'all' | 'expired' | 'trial' | 'active'>('all');
@@ -147,12 +155,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const loadData = async () => {
     setIsRefreshing(true);
     try {
-      const [s, an, sh, l, bc] = await Promise.all([
+      const [s, an, sh, l, bc, dep] = await Promise.all([
         adminService.getAdminStats(),
         adminService.getExtendedAnalytics(),
         adminService.getAllShopsWithDetails(),
         adminService.getAllLicenses(),
-        adminService.getBroadcastMessage()
+        adminService.getBroadcastMessage(),
+        adminService.getDepositNumbers()
       ]);
       setStats(s);
       setAnalytics(an);
@@ -164,8 +173,33 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         setBroadcastMessage(bc.message);
         setBroadcastType(bc.type);
       }
+      if (dep) {
+        setDepositOrange(dep.orangeMoney || '');
+        setDepositMoov(dep.moovMoney || '');
+        setDepositWave(dep.wave || '');
+        setDepositMerchant(dep.merchantName || '');
+      }
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const handleSaveDepositNumbers = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingDeposit(true);
+    try {
+      await adminService.saveDepositNumbers({
+        orangeMoney: depositOrange.trim(),
+        moovMoney: depositMoov.trim(),
+        wave: depositWave.trim(),
+        merchantName: depositMerchant.trim()
+      });
+      setDepositSuccessMsg('Numéros de dépôt Mobile Money mis à jour et synchronisés avec succès !');
+      setTimeout(() => setDepositSuccessMsg(''), 3500);
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de la mise à jour des numéros de dépôt.');
+    } finally {
+      setIsSavingDeposit(false);
     }
   };
 
@@ -486,8 +520,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             }`}
           >
-            <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-            <span className="truncate">Sécurité</span>
+            <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="truncate">Sécurité & Dépôts</span>
           </button>
         </div>
 
@@ -1445,10 +1479,137 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
           </div>
         )}
 
-        {/* TAB 6 : SÉCURITÉ ADMIN */}
+        {/* TAB 6 : SÉCURITÉ & DÉPÔTS MOBILE MONEY */}
         {activeTab === 'security' && (
-          <div className="space-y-4 animate-in fade-in duration-150">
-            <form onSubmit={handleChangePassword} className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm max-w-xl">
+          <div className="space-y-6 animate-in fade-in duration-150">
+            {/* COMPTES DE DÉPÔT MOBILE MONEY */}
+            <div className="bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-800 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
+                <div className="flex items-center space-x-2.5 text-amber-400">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <Wallet className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm sm:text-base text-white font-display">
+                      Numéros de Dépôt Mobile Money (Abonnements & Licences)
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Ces numéros sont affichés à tous les commerçants lors du paiement de leur abonnement.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveDepositNumbers} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
+                  {/* Orange Money */}
+                  <div className="bg-slate-800/60 p-3.5 sm:p-4 rounded-2xl border border-slate-700/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-black uppercase tracking-wider text-orange-400 font-display flex items-center space-x-1.5">
+                        <Smartphone className="w-3.5 h-3.5" />
+                        <span>Orange Money</span>
+                      </label>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                        Burkina Faso
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: 72990310"
+                      value={depositOrange}
+                      onChange={(e) => setDepositOrange(e.target.value)}
+                      className="w-full p-2.5 sm:p-3 bg-slate-900 border border-slate-700 rounded-xl text-sm font-black text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                    <p className="text-[10px] text-slate-400">Numéro pour les dépôts et transferts Orange Money.</p>
+                  </div>
+
+                  {/* Moov Money */}
+                  <div className="bg-slate-800/60 p-3.5 sm:p-4 rounded-2xl border border-slate-700/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-black uppercase tracking-wider text-blue-400 font-display flex items-center space-x-1.5">
+                        <Smartphone className="w-3.5 h-3.5" />
+                        <span>Moov Money</span>
+                      </label>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        Burkina Faso
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: 03901590"
+                      value={depositMoov}
+                      onChange={(e) => setDepositMoov(e.target.value)}
+                      className="w-full p-2.5 sm:p-3 bg-slate-900 border border-slate-700 rounded-xl text-sm font-black text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-[10px] text-slate-400">Numéro pour les dépôts et transferts Moov Money.</p>
+                  </div>
+
+                  {/* Wave */}
+                  <div className="bg-slate-800/60 p-3.5 sm:p-4 rounded-2xl border border-slate-700/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-black uppercase tracking-wider text-cyan-400 font-display flex items-center space-x-1.5">
+                        <Smartphone className="w-3.5 h-3.5" />
+                        <span>Wave</span>
+                      </label>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                        Burkina Faso
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ex: 72990310"
+                      value={depositWave}
+                      onChange={(e) => setDepositWave(e.target.value)}
+                      className="w-full p-2.5 sm:p-3 bg-slate-900 border border-slate-700 rounded-xl text-sm font-black text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                    <p className="text-[10px] text-slate-400">Numéro pour les transferts et paiements Wave.</p>
+                  </div>
+                </div>
+
+                {/* Nom du titulaire */}
+                <div className="bg-slate-800/40 p-3.5 sm:p-4 rounded-2xl border border-slate-700/60 space-y-2">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-300 font-display flex items-center space-x-1.5">
+                    <Users className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Nom du Titulaire des Comptes</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Maxime OUATTARA"
+                    value={depositMerchant}
+                    onChange={(e) => setDepositMerchant(e.target.value)}
+                    className="w-full p-2.5 sm:p-3 bg-slate-900 border border-slate-700 rounded-xl text-sm font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <p className="text-[10px] text-slate-400">
+                    Ce nom rassure le commerçant pour qu'il vérifie l'identité du destinataire avant de valider le transfert.
+                  </p>
+                </div>
+
+                {depositSuccessMsg && (
+                  <div className="p-3 bg-emerald-950/60 border border-emerald-800 rounded-2xl flex items-center space-x-2 text-xs font-bold text-emerald-300 animate-in fade-in duration-150">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{depositSuccessMsg}</span>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2">
+                  <button
+                    type="submit"
+                    disabled={isSavingDeposit}
+                    className="w-full sm:w-auto px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl sm:rounded-2xl text-xs sm:text-sm shadow-md transition-all font-display flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+                  >
+                    <Wallet className="w-4 h-4" />
+                    <span>{isSavingDeposit ? 'Enregistrement en cours...' : 'Enregistrer & Synchroniser les Numéros'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* MOT DE PASSE SUPER-ADMIN */}
+            <form onSubmit={handleChangePassword} className="bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm max-w-xl">
               <div className="flex items-center space-x-2 text-emerald-400 border-b border-slate-800 pb-3">
                 <Lock className="w-5 h-5" />
                 <h3 className="font-bold text-xs sm:text-sm text-white font-display">Changer le Mot de Passe Super-Admin</h3>

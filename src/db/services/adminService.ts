@@ -1,6 +1,6 @@
 import { db } from '../db';
-import { ShopProfile, LicenseKey, ExtendedAdminAnalytics, AdminBroadcastMessage, DeviceTelemetry } from '../../types';
-import { subscriptionService, SUBSCRIPTION_PLANS } from './subscriptionService';
+import { ShopProfile, LicenseKey, ExtendedAdminAnalytics, AdminBroadcastMessage, DeviceTelemetry, AdminDepositNumbers } from '../../types';
+import { subscriptionService, SUBSCRIPTION_PLANS, DEFAULT_DEPOSIT_NUMBERS } from './subscriptionService';
 import { syncService } from './syncService';
 import { detectBurkinaOperator, detectPlatform } from '../../utils/telemetry';
 
@@ -624,5 +624,79 @@ export const adminService = {
    */
   async setBroadcastMessage(message: AdminBroadcastMessage | null): Promise<void> {
     return syncService.setBroadcastMessage(message);
+  },
+
+  /**
+   * Récupère les numéros de dépôt Mobile Money configurés par le Super-Admin
+   */
+  async getDepositNumbers(): Promise<AdminDepositNumbers> {
+    try {
+      const cloudDb = await syncService.fetchRemoteDatabase();
+      const adminVault = cloudDb['_admin_vault'];
+      if (adminVault && (adminVault as any).depositNumbers) {
+        const cloudNumbers = (adminVault as any).depositNumbers as AdminDepositNumbers;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('fasocarnet_admin_deposit_numbers', JSON.stringify(cloudNumbers));
+        }
+        return cloudNumbers;
+      }
+    } catch (e) {
+      console.warn('Erreur récupération numéros de dépôt depuis le cloud:', e);
+    }
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('fasocarnet_admin_deposit_numbers') : null;
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        return {
+          orangeMoney: parsed.orangeMoney || DEFAULT_DEPOSIT_NUMBERS.orangeMoney,
+          moovMoney: parsed.moovMoney || DEFAULT_DEPOSIT_NUMBERS.moovMoney,
+          wave: parsed.wave || DEFAULT_DEPOSIT_NUMBERS.wave,
+          merchantName: parsed.merchantName || DEFAULT_DEPOSIT_NUMBERS.merchantName,
+          updatedAt: parsed.updatedAt
+        };
+      } catch {}
+    }
+    return DEFAULT_DEPOSIT_NUMBERS;
+  },
+
+  /**
+   * Met à jour les numéros de dépôt Mobile Money (Orange, Moov, Wave) (Local + Cloud)
+   */
+  async saveDepositNumbers(numbers: AdminDepositNumbers): Promise<AdminDepositNumbers> {
+    const updated: AdminDepositNumbers = {
+      orangeMoney: numbers.orangeMoney.trim(),
+      moovMoney: numbers.moovMoney.trim(),
+      wave: numbers.wave.trim(),
+      merchantName: numbers.merchantName?.trim() || DEFAULT_DEPOSIT_NUMBERS.merchantName,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fasocarnet_admin_deposit_numbers', JSON.stringify(updated));
+    }
+
+    try {
+      const cloudDb = await syncService.fetchRemoteDatabase();
+      const adminVaultKey = '_admin_vault';
+      if (!cloudDb[adminVaultKey]) {
+        cloudDb[adminVaultKey] = {
+          profile: undefined as any,
+          sales: [],
+          customers: [],
+          products: [],
+          debts: [],
+          debtPayments: [],
+          licenses: [],
+          lastUpdatedAt: new Date().toISOString()
+        };
+      }
+      (cloudDb[adminVaultKey] as any).depositNumbers = updated;
+      cloudDb[adminVaultKey].lastUpdatedAt = new Date().toISOString();
+      await syncService.pushRemoteDatabase(cloudDb);
+    } catch (e) {
+      console.warn('Erreur synchronisation numéros de dépôt dans le cloud:', e);
+    }
+
+    return updated;
   }
 };
