@@ -151,7 +151,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
                   </div>
                   <div className="flex items-center space-x-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Calculateur avec vibreur & voix</span>
+                    <span>Caisse tactile & Encaissement express</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
@@ -270,7 +270,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
                     <Calculator className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2]" />
                   </div>
                   <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-                    ⚡ Calculateur
+                    ⚡ Caisse Rapide
                   </span>
                 </div>
 
@@ -287,7 +287,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
               <div className="pt-3 sm:pt-4 border-t border-slate-100 space-y-2 text-xs text-slate-600 font-medium text-left">
                 <div className="flex items-center space-x-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Retour vibreur & vocal tactile</span>
+                  <span>Clavier tactile fluide & intuitif</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
