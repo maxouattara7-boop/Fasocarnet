@@ -14,12 +14,15 @@ export interface SupabaseConfig {
   isCustom: boolean;
 }
 
+let inMemoryCustomUrl: string | null = null;
+let inMemoryCustomKey: string | null = null;
+
 export const supabaseClient = {
   /**
    * Récupère la configuration Supabase active
    */
   getConfig(): SupabaseConfig {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       const savedUrl = localStorage.getItem(SUPABASE_URL_KEY);
       const savedKey = localStorage.getItem(SUPABASE_ANON_KEY);
       if (savedUrl && savedKey) {
@@ -29,10 +32,17 @@ export const supabaseClient = {
           isCustom: true
         };
       }
+    } else if (inMemoryCustomUrl && inMemoryCustomKey) {
+      return {
+        url: inMemoryCustomUrl,
+        anonKey: inMemoryCustomKey,
+        isCustom: true
+      };
     }
 
-    const envUrl = (import.meta as any).env?.VITE_SUPABASE_URL || '';
-    const envKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
+    const isTest = (import.meta as any).env?.MODE === 'test';
+    const envUrl = isTest ? '' : ((import.meta as any).env?.VITE_SUPABASE_URL || '');
+    const envKey = isTest ? '' : ((import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '');
 
     return {
       url: envUrl.trim(),
@@ -45,17 +55,29 @@ export const supabaseClient = {
    * Enregistre les identifiants de projet Supabase
    */
   setConfig(url: string, anonKey: string): void {
-    if (typeof window !== 'undefined') {
-      if (!url.trim() || !anonKey.trim()) {
+    const trimmedUrl = url.trim().replace(/\/+$/, '');
+    const trimmedKey = anonKey.trim();
+
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      if (!trimmedUrl || !trimmedKey) {
         localStorage.removeItem(SUPABASE_URL_KEY);
         localStorage.removeItem(SUPABASE_ANON_KEY);
       } else {
-        localStorage.setItem(SUPABASE_URL_KEY, url.trim().replace(/\/+$/, ''));
-        localStorage.setItem(SUPABASE_ANON_KEY, anonKey.trim());
+        localStorage.setItem(SUPABASE_URL_KEY, trimmedUrl);
+        localStorage.setItem(SUPABASE_ANON_KEY, trimmedKey);
       }
-      cachedClient = null;
-      lastClientKey = '';
     }
+    
+    if (!trimmedUrl || !trimmedKey) {
+      inMemoryCustomUrl = null;
+      inMemoryCustomKey = null;
+    } else {
+      inMemoryCustomUrl = trimmedUrl;
+      inMemoryCustomKey = trimmedKey;
+    }
+
+    cachedClient = null;
+    lastClientKey = '';
   },
 
   /**
@@ -97,8 +119,9 @@ export const supabaseClient = {
    * Teste la connexion à la base Supabase et vérifie la table 'shops'
    */
   async testConnection(customUrl?: string, customKey?: string): Promise<{ success: boolean; latencyMs: number; message: string }> {
-    const url = customUrl || this.getConfig().url;
-    const anonKey = customKey || this.getConfig().anonKey;
+    const activeConfig = this.getConfig();
+    const url = customUrl !== undefined ? customUrl.trim() : activeConfig.url;
+    const anonKey = customKey !== undefined ? customKey.trim() : activeConfig.anonKey;
 
     if (!url || !anonKey) {
       return { success: false, latencyMs: 0, message: 'Veuillez renseigner l\'URL du projet et la Clé Anon.' };

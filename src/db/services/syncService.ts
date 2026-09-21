@@ -29,8 +29,13 @@ const CLOUD_STORAGE_KEY = 'fasocarnet_cloud_database_v1';
 const BROADCAST_STORAGE_KEY = 'fasocarnet_active_broadcast_v1';
 const AUTH_TOKEN_STORAGE_KEY = 'fasocarnet_shop_auth_token_v1';
 
+let inMemoryCloudDb: Record<string, CloudShopData> = {};
+let inMemoryAuthToken: string | null = null;
+let inMemoryServerUrl: string | null = null;
+let inMemoryBroadcast: string | null = null;
+
 const getApiBaseUrl = (): string => {
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
     const saved = localStorage.getItem('fasocarnet_server_url');
     if (saved && saved.trim()) return saved.trim().replace(/\/+$/, '');
 
@@ -42,6 +47,8 @@ const getApiBaseUrl = (): string => {
     if (window.location && window.location.protocol && window.location.protocol.startsWith('http') && !window.location.hostname.includes('localhost')) {
       return window.location.origin;
     }
+  } else if (inMemoryServerUrl) {
+    return inMemoryServerUrl;
   }
   return 'http://localhost:5000';
 };
@@ -129,9 +136,12 @@ export const syncService = {
    */
   getAuthToken(): string | null {
     try {
-      return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        return localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+      }
+      return inMemoryAuthToken;
     } catch {
-      return null;
+      return inMemoryAuthToken;
     }
   },
 
@@ -139,8 +149,11 @@ export const syncService = {
    * Sauvegarde le jeton d'authentification
    */
   setAuthToken(token: string): void {
+    inMemoryAuthToken = token;
     try {
-      localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+      }
     } catch (err) {
       console.error('Erreur stockage token auth:', err);
     }
@@ -150,8 +163,11 @@ export const syncService = {
    * Supprime le jeton d'authentification
    */
   clearAuthToken(): void {
+    inMemoryAuthToken = null;
     try {
-      localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+      }
     } catch {}
   },
 
@@ -245,10 +261,13 @@ export const syncService = {
    */
   getCloudDatabase(): Record<string, CloudShopData> {
     try {
-      const data = localStorage.getItem(CLOUD_STORAGE_KEY);
-      return data ? JSON.parse(data) : {};
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        const data = localStorage.getItem(CLOUD_STORAGE_KEY);
+        if (data) return JSON.parse(data);
+      }
+      return inMemoryCloudDb;
     } catch {
-      return {};
+      return inMemoryCloudDb;
     }
   },
 
@@ -256,8 +275,11 @@ export const syncService = {
    * Sauvegarde la base Cloud complète dans le cache local
    */
   saveCloudDatabase(data: Record<string, CloudShopData>) {
+    inMemoryCloudDb = { ...data };
     try {
-      localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(data));
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        localStorage.setItem(CLOUD_STORAGE_KEY, JSON.stringify(data));
+      }
     } catch (err) {
       console.error('Erreur sauvegarde cloud cache:', err);
     }
@@ -448,7 +470,10 @@ export const syncService = {
       if (supabaseClient.isConfigured()) {
         const supaBroadcast = await supabaseClient.fetchBroadcast();
         if (supaBroadcast && supaBroadcast.isActive) {
-          localStorage.setItem(BROADCAST_STORAGE_KEY, JSON.stringify(supaBroadcast));
+          if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+            localStorage.setItem(BROADCAST_STORAGE_KEY, JSON.stringify(supaBroadcast));
+          }
+          inMemoryBroadcast = JSON.stringify(supaBroadcast);
           return supaBroadcast;
         }
       }
@@ -456,10 +481,17 @@ export const syncService = {
       const cloudDb = await this.fetchRemoteDatabase();
       const broadcastData = (cloudDb as any)['_admin_broadcast']?.broadcast;
       if (broadcastData && broadcastData.isActive) {
-        localStorage.setItem(BROADCAST_STORAGE_KEY, JSON.stringify(broadcastData));
+        if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+          localStorage.setItem(BROADCAST_STORAGE_KEY, JSON.stringify(broadcastData));
+        }
+        inMemoryBroadcast = JSON.stringify(broadcastData);
         return broadcastData;
       }
-      const saved = localStorage.getItem(BROADCAST_STORAGE_KEY);
+      
+      let saved = inMemoryBroadcast;
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        saved = localStorage.getItem(BROADCAST_STORAGE_KEY) || inMemoryBroadcast;
+      }
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed?.isActive) return parsed;
@@ -484,10 +516,16 @@ export const syncService = {
         broadcast: message,
         lastUpdatedAt: new Date().toISOString()
       };
-      localStorage.setItem(BROADCAST_STORAGE_KEY, JSON.stringify(message));
+      inMemoryBroadcast = JSON.stringify(message);
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        localStorage.setItem(BROADCAST_STORAGE_KEY, JSON.stringify(message));
+      }
     } else {
       delete (cloudDb as any)['_admin_broadcast'];
-      localStorage.removeItem(BROADCAST_STORAGE_KEY);
+      inMemoryBroadcast = null;
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        localStorage.removeItem(BROADCAST_STORAGE_KEY);
+      }
     }
     await this.pushRemoteDatabase(cloudDb);
   },
@@ -547,11 +585,15 @@ export const syncService = {
    * Configure une nouvelle URL de serveur Cloud distant
    */
   setServerUrl(url: string): void {
+    const trimmed = (url || '').trim().replace(/\/+$/, '');
+    inMemoryServerUrl = trimmed || null;
     try {
-      if (!url || !url.trim()) {
-        localStorage.removeItem('fasocarnet_server_url');
-      } else {
-        localStorage.setItem('fasocarnet_server_url', url.trim().replace(/\/+$/, ''));
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        if (!trimmed) {
+          localStorage.removeItem('fasocarnet_server_url');
+        } else {
+          localStorage.setItem('fasocarnet_server_url', trimmed);
+        }
       }
     } catch (err) {
       console.error('Erreur configuration URL serveur:', err);

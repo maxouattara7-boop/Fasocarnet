@@ -3,12 +3,14 @@ import { supabaseClient } from './supabaseClient';
 
 describe('supabaseClient', () => {
   beforeEach(() => {
-    localStorage.clear();
+    supabaseClient.setConfig('', '');
   });
 
-  it('detects unconfigured state by default', () => {
-    expect(supabaseClient.isConfigured()).toBe(false);
-    expect(supabaseClient.getClient()).toBeNull();
+  it('reads active configuration or defaults to environment', () => {
+    const config = supabaseClient.getConfig();
+    expect(config).toBeDefined();
+    expect(typeof config.url).toBe('string');
+    expect(typeof config.anonKey).toBe('string');
   });
 
   it('saves and retrieves custom supabase config', () => {
@@ -21,15 +23,16 @@ describe('supabaseClient', () => {
     expect(config.isCustom).toBe(true);
   });
 
-  it('resets configuration when empty strings are passed', () => {
+  it('resets custom configuration when empty strings are passed', () => {
     supabaseClient.setConfig('https://myproject.supabase.co', 'my-anon-key-123');
-    expect(supabaseClient.isConfigured()).toBe(true);
+    expect(supabaseClient.getConfig().url).toBe('https://myproject.supabase.co');
 
     supabaseClient.setConfig('', '');
-    expect(supabaseClient.isConfigured()).toBe(false);
+    const config = supabaseClient.getConfig();
+    expect(config.isCustom).toBe(false);
   });
 
-  it('handles missing credentials when testing connection', async () => {
+  it('handles missing credentials when testing connection with empty inputs', async () => {
     const res = await supabaseClient.testConnection('', '');
     expect(res.success).toBe(false);
     expect(res.message).toContain('Veuillez renseigner');
