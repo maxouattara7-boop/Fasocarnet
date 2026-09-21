@@ -17,7 +17,8 @@ import {
   ArrowLeft,
   Zap,
   BookOpen,
-  WifiOff
+  WifiOff,
+  ChevronDown
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { BurkinaFlag } from '../common/BurkinaFlag';
@@ -196,7 +197,7 @@ export const OnboardingView: React.FC = () => {
   // 2. PAGE DE CONNEXION / CRÉATION D'ESPACE
   // =========================================================================
   return (
-    <div className="h-screen max-h-screen overflow-hidden bg-gradient-to-b from-emerald-950 via-emerald-900 to-emerald-950 text-white flex flex-col justify-between p-3.5 sm:p-4 select-none">
+    <div className="h-screen max-h-screen overflow-hidden bg-gradient-to-b from-slate-950 via-emerald-950 to-slate-950 text-white flex flex-col justify-between p-4 sm:p-5 select-none">
       <div className="max-w-sm w-full mx-auto flex flex-col h-full justify-between">
         
         {/* Barre supérieure : Retour & Logo */}
@@ -205,28 +206,28 @@ export const OnboardingView: React.FC = () => {
             type="button"
             data-testid="btn-back-welcome"
             onClick={() => setViewStep('welcome')}
-            className="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 text-xs font-bold rounded-xl border border-emerald-700/60 transition-colors cursor-pointer"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 text-xs font-bold rounded-xl border border-emerald-700/60 transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Accueil</span>
           </button>
           
-          <div className="inline-flex items-center space-x-1 px-2.5 py-0.5 bg-emerald-800/60 rounded-full text-[10px] font-bold text-emerald-200 border border-emerald-600/40">
+          <div className="inline-flex items-center space-x-1 px-2.5 py-1 bg-emerald-800/60 rounded-full text-[10px] font-bold text-emerald-200 border border-emerald-600/40">
             <Sparkles className="w-3 h-3 text-amber-300" />
             <span>FasoCarnet</span>
           </div>
         </div>
 
         {/* Titre & Sélecteur d'onglets (Connexion / Créer son espace) */}
-        <div className="space-y-1.5 pt-0.5 text-center">
-          <h2 className="text-sm sm:text-base font-black tracking-tight leading-tight">
+        <div className="space-y-1.5 text-center">
+          <h2 className="text-base sm:text-lg font-black tracking-tight leading-tight">
             Se connecter ou créer son espace
           </h2>
-          <p className="text-[11px] font-semibold text-emerald-300/80">
+          <p className="text-xs font-semibold text-emerald-300/80">
             {authMode === 'login' ? 'Connexion à votre Espace' : 'Création de votre Espace'}
           </p>
 
-          <div className="bg-emerald-900/80 p-1 rounded-xl flex border border-emerald-700/60 shadow-md">
+          <div className="bg-emerald-900/70 backdrop-blur p-1 rounded-2xl flex border border-emerald-700/50 shadow-inner">
             <button
               type="button"
               data-testid="tab-login"
@@ -234,13 +235,13 @@ export const OnboardingView: React.FC = () => {
                 setAuthMode('login');
                 setLoginError('');
               }}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
                 authMode === 'login'
                   ? 'bg-white text-emerald-950 shadow-sm'
                   : 'text-emerald-200 hover:text-white'
               }`}
             >
-              <Lock className="w-3 h-3" />
+              <Lock className="w-3.5 h-3.5" />
               <span>Connexion</span>
             </button>
 
@@ -251,13 +252,13 @@ export const OnboardingView: React.FC = () => {
                 setAuthMode('register');
                 setRegisterError('');
               }}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
+              className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
                 authMode === 'register'
                   ? 'bg-emerald-500 text-emerald-950 shadow-sm'
                   : 'text-emerald-200 hover:text-white'
               }`}
             >
-              <Sparkles className="w-3 h-3" />
+              <Sparkles className="w-3.5 h-3.5" />
               <span>Créer un Espace</span>
             </button>
           </div>
@@ -267,30 +268,34 @@ export const OnboardingView: React.FC = () => {
         {/* ONGLET 1 : SE CONNECTER                                   */}
         {/* ======================================================== */}
         {authMode === 'login' && (
-          <form onSubmit={handleLoginSubmit} className="bg-white text-slate-900 p-3.5 sm:p-4 rounded-2xl shadow-xl space-y-2.5 border border-emerald-100 my-auto animate-in fade-in duration-150">
+          <form onSubmit={handleLoginSubmit} className="bg-white text-slate-900 p-5 rounded-3xl shadow-2xl border border-emerald-100 my-auto space-y-4 animate-in fade-in duration-200">
             {loginError && (
-              <div className="p-2 bg-red-50 border border-red-200 rounded-xl flex items-start space-x-1.5 text-xs font-semibold text-red-700 animate-in shake">
-                <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+              <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl flex items-start space-x-2 text-xs font-semibold text-red-700 animate-in shake">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                 <span>{loginError}</span>
               </div>
             )}
 
             {/* Numéro de téléphone */}
-            <div className="relative">
-              <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="relative flex items-center">
+              <div className="absolute left-3.5 flex items-center pointer-events-none text-emerald-600">
+                <Phone className="w-5 h-5" />
+              </div>
               <input
                 type="tel"
                 required
                 placeholder="Numéro de téléphone (Ex: 70 12 34 56) *"
                 value={loginPhone}
                 onChange={(e) => setLoginPhone(e.target.value)}
-                className="w-full pl-8.5 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all"
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
               />
             </div>
 
             {/* Code PIN */}
-            <div className="relative">
-              <KeyRound className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="relative flex items-center">
+              <div className="absolute left-3.5 flex items-center pointer-events-none text-emerald-600">
+                <KeyRound className="w-5 h-5" />
+              </div>
               <input
                 type={showLoginPin ? 'text' : 'password'}
                 inputMode="numeric"
@@ -300,30 +305,30 @@ export const OnboardingView: React.FC = () => {
                 placeholder="Code PIN de sécurité • • • •"
                 value={loginPin}
                 onChange={(e) => setLoginPin(e.target.value.replace(/\D/g, ''))}
-                className="w-full pl-8.5 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold tracking-widest text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all"
+                className="w-full pl-12 pr-11 py-3 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl text-xs sm:text-sm font-extrabold tracking-widest text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal placeholder:tracking-normal"
               />
               <button
                 type="button"
                 onClick={() => setShowLoginPin(!showLoginPin)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-0.5 transition-colors cursor-pointer"
+                className="absolute right-3.5 p-1 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
               >
-                {showLoginPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                {showLoginPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
 
             <button
               type="submit"
               disabled={isSyncing}
-              className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-600/20 active:scale-98 transition-all flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-2xl text-xs sm:text-sm shadow-lg shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50 mt-2"
             >
               {isSyncing ? (
                 <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <RefreshCw className="w-4 h-4 animate-spin" />
                   <span>Connexion...</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="w-4 h-4" />
                   <span>SE CONNECTER</span>
                 </>
               )}
@@ -335,47 +340,53 @@ export const OnboardingView: React.FC = () => {
         {/* ONGLET 2 : CRÉER SON ESPACE                              */}
         {/* ======================================================== */}
         {authMode === 'register' && (
-          <form onSubmit={handleRegisterSubmit} className="bg-white text-slate-900 p-3.5 sm:p-4 rounded-2xl shadow-xl space-y-2 border border-emerald-100 my-auto animate-in fade-in duration-150">
+          <form onSubmit={handleRegisterSubmit} className="bg-white text-slate-900 p-4 sm:p-5 rounded-3xl shadow-2xl border border-emerald-100 my-auto space-y-3 sm:space-y-3.5 animate-in fade-in duration-200">
             {registerError && (
-              <div className="p-2 bg-red-50 border border-red-200 rounded-xl flex items-start space-x-1.5 text-xs font-semibold text-red-700 animate-in shake">
-                <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+              <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl flex items-start space-x-2 text-xs font-semibold text-red-700 animate-in shake">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                 <span>{registerError}</span>
               </div>
             )}
 
             {/* 1. Nom du commerce */}
-            <div className="relative">
-              <Store className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="relative flex items-center">
+              <div className="absolute left-3.5 flex items-center pointer-events-none text-emerald-600">
+                <Store className="w-5 h-5" />
+              </div>
               <input
                 type="text"
                 required
                 placeholder="Nom du commerce (Ex: Alimentation La Grâce) *"
                 value={shopName}
                 onChange={(e) => setShopName(e.target.value)}
-                className="w-full pl-8.5 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all"
+                className="w-full pl-12 pr-4 py-2.5 sm:py-3 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
               />
             </div>
 
             {/* 2. Numéro de téléphone WhatsApp */}
-            <div className="relative">
-              <Phone className="w-3.5 h-3.5 text-emerald-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="relative flex items-center">
+              <div className="absolute left-3.5 flex items-center pointer-events-none text-emerald-600">
+                <Phone className="w-5 h-5" />
+              </div>
               <input
                 type="tel"
                 required
                 placeholder="Numéro WhatsApp (Ex: 70 12 34 56) *"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full pl-8.5 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all"
+                className="w-full pl-12 pr-4 py-2.5 sm:py-3 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
               />
             </div>
 
             {/* 3. Ville */}
-            <div className="relative">
-              <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="relative flex items-center">
+              <div className="absolute left-3.5 flex items-center pointer-events-none text-emerald-600">
+                <MapPin className="w-5 h-5" />
+              </div>
               <select
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className="w-full pl-8.5 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all appearance-none cursor-pointer"
+                className="w-full pl-12 pr-10 py-2.5 sm:py-3 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 outline-none transition-all appearance-none cursor-pointer"
               >
                 <option value="Ouagadougou">Ouagadougou</option>
                 <option value="Bobo-Dioulasso">Bobo-Dioulasso</option>
@@ -389,6 +400,9 @@ export const OnboardingView: React.FC = () => {
                 <option value="Pouytenga">Pouytenga</option>
                 <option value="Autre">Autre localité...</option>
               </select>
+              <div className="absolute right-3.5 flex items-center pointer-events-none text-slate-400">
+                <ChevronDown className="w-4 h-4" />
+              </div>
             </div>
             {city === 'Autre' && (
               <input
@@ -396,13 +410,15 @@ export const OnboardingView: React.FC = () => {
                 placeholder="Précisez votre ville ou village..."
                 value={customCity}
                 onChange={(e) => setCustomCity(e.target.value)}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 outline-none transition-all"
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 outline-none transition-all"
               />
             )}
 
             {/* 4. Code PIN de Sécurité */}
-            <div className="relative">
-              <KeyRound className="w-3.5 h-3.5 text-emerald-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="relative flex items-center">
+              <div className="absolute left-3.5 flex items-center pointer-events-none text-emerald-600">
+                <KeyRound className="w-5 h-5" />
+              </div>
               <input
                 type={showPin ? 'text' : 'password'}
                 inputMode="numeric"
@@ -412,26 +428,28 @@ export const OnboardingView: React.FC = () => {
                 placeholder="Code PIN à 4 chiffres (Ex: 1234) *"
                 value={pinCode}
                 onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ''))}
-                className="w-full pl-8.5 pr-9 py-2 bg-emerald-50/40 border border-emerald-200/80 rounded-xl text-xs font-extrabold tracking-widest text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all"
+                className="w-full pl-12 pr-11 py-2.5 sm:py-3 bg-emerald-50/30 hover:bg-emerald-50/60 focus:bg-white border border-emerald-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl text-xs sm:text-sm font-extrabold tracking-widest text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal placeholder:tracking-normal"
               />
               <button
                 type="button"
                 onClick={() => setShowPin(!showPin)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-0.5 transition-colors cursor-pointer"
+                className="absolute right-3.5 p-1 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
               >
-                {showPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
 
             {/* 5. Email optionnel */}
-            <div className="relative">
-              <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="relative flex items-center">
+              <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400">
+                <Mail className="w-5 h-5" />
+              </div>
               <input
                 type="email"
                 placeholder="Adresse email (optionnel)"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-8.5 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all"
+                className="w-full pl-12 pr-4 py-2.5 sm:py-3 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
               />
             </div>
 
@@ -439,16 +457,16 @@ export const OnboardingView: React.FC = () => {
             <button
               type="submit"
               disabled={isSyncing}
-              className="w-full py-2.5 bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
+              className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-2xl text-xs sm:text-sm shadow-lg shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50 mt-1"
             >
               {isSyncing ? (
                 <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <RefreshCw className="w-4 h-4 animate-spin" />
                   <span>Création...</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="w-4 h-4" />
                   <span>VALIDER ET CRÉER MON ESPACE</span>
                 </>
               )}
@@ -457,7 +475,7 @@ export const OnboardingView: React.FC = () => {
         )}
 
         {/* Footer */}
-        <div className="text-[10px] text-emerald-300/70 text-center pb-1">
+        <div className="text-[11px] text-emerald-300/70 text-center pb-1 font-medium">
           <span>Données 100% sécurisées et conservées hors-ligne</span>
         </div>
 
