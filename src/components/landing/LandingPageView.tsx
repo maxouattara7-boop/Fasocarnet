@@ -22,7 +22,7 @@ interface LandingPageViewProps {
   onOpenApp?: () => void;
 }
 
-const APK_DOWNLOAD_URL = '/downloads/FasoCarnet-v1.2.0-Android.apk';
+const APK_DOWNLOAD_URL = 'https://github.com/maxouattara7-boop/Fasocarnet/releases/download/v1.2.0/FasoCarnet-v1.2.0-Android.apk';
 
 export const LandingPageView: React.FC<LandingPageViewProps> = () => {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
