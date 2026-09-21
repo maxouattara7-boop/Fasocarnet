@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { X, Flashlight, Camera, AlertCircle, Sparkles, Check } from 'lucide-react';
+import { X, Flashlight, Camera, AlertCircle, Sparkles, Check, RefreshCw } from 'lucide-react';
 import { triggerDoubleHaptic, triggerHaptic } from '../../utils/haptics';
 
 interface BarcodeScannerModalProps {
@@ -54,14 +54,34 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     };
   }, [isOpen]);
 
+  const stopScanner = async () => {
+    if (html5QrCodeRef.current && isScanningRef.current) {
+      try {
+        await html5QrCodeRef.current.stop();
+        html5QrCodeRef.current.clear();
+      } catch (err) {
+        console.error('[BarcodeScanner] Erreur arrêt:', err);
+      } finally {
+        isScanningRef.current = false;
+        html5QrCodeRef.current = null;
+      }
+    }
+  };
+
   const startScanner = async () => {
     const readerElementId = 'barcode-scanner-viewport';
     try {
+      setIsStarting(true);
+      setErrorMsg(null);
+
       // Petite attente pour le rendu du DOM
       await new Promise((resolve) => setTimeout(resolve, 200));
 
       const element = document.getElementById(readerElementId);
       if (!element) return;
+
+      // Nettoyer toute instance précédente
+      await stopScanner();
 
       const html5QrCode = new Html5Qrcode(readerElementId, {
         formatsToSupport: SUPPORTED_FORMATS,
@@ -75,16 +95,61 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         aspectRatio: 1.33
       };
 
-      await html5QrCode.start(
-        { facingMode: 'environment' },
-        config,
-        (decodedText: string) => {
-          handleSuccess(decodedText);
-        },
-        () => {
-          // Ignorer les frames sans code
+      const qrCodeSuccessCallback = (decodedText: string) => {
+        handleSuccess(decodedText);
+      };
+
+      // Stratégie 1 : Énumérer les caméras disponibles
+      let started = false;
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        if (cameras && cameras.length > 0) {
+          // Trouver la caméra arrière
+          const backCam = cameras.find((c) => {
+            const label = c.label.toLowerCase();
+            return (
+              label.includes('back') ||
+              label.includes('rear') ||
+              label.includes('arriere') ||
+              label.includes('arrière') ||
+              label.includes('environment')
+            );
+          }) || cameras[cameras.length - 1]; // Souvent la dernière caméra sur Android
+
+          await html5QrCode.start(
+            backCam.id,
+            config,
+            qrCodeSuccessCallback,
+            () => {}
+          );
+          started = true;
         }
-      );
+      } catch (enumErr) {
+        console.warn('[BarcodeScanner] getCameras() a échoué, essai fallback facingMode:', enumErr);
+      }
+
+      // Stratégie 2 : Fallback avec facingMode: 'environment'
+      if (!started) {
+        try {
+          await html5QrCode.start(
+            { facingMode: 'environment' },
+            config,
+            qrCodeSuccessCallback,
+            () => {}
+          );
+          started = true;
+        } catch (envErr) {
+          console.warn('[BarcodeScanner] facingMode environment a échoué, essai facingMode user:', envErr);
+          // Stratégie 3 : Essayer n'importe quelle caméra disponible
+          await html5QrCode.start(
+            { facingMode: 'user' },
+            config,
+            qrCodeSuccessCallback,
+            () => {}
+          );
+          started = true;
+        }
+      }
 
       isScanningRef.current = true;
       setIsStarting(false);
@@ -101,25 +166,39 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     } catch (err: any) {
       console.error('[BarcodeScanner] Erreur démarrage:', err);
       setIsStarting(false);
+      const isDenied =
+        err.name === 'NotAllowedError' ||
+        err.name === 'PermissionDeniedError' ||
+        err.message?.toLowerCase().includes('permission') ||
+        err.message?.toLowerCase().includes('denied');
+
       setErrorMsg(
-        err.message?.includes('Permission') || err.name === 'NotAllowedError'
-          ? 'Veuillez autoriser l\'accès à la caméra pour scanner les articles.'
-          : 'Impossible d\'accéder à la caméra. Vérifiez vos permissions ou entrez le code manuellement.'
+        isDenied
+          ? "Accès à la caméra refusé. Cliquez ci-dessous pour autoriser la caméra ou réglez les permissions de votre navigateur."
+          : "Impossible d'accéder à la caméra de votre appareil. Vérifiez vos permissions ou saisissez le code manuellement."
       );
     }
   };
 
-  const stopScanner = async () => {
-    if (html5QrCodeRef.current && isScanningRef.current) {
-      try {
-        await html5QrCodeRef.current.stop();
-        html5QrCodeRef.current.clear();
-      } catch (err) {
-        console.error('[BarcodeScanner] Erreur arrêt:', err);
-      } finally {
-        isScanningRef.current = false;
-        html5QrCodeRef.current = null;
+  /**
+   * Forcer la demande explicite de permission caméra (Geste utilisateur direct)
+   */
+  const handleRequestPermissionAndRetry = async () => {
+    try {
+      setIsStarting(true);
+      setErrorMsg(null);
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // Fermer le flux temporaire
+        stream.getTracks().forEach((track) => track.stop());
       }
+      await startScanner();
+    } catch (err: any) {
+      console.error('[BarcodeScanner] Échec réessai permission:', err);
+      setIsStarting(false);
+      setErrorMsg(
+        "L'autorisation de la caméra est bloquée par le navigateur. Cliquez sur l'icône de cadenas 🔒 à gauche de l'URL pour autoriser la caméra."
+      );
     }
   };
 
@@ -145,7 +224,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     const clean = code.trim();
     if (!clean) return;
 
-    // Éviter les scans en rafale du même code en moins de 1 seconde
+    // Éviter les scans en rafale du même code en moins de 1.2s
     if (clean === lastScannedCode) return;
 
     playBeep();
@@ -180,6 +259,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     e.preventDefault();
     if (manualCode.trim()) {
       handleSuccess(manualCode.trim());
+      setManualCode('');
     }
   };
 
@@ -251,9 +331,20 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           )}
 
           {errorMsg && (
-            <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center space-y-2.5 text-center p-6 text-red-300">
-              <AlertCircle className="w-8 h-8 text-red-400" />
-              <p className="text-xs font-semibold leading-relaxed">{errorMsg}</p>
+            <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center space-y-3 text-center p-6 text-slate-200">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-400">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <p className="text-xs font-medium leading-relaxed max-w-xs text-red-200">{errorMsg}</p>
+              
+              <button
+                type="button"
+                onClick={handleRequestPermissionAndRetry}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center space-x-2 active:scale-95 transition-all cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Autoriser & Réessayer la Caméra</span>
+              </button>
             </div>
           )}
         </div>
