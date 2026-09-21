@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DailySummary, Sale } from '../../types';
 import { salesService } from '../../db/services/salesService';
-import { useAppStore } from '../../store/appStore';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
-import { generateDailyReportWhatsAppUrl } from '../../utils/whatsapp';
 import { 
   BarChart3, 
   Banknote, 
@@ -11,14 +9,12 @@ import {
   CreditCard, 
   ArrowDownLeft, 
   Calendar, 
-  MessageSquare,
-  ChevronDown,
-  ChevronUp,
-  Wallet
+  ChevronDown, 
+  ChevronUp, 
+  Wallet 
 } from 'lucide-react';
 
 export const DailyReportView: React.FC = () => {
-  const { shopProfile } = useAppStore();
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -35,12 +31,6 @@ export const DailyReportView: React.FC = () => {
     const sales = await salesService.getRecentSales(30);
     setSummary(sum);
     setRecentSales(sales);
-  };
-
-  const handleSendReportToOwner = () => {
-    if (!summary) return;
-    const url = generateDailyReportWhatsAppUrl(summary, shopProfile || undefined);
-    window.open(url, '_blank');
   };
 
   const totalCashCollected = 
@@ -83,16 +73,6 @@ export const DailyReportView: React.FC = () => {
           Chiffre d'affaires net encaissé (espèces + mobile money)
         </p>
       </div>
-
-      {/* BOUTON D'ACTION PRINCIPAL : ENVOYER LE POINT DU JOUR AU PATRON */}
-      <button
-        type="button"
-        onClick={handleSendReportToOwner}
-        className="w-full py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-xl shadow-sm shadow-green-600/20 flex items-center justify-center space-x-1.5 active:scale-98 transition-all text-xs font-display"
-      >
-        <MessageSquare className="w-3.5 h-3.5 fill-white" />
-        <span>ENVOYER LE POINT AU PATRON (WhatsApp)</span>
-      </button>
 
       {/* BLOC 1 : PAIEMENTS CASH & MOBILE MONEY (SECTION AVEC DÉTAIL DÉROULANT) */}
       <div className="bg-white rounded-xl border border-slate-100 shadow-xs overflow-hidden">
