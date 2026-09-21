@@ -3,9 +3,10 @@ import {
   Store, Crown, Key, Lock, LogOut, Search, Plus, Copy, Check, Trash2,
   MessageCircle, ArrowLeft, Sparkles, Eye, EyeOff, RefreshCw,
   BarChart3, Smartphone, Radio, Download, Phone, Users,
-  MapPin, Send, CheckCircle2, Megaphone, Wallet
+  MapPin, Send, CheckCircle2, Megaphone, Wallet, Server, Activity, Globe, Wifi
 } from 'lucide-react';
 import { adminService, AdminStats, ShopAdminDetails } from '../../db/services/adminService';
+import { syncService } from '../../db/services/syncService';
 import { LicenseKey, ExtendedAdminAnalytics, AdminBroadcastMessage } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -66,6 +67,43 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [depositMerchant, setDepositMerchant] = useState('Maxime OUATTARA');
   const [isSavingDeposit, setIsSavingDeposit] = useState(false);
   const [depositSuccessMsg, setDepositSuccessMsg] = useState('');
+
+  // Cloud Server Management
+  const [customServerUrl, setCustomServerUrl] = useState(syncService.getServerUrl());
+  const [isTestingServer, setIsTestingServer] = useState(false);
+  const [serverHealthResult, setServerHealthResult] = useState<{ success: boolean; latencyMs: number; version?: string; error?: string } | null>(null);
+  const [serverSaveSuccess, setServerSaveSuccess] = useState('');
+
+  const handleTestServer = async () => {
+    setIsTestingServer(true);
+    setServerHealthResult(null);
+    try {
+      const res = await syncService.checkServerHealth(customServerUrl);
+      setServerHealthResult(res);
+    } finally {
+      setIsTestingServer(false);
+    }
+  };
+
+  const handleSaveServerUrl = (e: React.FormEvent) => {
+    e.preventDefault();
+    syncService.setServerUrl(customServerUrl);
+    setServerSaveSuccess('URL du serveur Cloud mise à jour avec succès !');
+    setTimeout(() => setServerSaveSuccess(''), 3000);
+  };
+
+  const handleExportAllShopsJson = () => {
+    const allData = syncService.getCloudDatabase();
+    const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fasocarnet_base_complete_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   // WhatsApp Campaigns & Contacts
   const [whatsappFilter, setWhatsappFilter] = useState<'all' | 'expired' | 'trial' | 'active'>('all');
@@ -1605,6 +1643,98 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                     <span>{isSavingDeposit ? 'Enregistrement en cours...' : 'Enregistrer & Synchroniser les Numéros'}</span>
                   </button>
                 </div>
+              </form>
+            </div>
+
+            {/* CONFIGURATION SERVEUR CLOUD CENTRAL */}
+            <div className="bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                <div className="flex items-center space-x-2 text-emerald-400">
+                  <Server className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <div>
+                    <h3 className="font-bold text-xs sm:text-sm text-white font-display">Serveur Cloud & Synchronisation Réseau</h3>
+                    <p className="text-[10px] text-slate-400">Point d'accès API pour la synchronisation multi-boutiques et la sauvegarde</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={handleExportAllShopsJson}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1.5 transition-all cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Sauvegarde Globale (.json)</span>
+                  </button>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveServerUrl} className="space-y-3">
+                <div>
+                  <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
+                    URL du Serveur API Cloud (Production ou Local)
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1">
+                      <Globe className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="url"
+                        required
+                        placeholder="https://votre-serveur-fasocarnet.onrender.com ou http://localhost:3000"
+                        value={customServerUrl}
+                        onChange={(e) => setCustomServerUrl(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-mono font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={isTestingServer}
+                        onClick={handleTestServer}
+                        className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl sm:rounded-2xl text-xs flex items-center justify-center space-x-1.5 border border-slate-700 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        <Activity className={`w-3.5 h-3.5 ${isTestingServer ? 'animate-spin text-emerald-400' : 'text-emerald-400'}`} />
+                        <span>{isTestingServer ? 'Test...' : 'Tester Latence'}</span>
+                      </button>
+
+                      <button
+                        type="submit"
+                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl sm:rounded-2xl text-xs shadow-md transition-all cursor-pointer"
+                      >
+                        Sauvegarder
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {serverHealthResult && (
+                  <div className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-between ${
+                    serverHealthResult.success
+                      ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300'
+                      : 'bg-red-950/40 border-red-800 text-red-300'
+                  }`}>
+                    <div className="flex items-center space-x-2">
+                      {serverHealthResult.success ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      ) : (
+                        <Wifi className="w-4 h-4 text-red-400 shrink-0" />
+                      )}
+                      <span>
+                        {serverHealthResult.success
+                          ? `Serveur en ligne (v${serverHealthResult.version || '1.2.2'})`
+                          : `Erreur : ${serverHealthResult.error || 'Inaccessible'}`}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[11px] px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-300">
+                      Latence : {serverHealthResult.latencyMs} ms
+                    </span>
+                  </div>
+                )}
+
+                {serverSaveSuccess && (
+                  <p className="text-xs text-emerald-400 font-semibold bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-800/50">
+                    {serverSaveSuccess}
+                  </p>
+                )}
               </form>
             </div>
 

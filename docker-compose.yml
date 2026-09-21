@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  fasocarnet-server:
+    build: .
+    container_name: fasocarnet-cloud-api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - ADMIN_API_KEY=faso_carnet_admin_secret_2026
+      - SHOP_AUTH_SECRET_SEED=FASO_CARNET_SHOP_AUTH_TOKEN_SEED_2026
+    volumes:
+      - fasocarnet-data:/app/data
+
+volumes:
+  fasocarnet-data:
+    driver: local

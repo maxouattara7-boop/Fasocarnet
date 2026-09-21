@@ -80,4 +80,44 @@ describe('syncService (Cloud Sync & Single Account per device)', () => {
     expect(res.success).toBe(false);
     expect(res.message).toMatch(/Code PIN incorrect/i);
   });
+
+  it('exports and imports backup JSON file successfully', async () => {
+    const shop = await syncService.registerShop({
+      name: 'Boutique Sauvegarde',
+      phone: '70223344',
+      currency: 'FCFA'
+    });
+
+    await db.products.put({
+      id: 'prod_sauv',
+      name: 'Sucre St Louis',
+      price: 1000,
+      createdAt: new Date().toISOString()
+    });
+
+    const jsonBackup = await syncService.exportBackupData(shop.id);
+    expect(jsonBackup).toContain('Boutique Sauvegarde');
+    expect(jsonBackup).toContain('Sucre St Louis');
+
+    // Vider la base locale
+    await syncService.clearLocalData();
+    expect(await db.products.count()).toBe(0);
+
+    // Restaurer depuis le fichier JSON
+    const importRes = await syncService.importBackupData(jsonBackup);
+    expect(importRes.success).toBe(true);
+    expect(importRes.shop?.name).toBe('Boutique Sauvegarde');
+
+    const products = await db.products.toArray();
+    expect(products).toHaveLength(1);
+    expect(products[0].name).toBe('Sucre St Louis');
+  });
+
+  it('manages custom server URL configuration', () => {
+    expect(syncService.getServerUrl()).toBe('http://localhost:5000');
+    syncService.setServerUrl('https://api.fasocarnet.com/');
+    expect(syncService.getServerUrl()).toBe('https://api.fasocarnet.com');
+    syncService.setServerUrl('');
+    expect(syncService.getServerUrl()).toBe('http://localhost:5000');
+  });
 });

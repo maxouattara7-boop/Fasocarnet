@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { 
   Store, 
@@ -25,13 +25,18 @@ import {
   Mic,
   Vibrate,
   VibrateOff,
-  RefreshCw
+  RefreshCw,
+  Download,
+  Upload,
+  Headphones,
+  FileJson
 } from 'lucide-react';
 import { soundEffects } from '../../utils/soundEffects';
 import { hashPin } from '../../utils/crypto';
 import { isHapticsEnabled, setHapticsEnabled, triggerHaptic, triggerDoubleHaptic } from '../../utils/haptics';
 import { productsService } from '../../db/services/productsService';
 import { subscriptionService, SUBSCRIPTION_PLANS, SubscriptionPlan, getPaymentChannels } from '../../db/services/subscriptionService';
+import { syncService } from '../../db/services/syncService';
 import { updateService, AppUpdateInfo, CURRENT_APP_VERSION } from '../../services/updateService';
 import { UpdateModal } from '../common/UpdateModal';
 import { Product } from '../../types';
@@ -154,6 +159,66 @@ export const SettingsView: React.FC = () => {
     } finally {
       setIsCheckingUpdate(false);
     }
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [backupFeedback, setBackupFeedback] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleExportBackup = async () => {
+    if (!shopProfile) return;
+    setIsExporting(true);
+    setBackupFeedback(null);
+    try {
+      const json = await syncService.exportBackupData(shopProfile.id);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const safeName = shopProfile.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const dateStr = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `sauvegarde_fasocarnet_${safeName}_${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setBackupFeedback({ success: true, message: 'Sauvegarde exportée avec succès !' });
+      setTimeout(() => setBackupFeedback(null), 4000);
+    } catch (err: any) {
+      setBackupFeedback({ success: false, message: err.message || "Erreur lors de l'exportation." });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImportBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsImporting(true);
+    setBackupFeedback(null);
+    try {
+      const text = await file.text();
+      const res = await syncService.importBackupData(text);
+      setBackupFeedback({ success: res.success, message: res.message });
+      if (res.success && res.shop) {
+        updateShopProfile(res.shop);
+        await loadProducts();
+      }
+      setTimeout(() => setBackupFeedback(null), 5000);
+    } catch (err: any) {
+      console.error(err);
+      setBackupFeedback({ success: false, message: 'Erreur lors de la restauration du fichier.' });
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleContactSupport = () => {
+    const shopName = shopProfile?.name || 'Mon commerce';
+    const text = encodeURIComponent(`Bonjour support FasoCarnet, je suis le responsable de « ${shopName} ». J'ai besoin d'une assistance.`);
+    window.open(`https://wa.me/22665616134?text=${text}`, '_blank');
   };
 
   const subInfo = subscriptionService.getSubscriptionInfo(shopProfile);
@@ -536,6 +601,86 @@ export const SettingsView: React.FC = () => {
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isCheckingUpdate ? 'animate-spin text-emerald-600' : 'text-slate-600'}`} />
               <span>{isCheckingUpdate ? 'Recherche de mise à jour...' : 'Vérifier les Mises à Jour'}</span>
+            </button>
+          </div>
+
+          {/* Sauvegarde & Restauration de Secours */}
+          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-100 shadow-xs space-y-2.5">
+            <div className="flex items-center space-x-2 text-emerald-900 border-b border-slate-100 pb-2">
+              <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
+                <FileJson className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-xs tracking-tight">Sauvegarde & Restauration de Secours</h3>
+                <p className="text-[10px] text-slate-500">Exportez ou importez vos données en fichier JSON</p>
+              </div>
+            </div>
+
+            {backupFeedback && (
+              <div className={`p-2 rounded-lg text-[11px] font-bold flex items-center space-x-1.5 ${
+                backupFeedback.success
+                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                  : 'bg-red-50 text-red-800 border border-red-200'
+              }`}>
+                {backupFeedback.success ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />}
+                <span>{backupFeedback.message}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={isExporting}
+                onClick={handleExportBackup}
+                className="py-2 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-98 cursor-pointer disabled:opacity-50"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                <span>{isExporting ? 'Export...' : 'Exporter (.json)'}</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isImporting}
+                onClick={() => fileInputRef.current?.click()}
+                className="py-2 px-2 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-98 cursor-pointer disabled:opacity-50"
+              >
+                <Upload className="w-3.5 h-3.5 text-slate-700 shrink-0" />
+                <span>{isImporting ? 'Lecture...' : 'Restaurer (.json)'}</span>
+              </button>
+            </div>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".json"
+              onChange={handleImportBackup}
+              className="hidden"
+            />
+          </div>
+
+          {/* Assistance & Support Client WhatsApp */}
+          <div className="bg-gradient-to-br from-emerald-700 to-teal-800 p-3.5 sm:p-4 rounded-xl text-white shadow-xs space-y-2">
+            <div className="flex items-center space-x-2 border-b border-emerald-600/60 pb-1.5">
+              <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center text-white shrink-0">
+                <Headphones className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-xs">Besoin d'aide ou d'une licence ?</h3>
+                <p className="text-[10px] text-emerald-100">Assistance officielle FasoCarnet sur WhatsApp</p>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-emerald-50 leading-relaxed">
+              Une question, un problème technique ou besoin d'activer une nouvelle licence ? Notre équipe vous répond immédiatement.
+            </p>
+
+            <button
+              type="button"
+              onClick={handleContactSupport}
+              className="w-full py-2 bg-white hover:bg-emerald-50 text-emerald-900 font-black rounded-xl text-xs shadow-xs active:scale-98 transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
+            >
+              <MessageCircle className="w-4 h-4 text-emerald-600" />
+              <span>Contacter le Support WhatsApp</span>
             </button>
           </div>
 

@@ -30,13 +30,19 @@ const AUTH_TOKEN_STORAGE_KEY = 'fasocarnet_shop_auth_token_v1';
 
 const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
-    if (window.location && window.location.protocol && window.location.protocol.startsWith('http')) {
+    const saved = localStorage.getItem('fasocarnet_server_url');
+    if (saved && saved.trim()) return saved.trim().replace(/\/+$/, '');
+
+    const envUrl = (import.meta as any).env?.VITE_API_URL;
+    if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
+      return envUrl.trim().replace(/\/+$/, '');
+    }
+
+    if (window.location && window.location.protocol && window.location.protocol.startsWith('http') && !window.location.hostname.includes('localhost')) {
       return window.location.origin;
     }
-    const saved = localStorage.getItem('fasocarnet_server_url');
-    if (saved) return saved;
   }
-  return 'http://localhost:3000';
+  return 'http://localhost:5000';
 };
 
 /**
@@ -466,6 +472,138 @@ export const syncService = {
     await this.pushLocalChanges(shopId);
     await this.pullRemoteChanges(shopId);
     return new Date().toISOString();
+  },
+
+  /**
+   * Obtient l'URL active du serveur
+   */
+  getServerUrl(): string {
+    return getApiBaseUrl();
+  },
+
+  /**
+   * Configure une nouvelle URL de serveur Cloud distant
+   */
+  setServerUrl(url: string): void {
+    try {
+      if (!url || !url.trim()) {
+        localStorage.removeItem('fasocarnet_server_url');
+      } else {
+        localStorage.setItem('fasocarnet_server_url', url.trim().replace(/\/+$/, ''));
+      }
+    } catch (err) {
+      console.error('Erreur configuration URL serveur:', err);
+    }
+  },
+
+  /**
+   * Teste la connectivité et la latence avec le serveur Cloud
+   */
+  async checkServerHealth(customUrl?: string): Promise<{ success: boolean; latencyMs: number; version?: string; error?: string }> {
+    const targetUrl = (customUrl && customUrl.trim()) ? customUrl.trim().replace(/\/+$/, '') : getApiBaseUrl();
+    const startTime = performance.now();
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const res = await fetch(`${targetUrl}/health`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      const latencyMs = Math.round(performance.now() - startTime);
+      if (res.ok) {
+        const data = await res.json();
+        return { success: true, latencyMs, version: data.version || '1.2.2' };
+      }
+      return { success: false, latencyMs, error: `Erreur HTTP ${res.status}` };
+    } catch (err: any) {
+      const latencyMs = Math.round(performance.now() - startTime);
+      return { success: false, latencyMs, error: err.name === 'AbortError' ? 'Délai d\'attente dépassé' : 'Serveur inaccessible' };
+    }
+  },
+
+  /**
+   * Exporte un fichier de sauvegarde JSON complet du commerce local
+   */
+  async exportBackupData(shopId: string): Promise<string> {
+    const shop = await db.shopProfiles.get(shopId);
+    if (!shop) throw new Error('Boutique introuvable.');
+
+    const [products, customers, debts, debtPayments, sales, licenses] = await Promise.all([
+      db.products.toArray(),
+      db.customers.toArray(),
+      db.debts.toArray(),
+      db.debtPayments.toArray(),
+      db.sales.toArray(),
+      db.licenses.toArray()
+    ]);
+
+    const backupPayload = {
+      app: 'FasoCarnet',
+      version: '1.2.2',
+      exportedAt: new Date().toISOString(),
+      shopId: shop.id,
+      shopName: shop.name,
+      data: {
+        profile: shop,
+        products,
+        customers,
+        debts,
+        debtPayments,
+        sales,
+        licenses
+      }
+    };
+
+    return JSON.stringify(backupPayload, null, 2);
+  },
+
+  /**
+   * Restaure les données locales depuis un fichier JSON de sauvegarde
+   */
+  async importBackupData(jsonString: string): Promise<{ success: boolean; message: string; shop?: ShopProfile }> {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (!parsed || !parsed.data || !parsed.data.profile) {
+        return { success: false, message: 'Fichier de sauvegarde invalide ou corrompu.' };
+      }
+
+      const shopData: CloudShopData = {
+        profile: parsed.data.profile,
+        products: parsed.data.products || [],
+        customers: parsed.data.customers || [],
+        debts: parsed.data.debts || [],
+        debtPayments: parsed.data.debtPayments || [],
+        sales: parsed.data.sales || [],
+        licenses: parsed.data.licenses || [],
+        telemetry: parsed.data.profile?.telemetry,
+        lastUpdatedAt: new Date().toISOString()
+      };
+
+      await this.restoreToLocalDatabase(shopData);
+      return { success: true, message: `Sauvegarde de « ${shopData.profile.name} » restaurée avec succès !`, shop: shopData.profile };
+    } catch (err: any) {
+      return { success: false, message: `Erreur lors de la lecture du fichier : ${err.message}` };
+    }
+  },
+
+  /**
+   * Initialise la synchronisation automatique en arrière-plan dès que le réseau redevient actif
+   */
+  initAutoSync(getShopId: () => string | null): () => void {
+    if (typeof window === 'undefined') return () => {};
+
+    const handleOnline = async () => {
+      const currentShopId = getShopId();
+      if (currentShopId) {
+        try {
+          await this.syncNow(currentShopId);
+          console.log('[AutoSync] Synchronisation Cloud automatique réussie suite au retour du réseau.');
+        } catch (err) {
+          console.warn('[AutoSync] Échec de la synchronisation au retour du réseau:', err);
+        }
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
   },
 
   /**
