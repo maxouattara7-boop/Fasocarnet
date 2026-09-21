@@ -2,6 +2,7 @@ import { db } from '../db';
 import { Customer, DebtPayment, DebtRecord, Product, Sale, ShopProfile, LicenseKey, AdminBroadcastMessage, DeviceTelemetry } from '../../types';
 import { adminService } from './adminService';
 import { collectCurrentTelemetry } from '../../utils/telemetry';
+import { verifyHash, hashPin, isHashed } from '../../utils/crypto';
 
 export interface CloudShopData {
   profile: ShopProfile;
@@ -160,8 +161,13 @@ export const syncService = {
       const localShops = await db.shopProfiles.toArray();
       const localMatch = localShops.find(s => this.normalizePhone(s.phone) === cleanInput || (s.ownerPhone && this.normalizePhone(s.ownerPhone) === cleanInput));
       if (localMatch) {
-        if (localMatch.pinCode && localMatch.pinCode.trim() !== pin) {
+        if (localMatch.pinCode && !verifyHash(pin, localMatch.pinCode)) {
           return { success: false, message: 'Code PIN incorrect. Veuillez réessayer.' };
+        }
+        // Migration transparente si l'ancien PIN n'était pas haché
+        if (localMatch.pinCode && !isHashed(localMatch.pinCode)) {
+          localMatch.pinCode = hashPin(pin);
+          await db.shopProfiles.put(localMatch);
         }
         // Sauvegarder dans le Cloud pour les futurs appareils
         await this.pushLocalChanges(localMatch.id);
@@ -171,8 +177,13 @@ export const syncService = {
     }
 
     // 4. Vérification du code PIN commerçant
-    if (matchedShopData.profile.pinCode && matchedShopData.profile.pinCode.trim() !== pin) {
+    if (matchedShopData.profile.pinCode && !verifyHash(pin, matchedShopData.profile.pinCode)) {
       return { success: false, message: 'Code PIN incorrect. Veuillez réessayer.' };
+    }
+
+    // Migration transparente vers PIN haché si nécessaire
+    if (matchedShopData.profile.pinCode && !isHashed(matchedShopData.profile.pinCode)) {
+      matchedShopData.profile.pinCode = hashPin(pin);
     }
 
     // Restauration complète et isolation de l'appareil
@@ -186,6 +197,10 @@ export const syncService = {
    */
   async registerShop(data: Omit<ShopProfile, 'id' | 'createdAt' | 'updatedAt' | 'isConfigured'>): Promise<ShopProfile> {
     const telemetry = collectCurrentTelemetry(data.phone, data.city);
+    const hashedPin = data.pinCode?.trim()
+      ? (isHashed(data.pinCode) ? data.pinCode.trim() : hashPin(data.pinCode.trim()))
+      : undefined;
+
     const newShop: ShopProfile = {
       id: `shop_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       name: data.name.trim(),
@@ -199,7 +214,7 @@ export const syncService = {
       orangeMoneyNumber: data.orangeMoneyNumber?.trim(),
       moovMoneyNumber: data.moovMoneyNumber?.trim(),
       waveNumber: data.waveNumber?.trim(),
-      pinCode: data.pinCode?.trim(),
+      pinCode: hashedPin,
       subscriptionPlan: 'trial',
       subscriptionStatus: 'trial',
       subscriptionExpiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),

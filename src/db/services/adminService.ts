@@ -3,6 +3,7 @@ import { ShopProfile, LicenseKey, ExtendedAdminAnalytics, AdminBroadcastMessage,
 import { subscriptionService, SUBSCRIPTION_PLANS, DEFAULT_DEPOSIT_NUMBERS } from './subscriptionService';
 import { syncService } from './syncService';
 import { detectBurkinaOperator, detectPlatform } from '../../utils/telemetry';
+import { verifyHash, hashPassword, isHashed } from '../../utils/crypto';
 
 export interface AdminStats {
   totalShops: number;
@@ -38,19 +39,26 @@ export const adminService = {
   },
 
   /**
-   * Verifie le mot de passe Super-Admin
+   * Verifie le mot de passe Super-Admin (supporte le hash SHA-256 et l'ancien clair avec auto-migration)
    */
   verifyPassword(password: string): boolean {
-    const saved = localStorage.getItem('fasocarnet_admin_password') || DEFAULT_ADMIN_PIN;
-    return password.trim() === saved.trim();
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('fasocarnet_admin_password') || DEFAULT_ADMIN_PIN : DEFAULT_ADMIN_PIN;
+    const isValid = verifyHash(password, saved);
+    if (isValid && !isHashed(saved) && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('fasocarnet_admin_password', hashPassword(password));
+      } catch {}
+    }
+    return isValid;
   },
 
   /**
-   * Modifie le mot de passe Super-Admin
+   * Modifie le mot de passe Super-Admin avec hachage SHA-256 et sel cryptographique
    */
   setPassword(newPassword: string): void {
     if (!newPassword.trim()) throw new Error('Le mot de passe ne peut pas être vide.');
-    localStorage.setItem('fasocarnet_admin_password', newPassword.trim());
+    const hashed = hashPassword(newPassword.trim());
+    localStorage.setItem('fasocarnet_admin_password', hashed);
   },
 
   /**

@@ -28,6 +28,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { soundEffects } from '../../utils/soundEffects';
+import { hashPin } from '../../utils/crypto';
 import { isHapticsEnabled, setHapticsEnabled, triggerHaptic, triggerDoubleHaptic } from '../../utils/haptics';
 import { productsService } from '../../db/services/productsService';
 import { subscriptionService, SUBSCRIPTION_PLANS, SubscriptionPlan, getPaymentChannels } from '../../db/services/subscriptionService';
@@ -213,6 +214,10 @@ export const SettingsView: React.FC = () => {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    const updatedPin = pin.trim().length === 4
+      ? hashPin(pin.trim())
+      : (pin.trim() === '' && shopProfile?.pinCode ? shopProfile.pinCode : undefined);
+
     await updateShopProfile({
       name: name.trim() || 'Ma Boutique',
       ownerName: ownerName.trim(),
@@ -221,7 +226,7 @@ export const SettingsView: React.FC = () => {
       orangeMoneyNumber: omNumber.trim() || undefined,
       moovMoneyNumber: moovNumber.trim() || undefined,
       waveNumber: waveNumber.trim() || undefined,
-      pinCode: pin.trim().length === 4 ? pin.trim() : undefined
+      pinCode: updatedPin
     });
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);

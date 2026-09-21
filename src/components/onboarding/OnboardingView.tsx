@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { 
   Store, 
@@ -37,6 +37,24 @@ export const OnboardingView: React.FC = () => {
   const [loginPin, setLoginPin] = useState('');
   const [showLoginPin, setShowLoginPin] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [loginFailedAttempts, setLoginFailedAttempts] = useState(0);
+  const [loginLockoutSeconds, setLoginLockoutSeconds] = useState(0);
+
+  // Décompte anti-bruteforce pour la connexion
+  useEffect(() => {
+    if (loginLockoutSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setLoginLockoutSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setLoginError('');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [loginLockoutSeconds]);
 
   // Champs Création d'espace
   const [shopName, setShopName] = useState('');
@@ -50,12 +68,25 @@ export const OnboardingView: React.FC = () => {
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loginLockoutSeconds > 0) return;
     setLoginError('');
 
     try {
       const res = await loginWithPhoneAndPin(loginPhone, loginPin);
       if (!res.success) {
-        setLoginError(res.message || 'Identifiants incorrects.');
+        const nextFailed = loginFailedAttempts + 1;
+        setLoginFailedAttempts(nextFailed);
+        if (nextFailed >= 5) {
+          setLoginLockoutSeconds(120);
+          setLoginError('5 tentatives de connexion échouées. Compte temporairement bloqué pendant 2 minutes.');
+        } else if (nextFailed >= 3) {
+          setLoginLockoutSeconds(30);
+          setLoginError('3 tentatives de connexion échouées. Veuillez patienter 30 secondes.');
+        } else {
+          setLoginError(res.message || `Identifiants incorrects (${nextFailed}/3 tentatives).`);
+        }
+      } else {
+        setLoginFailedAttempts(0);
       }
     } catch (err: any) {
       setLoginError(err.message || 'Erreur lors de la connexion.');
@@ -318,10 +349,12 @@ export const OnboardingView: React.FC = () => {
 
             <button
               type="submit"
-              disabled={isSyncing}
+              disabled={isSyncing || loginLockoutSeconds > 0}
               className="w-full py-3.5 bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-2xl text-xs sm:text-sm shadow-lg shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50 mt-2"
             >
-              {isSyncing ? (
+              {loginLockoutSeconds > 0 ? (
+                <span>Patientez {loginLockoutSeconds}s...</span>
+              ) : isSyncing ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
                   <span>Connexion...</span>

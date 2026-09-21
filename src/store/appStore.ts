@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { ShopProfile } from '../types';
 import { db } from '../db/db';
 import { syncService, LoginResult } from '../db/services/syncService';
+import { verifyHash, hashPin, isHashed } from '../utils/crypto';
 
 export type ActiveTab = 'pos' | 'debts' | 'reports' | 'settings';
 
@@ -196,11 +197,12 @@ export const useAppStore = create<AppState>((set, get) => {
     verifyPin: (pin: string) => {
       const current = get().shopProfile;
       if (!current || !current.pinCode) return true;
-      return current.pinCode === pin;
+      return verifyHash(pin, current.pinCode);
     },
 
     setPin: async (pin: string) => {
-      await get().updateShopProfile({ pinCode: pin });
+      const hashed = pin.trim() ? (isHashed(pin) ? pin.trim() : hashPin(pin.trim())) : undefined;
+      await get().updateShopProfile({ pinCode: hashed });
     },
 
     logout: async () => {

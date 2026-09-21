@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/appStore';
-import { Delete } from 'lucide-react';
+import { Delete, Timer } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { triggerHaptic, triggerDoubleHaptic } from '../../utils/haptics';
 
@@ -8,10 +8,31 @@ export const PinLockModal: React.FC = () => {
   const { isLocked, setIsLocked, verifyPin, shopProfile } = useAppStore();
   const [pinInput, setPinInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+
+  // Décompte automatique du temps de verrouillage anti-bruteforce
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setLockoutSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setErrorMsg('');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutSeconds]);
 
   if (!isLocked) return null;
 
+  const isLockedOut = lockoutSeconds > 0;
+
   const handleDigit = (digit: string) => {
+    if (isLockedOut) return;
     triggerHaptic(45);
     if (pinInput.length < 4) {
       const nextPin = pinInput + digit;
@@ -23,8 +44,21 @@ export const PinLockModal: React.FC = () => {
           triggerDoubleHaptic();
           setIsLocked(false);
           setPinInput('');
+          setFailedAttempts(0);
+          setErrorMsg('');
         } else {
-          setErrorMsg('Code PIN incorrect');
+          const nextFailed = failedAttempts + 1;
+          setFailedAttempts(nextFailed);
+          
+          if (nextFailed >= 5) {
+            setLockoutSeconds(120); // 2 minutes après 5 échecs
+            setErrorMsg('5 tentatives échouées. Compte temporairement bloqué pendant 2 minutes.');
+          } else if (nextFailed >= 3) {
+            setLockoutSeconds(30); // 30 secondes après 3 échecs
+            setErrorMsg('3 tentatives échouées. Veuillez patienter 30 secondes.');
+          } else {
+            setErrorMsg(`Code PIN incorrect (${nextFailed}/3 tentatives)`);
+          }
           setTimeout(() => setPinInput(''), 400);
         }
       }
@@ -32,6 +66,7 @@ export const PinLockModal: React.FC = () => {
   };
 
   const handleDelete = () => {
+    if (isLockedOut) return;
     triggerHaptic(40);
     setPinInput(pinInput.slice(0, -1));
     setErrorMsg('');
@@ -63,18 +98,29 @@ export const PinLockModal: React.FC = () => {
           ))}
         </div>
 
-        {errorMsg && (
+        {isLockedOut ? (
+          <div className="p-3 bg-red-950/80 border border-red-800/80 rounded-2xl space-y-1 animate-pulse">
+            <div className="flex items-center justify-center space-x-1.5 text-red-300 font-bold text-xs">
+              <Timer className="w-4 h-4 animate-spin" />
+              <span>Verrouillage de sécurité actif</span>
+            </div>
+            <p className="text-[11px] text-red-200">
+              Réessayez dans <strong className="text-white font-black text-xs">{lockoutSeconds}s</strong>
+            </p>
+          </div>
+        ) : errorMsg ? (
           <p className="text-red-400 text-xs font-bold animate-shake">{errorMsg}</p>
-        )}
+        ) : null}
 
         {/* Pavé numérique PIN */}
-        <div className="grid grid-cols-3 gap-3 pt-2">
+        <div className={`grid grid-cols-3 gap-3 pt-2 transition-opacity ${isLockedOut ? 'opacity-40 pointer-events-none' : ''}`}>
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
             <button
               key={digit}
               type="button"
+              disabled={isLockedOut}
               onClick={() => handleDigit(digit)}
-              className="h-14 bg-emerald-900/60 hover:bg-emerald-800 text-white text-2xl font-bold rounded-2xl border border-emerald-800/80 active:scale-95 transition-all flex items-center justify-center"
+              className="h-14 bg-emerald-900/60 hover:bg-emerald-800 disabled:opacity-50 text-white text-2xl font-bold rounded-2xl border border-emerald-800/80 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
             >
               {digit}
             </button>
@@ -82,15 +128,17 @@ export const PinLockModal: React.FC = () => {
           <div />
           <button
             type="button"
+            disabled={isLockedOut}
             onClick={() => handleDigit('0')}
-            className="h-14 bg-emerald-900/60 hover:bg-emerald-800 text-white text-2xl font-bold rounded-2xl border border-emerald-800/80 active:scale-95 transition-all flex items-center justify-center"
+            className="h-14 bg-emerald-900/60 hover:bg-emerald-800 disabled:opacity-50 text-white text-2xl font-bold rounded-2xl border border-emerald-800/80 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
           >
             0
           </button>
           <button
             type="button"
+            disabled={isLockedOut}
             onClick={handleDelete}
-            className="h-14 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 rounded-2xl border border-emerald-800/40 active:scale-95 transition-all flex items-center justify-center"
+            className="h-14 bg-emerald-950 hover:bg-emerald-900 disabled:opacity-50 text-emerald-300 rounded-2xl border border-emerald-800/40 active:scale-95 transition-all flex items-center justify-center cursor-pointer"
           >
             <Delete className="w-6 h-6" />
           </button>
