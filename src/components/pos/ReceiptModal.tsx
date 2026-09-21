@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Sale } from '../../types';
 import { useAppStore } from '../../store/appStore';
-import { generateReceiptDataUrl, generateReceiptFile } from '../../utils/receiptGenerator';
+import { generateReceiptDataUrl, generateReceiptFile, extractReceiptItems } from '../../utils/receiptGenerator';
+import { printViaBluetooth, isBluetoothSupported } from '../../utils/bluetoothPrinter';
 import { formatDateTime } from '../../utils/formatters';
-import { CheckCircle2, ArrowRight, Download, Share2, Printer } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Download, Share2, Printer, Loader2 } from 'lucide-react';
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -15,12 +16,16 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
   const { shopProfile } = useAppStore();
   const [receiptImageUrl, setReceiptImageUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [printStatus, setPrintStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && sale) {
       generateImage();
+      setPrintStatus(null);
     } else {
       setReceiptImageUrl(null);
+      setPrintStatus(null);
     }
   }, [isOpen, sale]);
 
@@ -65,11 +70,51 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
     a.click();
   };
 
-  const handlePrintThermalReceipt = () => {
+  /**
+   * Impression directe Bluetooth ESC/POS (ou fallback navigateur si non supporté)
+   */
+  const handlePrintReceipt = async () => {
+    if (isBluetoothSupported()) {
+      setIsPrinting(true);
+      setPrintStatus('Recherche des imprimantes Bluetooth aux alentours...');
+      try {
+        const res = await printViaBluetooth(sale, shopProfile || undefined);
+        if (res.success) {
+          setPrintStatus('✓ Ticket imprimé avec succès !');
+          setTimeout(() => {
+            setIsPrinting(false);
+            setPrintStatus(null);
+          }, 2000);
+          return;
+        } else {
+          setPrintStatus(res.message);
+          setTimeout(() => {
+            setIsPrinting(false);
+          }, 3000);
+        }
+      } catch (err: any) {
+        setPrintStatus(`Erreur Bluetooth: ${err.message || 'Échec de connexion'}`);
+        setTimeout(() => setIsPrinting(false), 3000);
+      }
+    } else {
+      // Fallback impression standard navigateur / thermique
+      handlePrintBrowserFallback();
+    }
+  };
+
+  const handlePrintBrowserFallback = () => {
     const shopName = shopProfile?.name || 'FASOCARNET';
     const phone = shopProfile?.phone || '';
     const city = shopProfile?.city || '';
     const dateStr = formatDateTime(sale.createdAt);
+    const items = extractReceiptItems(sale);
+
+    const itemsHtml = items.map(it => `
+      <div class="row">
+        <span class="bold">${it.description}</span>
+        <span>${it.total.toLocaleString('fr-FR')} F</span>
+      </div>
+    `).join('');
 
     const html = `
       <!DOCTYPE html>
@@ -97,7 +142,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             .shop-title { font-size: 15px; font-weight: 900; margin-bottom: 2px; }
             .divider { border-top: 1px dashed #000; margin: 6px 0; }
             .double-divider { border-top: 2px solid #000; margin: 6px 0; }
-            .row { display: flex; justify-content: space-between; margin: 2px 0; }
+            .row { display: flex; justify-content: space-between; margin: 3px 0; }
             .total-row { font-size: 14px; font-weight: 900; margin: 6px 0; }
             .footer { font-size: 10px; margin-top: 10px; text-align: center; }
           </style>
@@ -127,18 +172,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
           </div>` : ''}
 
           <div class="divider"></div>
+          <div class="row bold">
+            <span>ARTICLES</span>
+            <span>PRIX</span>
+          </div>
+          <div class="divider"></div>
 
-          ${sale.notes ? `
-          <div style="margin-bottom: 4px;">
-            <div class="bold">DÉSIGNATION :</div>
-            <div style="padding-left: 2px; font-size: 11px;">${sale.notes}</div>
-          </div>
-          ` : `
-          <div class="row">
-            <span>Vente Directe Caisse</span>
-            <span>${sale.totalAmount.toLocaleString('fr-FR')} F</span>
-          </div>
-          `}
+          ${itemsHtml}
 
           <div class="double-divider"></div>
 
@@ -190,11 +230,6 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
       }
     } catch {
       window.print();
-    } finally {
-      // Retour immédiat vers la caisse / nouvelle vente
-      setTimeout(() => {
-        onClose();
-      }, 300);
     }
   };
 
@@ -226,6 +261,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
           ) : null}
         </div>
 
+        {/* STATUT IMPRESSION BLUETOOTH */}
+        {printStatus && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs p-2 rounded-xl flex items-center justify-center space-x-2 animate-in fade-in">
+            {isPrinting ? <Loader2 className="w-3.5 h-3.5 text-emerald-600 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+            <span className="font-bold">{printStatus}</span>
+          </div>
+        )}
+
         {/* BOUTONS D'ACTION */}
         <div className="space-y-2 pt-0.5">
           {/* 1. Bouton Principal : Partager le Reçu */}
@@ -240,15 +283,20 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
           {/* 2. Grille 2 boutons : Imprimer & Télécharger */}
           <div className="grid grid-cols-2 gap-2">
-            {/* Bouton Imprimer (Bluetooth / Wi-Fi) */}
+            {/* Bouton Imprimer (Bluetooth / ESC-POS) */}
             <button
               type="button"
-              onClick={handlePrintThermalReceipt}
-              className="py-2.5 px-2 bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-xs active:scale-98"
-              title="Imprimer le ticket sur imprimante Bluetooth 58mm ou Wi-Fi"
+              disabled={isPrinting}
+              onClick={handlePrintReceipt}
+              className="py-2.5 px-2 bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-xs active:scale-98 disabled:opacity-50"
+              title="Rechercher et imprimer directement sur imprimante Bluetooth 58mm ou Wi-Fi"
             >
-              <Printer className="w-4 h-4 text-emerald-400" />
-              <span>Imprimer Ticket</span>
+              {isPrinting ? (
+                <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+              ) : (
+                <Printer className="w-4 h-4 text-emerald-400" />
+              )}
+              <span>{isPrinting ? 'Impression...' : 'Imprimer Ticket'}</span>
             </button>
 
             {/* Bouton Télécharger l'image */}

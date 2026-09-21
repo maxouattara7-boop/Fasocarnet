@@ -4,24 +4,20 @@ import { PaymentModal } from './PaymentModal';
 import { ReceiptModal } from './ReceiptModal';
 import { salesService } from '../../db/services/salesService';
 import { productsService } from '../../db/services/productsService';
-import { Product, Sale } from '../../types';
+import { Product, Sale, SaleItem } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 import { triggerHaptic, triggerDoubleHaptic } from '../../utils/haptics';
 import { soundEffects } from '../../utils/soundEffects';
 import { ArrowRight, ShoppingCart, Package, Calculator, Plus, Search, X, ChevronDown } from 'lucide-react';
 
-const evaluateAddition = (expr: string): number => {
-  if (!expr) return 0;
-  const parts = expr.split('+');
-  let total = 0;
-  for (const part of parts) {
-    const cleaned = part.trim().replace(/\s/g, '');
-    const num = parseFloat(cleaned);
-    if (!isNaN(num)) {
-      total += num;
-    }
+const evaluateAddition = (expression: string): number => {
+  try {
+    const sanitized = expression.replace(/[^0-9+]/g, '');
+    const parts = sanitized.split('+').filter((p) => p.trim() !== '');
+    return parts.reduce((sum, part) => sum + (parseInt(part, 10) || 0), 0);
+  } catch {
+    return 0;
   }
-  return total;
 };
 
 export const PosView: React.FC = () => {
@@ -32,7 +28,7 @@ export const PosView: React.FC = () => {
 
   // Catalogue d'articles & sélecteur modal
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedArticlesNotes, setSelectedArticlesNotes] = useState<string[]>([]);
+  const [selectedItems, setSelectedItems] = useState<SaleItem[]>([]);
   const [isArticlePickerOpen, setIsArticlePickerOpen] = useState(false);
   const [articleSearch, setArticleSearch] = useState('');
 
@@ -49,13 +45,31 @@ export const PosView: React.FC = () => {
 
   const handleClear = () => {
     setAmountStr('0');
-    setSelectedArticlesNotes([]);
+    setSelectedItems([]);
   };
 
   const handleSelectProduct = (productId: string) => {
     triggerHaptic(35);
     const product = products.find((p) => p.id === productId);
     if (!product) return;
+
+    setSelectedItems((prev) => {
+      const existing = prev.find((it) => it.id === product.id);
+      if (existing) {
+        return prev.map((it) =>
+          it.id === product.id ? { ...it, quantity: it.quantity + 1 } : it
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: product.id,
+          description: product.name,
+          quantity: 1,
+          unitPrice: product.price
+        }
+      ];
+    });
 
     if (amountStr === '0') {
       setAmountStr(product.price.toString());
@@ -64,7 +78,6 @@ export const PosView: React.FC = () => {
     } else {
       setAmountStr(amountStr + ' + ' + product.price.toString());
     }
-    setSelectedArticlesNotes((prev) => [...prev, product.name]);
   };
 
   const handleOpenPayment = () => {
@@ -74,15 +87,11 @@ export const PosView: React.FC = () => {
   };
 
   const handleConfirmSale = async (data: any) => {
-    const finalNotes = [
-      data.notes,
-      selectedArticlesNotes.length > 0 ? selectedArticlesNotes.join(', ') : ''
-    ].filter(Boolean).join(' - ');
-
     const recorded = await salesService.recordSale({
       totalAmount,
       ...data,
-      notes: finalNotes || undefined
+      items: selectedItems.length > 0 ? selectedItems : undefined,
+      notes: data.notes || undefined
     });
     triggerDoubleHaptic();
     soundEffects.notifySaleSuccess(recorded.totalAmount, recorded.isCredit);
@@ -90,7 +99,7 @@ export const PosView: React.FC = () => {
     setLastSale(recorded);
     setIsReceiptModalOpen(true);
     setAmountStr('0');
-    setSelectedArticlesNotes([]);
+    setSelectedItems([]);
   };
 
   const hasCalculation = amountStr.includes('+');
@@ -128,9 +137,9 @@ export const PosView: React.FC = () => {
           </div>
 
           <div className="text-[10px] text-emerald-300/80 mt-0.5">
-            {selectedArticlesNotes.length > 0 ? (
+            {selectedItems.length > 0 ? (
               <span className="font-medium text-amber-300 truncate block">
-                Articles : {selectedArticlesNotes.join(' + ')}
+                {selectedItems.map((it) => `${it.description}${it.quantity > 1 ? ` (x${it.quantity})` : ''}`).join(' • ')}
               </span>
             ) : (
               'Francs CFA (XOF)'

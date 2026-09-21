@@ -4,15 +4,77 @@ import { formatCurrency, formatDateTime } from './formatters';
 /**
  * Génère une image PNG haute définition (Canvas 2D) du ticket de caisse stylisé
  */
+export interface ParsedReceiptItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+/**
+ * Extrait la liste des articles d'une vente (depuis sale.items ou sale.notes)
+ */
+export function extractReceiptItems(sale: Sale): ParsedReceiptItem[] {
+  if (sale.items && sale.items.length > 0) {
+    return sale.items.map((it) => ({
+      description: it.description,
+      quantity: it.quantity || 1,
+      unitPrice: it.unitPrice,
+      total: (it.quantity || 1) * it.unitPrice
+    }));
+  }
+
+  if (sale.notes) {
+    // Détection si notes contient des séparateurs '+' ou ','
+    const parts = sale.notes.split(/[,+]/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      return parts.map((part) => {
+        // Essayer d'extraire un prix entre parenthèses ex: "Riz 25kg (15000)"
+        const matchPrice = part.match(/\((\d+)\)/);
+        const price = matchPrice ? parseInt(matchPrice[1], 10) : Math.round(sale.totalAmount / parts.length);
+        const name = part.replace(/\(\d+\)/, '').trim();
+        return {
+          description: name || part,
+          quantity: 1,
+          unitPrice: price,
+          total: price
+        };
+      });
+    } else if (parts.length === 1) {
+      return [{
+        description: parts[0],
+        quantity: 1,
+        unitPrice: sale.totalAmount,
+        total: sale.totalAmount
+      }];
+    }
+  }
+
+  return [{
+    description: 'Vente Directe Caisse',
+    quantity: 1,
+    unitPrice: sale.totalAmount,
+    total: sale.totalAmount
+  }];
+}
+
+/**
+ * Génère une image PNG haute définition (Canvas 2D) du ticket de caisse stylisé
+ */
 export async function generateReceiptCanvas(
   sale: Sale,
   shop?: Partial<ShopProfile>
 ): Promise<HTMLCanvasElement> {
-  const canvas = document.createElement('canvas');
+  const items = extractReceiptItems(sale);
+  const itemsCount = Math.max(1, items.length);
+
   const width = 640;
-  const height = 920;
+  // Calcul de la hauteur dynamique pour éviter tout débordement
+  const dynamicHeight = Math.max(940, 480 + (itemsCount * 44) + 240);
+  const height = dynamicHeight;
   const scale = 2; // Rétina 2x pour une netteté parfaite
 
+  const canvas = document.createElement('canvas');
   canvas.width = width * scale;
   canvas.height = height * scale;
 
@@ -35,7 +97,7 @@ export async function generateReceiptCanvas(
   const cardH = height - 60;
   const radius = 24;
 
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.08)';
   ctx.shadowBlur = 25;
   ctx.shadowOffsetY = 10;
   ctx.fillStyle = '#ffffff';
@@ -44,7 +106,7 @@ export async function generateReceiptCanvas(
   ctx.fill();
   ctx.shadowColor = 'transparent'; // Reset ombre
 
-  // 3. En-tête vert émeraude de la boutique
+  // 3. En-tête vert émeraude élégant de la boutique
   const headerGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + 140);
   headerGrad.addColorStop(0, '#047857');
   headerGrad.addColorStop(1, '#064e3b');
@@ -92,41 +154,37 @@ export async function generateReceiptCanvas(
   ctx.stroke();
   ctx.setLineDash([]); // Reset
 
-  // 6. Articles ou Description
-  let currentY = sepY + 40;
-  ctx.fillStyle = '#0f172a';
-  ctx.font = 'bold 15px sans-serif';
-  ctx.fillText('DESCRIPTION', cardX + 30, currentY);
-  ctx.textAlign = 'right';
-  ctx.fillText('MONTANT', cardX + cardW - 30, currentY);
+  // 6. Liste des Articles (Chaque article sur sa ligne avec son prix)
+  let currentY = sepY + 32;
 
-  currentY += 25;
-  ctx.font = '14px sans-serif';
-  ctx.fillStyle = '#334155';
-  ctx.textAlign = 'left';
+  for (const it of items) {
+    // Nom de l'article à gauche
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 15px sans-serif';
+    ctx.fillText(it.description, cardX + 30, currentY);
 
-  if (sale.items && sale.items.length > 0) {
-    for (const item of sale.items) {
-      ctx.fillText(`• ${item.description} (x${item.quantity})`, cardX + 30, currentY);
-      ctx.textAlign = 'right';
-      ctx.fillText(formatCurrency(item.quantity * item.unitPrice), cardX + cardW - 30, currentY);
-      ctx.textAlign = 'left';
-      currentY += 24;
-    }
-  } else if (sale.notes) {
-    ctx.fillText(`• ${sale.notes}`, cardX + 30, currentY);
+    // Prix de l'article à droite
     ctx.textAlign = 'right';
-    ctx.fillText(formatCurrency(sale.totalAmount), cardX + cardW - 30, currentY);
-    currentY += 24;
-  } else {
-    ctx.fillText('• Achat Comptoir', cardX + 30, currentY);
-    ctx.textAlign = 'right';
-    ctx.fillText(formatCurrency(sale.totalAmount), cardX + cardW - 30, currentY);
-    currentY += 24;
+    ctx.font = 'bold 15px sans-serif';
+    ctx.fillStyle = '#047857';
+    ctx.fillText(formatCurrency(it.total), cardX + cardW - 30, currentY);
+
+    currentY += 26;
+
+    // Ligne pointillée fine entre les articles
+    ctx.strokeStyle = '#f1f5f9';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(cardX + 30, currentY - 8);
+    ctx.lineTo(cardX + cardW - 30, currentY - 8);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 
   // 7. Bloc Total en Grand
-  const totalBoxY = currentY + 30;
+  const totalBoxY = currentY + 15;
   ctx.fillStyle = '#f8fafc';
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1.5;
@@ -150,12 +208,12 @@ export async function generateReceiptCanvas(
 
   ctx.textAlign = 'right';
   ctx.fillStyle = '#047857';
-  ctx.font = 'bold 30px sans-serif';
+  ctx.font = 'bold 28px sans-serif';
   ctx.fillText(formatCurrency(sale.totalAmount), cardX + cardW - 45, totalBoxY + 58);
 
   // 8. LE GRAND TAMPON OFFICIEL STYLISÉ
   const stampX = width / 2;
-  const stampY = totalBoxY + 175;
+  const stampY = totalBoxY + 165;
 
   ctx.save();
   ctx.translate(stampX, stampY);

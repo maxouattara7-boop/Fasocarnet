@@ -13,6 +13,7 @@ export const salesService = {
     receivedAmount?: number;
     changeAmount?: number;
     notes?: string;
+    items?: import('../../types').SaleItem[];
   }): Promise<Sale> {
     const sale: Sale = {
       id: `sale_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -24,6 +25,7 @@ export const salesService = {
       receivedAmount: data.receivedAmount,
       changeAmount: data.changeAmount,
       notes: data.notes,
+      items: data.items,
       createdAt: new Date().toISOString()
     };
 
