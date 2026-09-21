@@ -20,19 +20,16 @@ import {
   ArrowLeft,
   Zap,
   BookOpen,
-  WifiOff,
-  Download,
-  Globe
+  WifiOff
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { BurkinaFlag } from '../common/BurkinaFlag';
-import { LandingPageView } from '../landing/LandingPageView';
 
 export const OnboardingView: React.FC = () => {
   const { loginWithPhoneAndPin, createShop, isSyncing } = useAppStore();
 
-  // Écran en cours : 'landing' (Vitrine complète), 'welcome' (Présentation express) ou 'auth' (Connexion / Création)
-  const [viewStep, setViewStep] = useState<'welcome' | 'landing' | 'auth'>('welcome');
+  // Écran en cours : 'welcome' (Présentation express) ou 'auth' (Connexion / Création)
+  const [viewStep, setViewStep] = useState<'welcome' | 'auth'>('welcome');
 
   // Mode dans l'écran auth : 'login' ou 'register'
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -111,56 +108,16 @@ export const OnboardingView: React.FC = () => {
   };
 
   // =========================================================================
-  // 0. SITE VITRINE / LANDING PAGE AVEC TÉLÉCHARGEMENT APK
-  // =========================================================================
-  if (viewStep === 'landing') {
-    return <LandingPageView onOpenApp={() => setViewStep('welcome')} />;
-  }
-
-  // =========================================================================
-  // 1. PAGE D'ACCUEIL & PRÉSENTATION EXPRESS DE L'APPLICATION
+  // 1. PAGE D'ACCUEIL & PRÉSENTATION EXPRESS DE L'APPLICATION MOBILE
   // =========================================================================
   if (viewStep === 'welcome') {
-    const handleDownloadApk = () => {
-      const element = document.createElement('a');
-      const file = new Blob([
-        'FasoCarnet APK Mobile Application - Edition Android Professionnelle\nVersion: 1.2.0\nhttps://fasocarnet.com'
-      ], { type: 'application/vnd.android.package-archive' });
-      element.href = URL.createObjectURL(file);
-      element.download = 'FasoCarnet-v1.2.0-Android.apk';
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-    };
-
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-950 via-emerald-950 to-slate-950 text-white flex flex-col justify-between p-4 sm:p-6 overflow-y-auto">
-        <div className="max-w-md w-full mx-auto my-auto py-6 space-y-5 flex flex-col items-center text-center">
+        <div className="max-w-md w-full mx-auto my-auto py-6 space-y-6 flex flex-col items-center text-center">
           
-          {/* Bouton vers la vitrine complète */}
-          <div className="w-full flex items-center justify-between animate-in fade-in duration-300">
-            <button
-              type="button"
-              onClick={() => setViewStep('landing')}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900/90 hover:bg-slate-800 text-emerald-300 text-xs font-bold rounded-xl border border-emerald-500/30 transition-all cursor-pointer shadow-xs"
-            >
-              <Globe className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Voir le Site Vitrine</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleDownloadApk}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 text-xs font-bold rounded-xl border border-emerald-400/30 transition-all cursor-pointer shadow-xs"
-            >
-              <Download className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Télécharger l'APK</span>
-            </button>
-          </div>
-
           {/* Logo & Badge */}
           <div className="space-y-3 flex flex-col items-center animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="p-3 bg-gradient-to-tr from-emerald-500/20 to-amber-500/20 rounded-3xl border border-emerald-500/30 shadow-2xl backdrop-blur-sm">
+            <div className="p-3.5 bg-gradient-to-tr from-emerald-500/20 to-amber-500/20 rounded-3xl border border-emerald-500/30 shadow-2xl backdrop-blur-sm">
               <Logo size="lg" showText={false} />
             </div>
 

@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import App from './App';
 import { db } from './db/db';
 import { useAppStore } from './store/appStore';
 import { syncService } from './db/services/syncService';
+import { Capacitor } from '@capacitor/core';
 
 describe('FasoCarnet App Component', () => {
   beforeEach(async () => {
@@ -20,6 +21,20 @@ describe('FasoCarnet App Component', () => {
       isAdminOpen: false,
       isInitialized: false,
       activeTab: 'pos'
+    });
+
+    // Par défaut dans les tests de l'application, on simule l'environnement mobile natif
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true);
+  });
+
+  it('renders landing page strictly when running on Web browser', async () => {
+    vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(false);
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Télécharger l'application/i)).toBeInTheDocument();
+      expect(screen.getByText(/Pourquoi choisir/i)).toBeInTheDocument();
+      expect(screen.queryByTestId('btn-continue')).not.toBeInTheDocument();
     });
   });
 

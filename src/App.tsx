@@ -9,10 +9,12 @@ import { SettingsView } from './components/settings/SettingsView';
 import { PinLockModal } from './components/auth/PinLockModal';
 import { OnboardingView } from './components/onboarding/OnboardingView';
 import { AdminView } from './components/admin/AdminView';
+import { LandingPageView } from './components/landing/LandingPageView';
 import { subscriptionService } from './db/services/subscriptionService';
 import { syncService } from './db/services/syncService';
 import { AdminBroadcastMessage } from './types';
 import { Crown, Megaphone, ShieldAlert, MessageCircle, X } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 
 export const App: React.FC = () => {
   const { isInitialized, activeTab, setActiveTab, activeShopId, shopProfile, loadCurrentShop, isAdminOpen, setIsAdminOpen } = useAppStore();
@@ -37,6 +39,18 @@ export const App: React.FC = () => {
   // Si le portail Super-Admin est ouvert
   if (isAdminOpen) {
     return <AdminView onClose={() => setIsAdminOpen(false)} />;
+  }
+
+  // 1. SUR LE WEB (Navigateur / Render) : Afficher STRICTEMENT la Landing Page
+  // L'application de caisse est réservée à l'application mobile Android native (Capacitor)
+  const isNative = Capacitor.isNativePlatform();
+  const isExplicitAppMode = typeof window !== 'undefined' && (
+    window.location.search.includes('mode=app') ||
+    window.location.pathname.startsWith('/app')
+  );
+
+  if (!isNative && !isExplicitAppMode) {
+    return <LandingPageView />;
   }
 
   // Pendant le chargement initial de l'espace local (IndexedDB)
