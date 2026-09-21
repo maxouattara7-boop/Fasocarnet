@@ -332,3 +332,85 @@ export async function printViaBluetooth(
     };
   }
 }
+
+/**
+ * Envoie le flux binaire ESC/POS directement à l'application driver Bluetooth Android (RawBT)
+ * Permet l'impression instantanée sans passer par un navigateur externe.
+ */
+export function printViaRawBt(
+  sale: Sale,
+  shop?: Partial<ShopProfile>,
+  paperWidth: '58mm' | '80mm' = '58mm'
+): { success: boolean; message: string } {
+  try {
+    const payload = buildEscPosPayload(sale, shop, paperWidth);
+    let binary = '';
+    const bytes = new Uint8Array(payload);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    const rawBtUrl = `rawbt:base64,${base64}`;
+
+    // Tenter l'ouverture du protocole RawBT direct
+    window.location.href = rawBtUrl;
+
+    return {
+      success: true,
+      message: 'Ticket envoyé vers l\'imprimante thermique Bluetooth !'
+    };
+  } catch (err: any) {
+    console.error('Erreur RawBT:', err);
+    return {
+      success: false,
+      message: 'Impossible de joindre le service d\'impression thermique direct.'
+    };
+  }
+}
+
+/**
+ * Impression Système Android intégrée via iframe invisible.
+ * ÉVITE TOTALEMENT l'ouverture de navigateur externe ("Ouvrir avec Mi / Chrome").
+ */
+export function printViaHiddenIframe(htmlContent: string): void {
+  try {
+    const frameId = 'fasocarnet-print-frame';
+    const existingFrame = document.getElementById(frameId);
+    if (existingFrame) {
+      document.body.removeChild(existingFrame);
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.id = frameId;
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.visibility = 'hidden';
+
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(htmlContent);
+      doc.close();
+
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        setTimeout(() => {
+          if (iframe.parentNode) {
+            document.body.removeChild(iframe);
+          }
+        }, 15000);
+      }, 350);
+    }
+  } catch (err) {
+    console.warn('Erreur iframe print, fallback:', err);
+    window.print();
+  }
+}

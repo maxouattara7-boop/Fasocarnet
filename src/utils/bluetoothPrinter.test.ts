@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeTextForPrinter, formatTwoColumns, formatArticleLine, buildEscPosPayload, isBluetoothSupported } from './bluetoothPrinter';
+import { sanitizeTextForPrinter, formatTwoColumns, formatArticleLine, buildEscPosPayload, isBluetoothSupported, printViaRawBt } from './bluetoothPrinter';
 import { Sale } from '../types';
 
 describe('bluetoothPrinter', () => {
@@ -49,5 +49,17 @@ describe('bluetoothPrinter', () => {
   it('checks bluetooth support without crashing', () => {
     const supported = isBluetoothSupported();
     expect(typeof supported).toBe('boolean');
+  });
+
+  it('generates rawbt url without throwing', () => {
+    const mockSale: Sale = {
+      id: 'sale_test_rawbt',
+      totalAmount: 5000,
+      paymentMethod: 'CASH',
+      isCredit: false,
+      createdAt: new Date().toISOString()
+    };
+    const res = printViaRawBt(mockSale, { name: 'Boutique LAS' }, '58mm');
+    expect(res.success).toBe(true);
   });
 });

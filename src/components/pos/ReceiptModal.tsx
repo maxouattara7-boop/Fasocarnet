@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Sale } from '../../types';
 import { useAppStore } from '../../store/appStore';
 import { generateReceiptDataUrl, generateReceiptFile, extractReceiptItems } from '../../utils/receiptGenerator';
-import { printViaBluetooth, isBluetoothSupported } from '../../utils/bluetoothPrinter';
+import { printViaBluetooth, printViaRawBt, printViaHiddenIframe, isBluetoothSupported } from '../../utils/bluetoothPrinter';
 import { formatDateTime } from '../../utils/formatters';
 import { CheckCircle2, ArrowRight, Download, Share2, Printer, Loader2 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -71,38 +72,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
   };
 
   /**
-   * Impression directe Bluetooth ESC/POS (ou fallback navigateur si non supporté)
+   * Construit le code HTML ultra-propre pour impression directe
    */
-  const handlePrintReceipt = async () => {
-    if (isBluetoothSupported()) {
-      setIsPrinting(true);
-      setPrintStatus('Recherche des imprimantes Bluetooth aux alentours...');
-      try {
-        const res = await printViaBluetooth(sale, shopProfile || undefined);
-        if (res.success) {
-          setPrintStatus('✓ Ticket imprimé avec succès !');
-          setTimeout(() => {
-            setIsPrinting(false);
-            setPrintStatus(null);
-          }, 2000);
-          return;
-        } else {
-          setPrintStatus(res.message);
-          setTimeout(() => {
-            setIsPrinting(false);
-          }, 3000);
-        }
-      } catch (err: any) {
-        setPrintStatus(`Erreur Bluetooth: ${err.message || 'Échec de connexion'}`);
-        setTimeout(() => setIsPrinting(false), 3000);
-      }
-    } else {
-      // Fallback impression standard navigateur / thermique
-      handlePrintBrowserFallback();
-    }
-  };
-
-  const handlePrintBrowserFallback = () => {
+  const buildReceiptHtml = () => {
     const shopName = shopProfile?.name || 'FASOCARNET';
     const phone = shopProfile?.phone || '';
     const city = shopProfile?.city || '';
@@ -116,7 +88,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
       </div>
     `).join('');
 
-    const html = `
+    return `
       <!DOCTYPE html>
       <html>
         <head>
@@ -126,7 +98,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             @page { margin: 0; size: auto; }
             body {
               font-family: 'Courier New', Courier, monospace;
-              font-size: 12px;
+              font-size: 13px;
               font-weight: 600;
               line-height: 1.35;
               width: 58mm;
@@ -139,11 +111,11 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             .center { text-align: center; }
             .right { text-align: right; }
             .bold { font-weight: 900; }
-            .shop-title { font-size: 15px; font-weight: 900; margin-bottom: 2px; }
+            .shop-title { font-size: 16px; font-weight: 900; margin-bottom: 2px; }
             .divider { border-top: 1px dashed #000; margin: 6px 0; }
             .double-divider { border-top: 2px solid #000; margin: 6px 0; }
             .row { display: flex; justify-content: space-between; margin: 3px 0; }
-            .total-row { font-size: 14px; font-weight: 900; margin: 6px 0; }
+            .total-row { font-size: 15px; font-weight: 900; margin: 6px 0; }
             .footer { font-size: 10px; margin-top: 10px; text-align: center; }
           </style>
         </head>
@@ -209,33 +181,58 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             <div>Merci pour votre achat !</div>
             <div style="font-size: 9px; margin-top: 3px;">FASOCARNET</div>
           </div>
-
-          <script>
-            window.onload = function() {
-              window.print();
-            };
-          </script>
         </body>
       </html>
     `;
+  };
 
-    try {
-      const printWindow = window.open('', '_blank', 'width=380,height=600');
-      if (printWindow) {
-        printWindow.document.open();
-        printWindow.document.write(html);
-        printWindow.document.close();
-      } else {
-        window.print();
+  /**
+   * Impression directe Bluetooth ESC/POS ou Impression Système intégrée
+   */
+  const handlePrintReceipt = async () => {
+    setIsPrinting(true);
+
+    // 1. Si Web Bluetooth direct est disponible (navigateur supporté)
+    if (isBluetoothSupported()) {
+      setPrintStatus('Recherche des imprimantes Bluetooth...');
+      try {
+        const res = await printViaBluetooth(sale, shopProfile || undefined);
+        if (res.success) {
+          setPrintStatus('✓ Ticket imprimé avec succès !');
+          setTimeout(() => {
+            setIsPrinting(false);
+            setPrintStatus(null);
+          }, 2000);
+          return;
+        } else {
+          setPrintStatus(res.message);
+          setTimeout(() => setIsPrinting(false), 3000);
+          return;
+        }
+      } catch (err: any) {
+        console.warn('Web Bluetooth error:', err);
       }
-    } catch {
-      window.print();
     }
+
+    // 2. Sur Android Native : Tenter l'envoi direct ESC/POS Bluetooth via RawBT
+    if (Capacitor.isNativePlatform()) {
+      setPrintStatus('Envoi vers l\'imprimante Bluetooth...');
+      printViaRawBt(sale, shopProfile || undefined);
+    }
+
+    // 3. Impression système intégrée via iframe cachée (SANS ouvrir de navigateur externe)
+    const html = buildReceiptHtml();
+    printViaHiddenIframe(html);
+
+    setTimeout(() => {
+      setIsPrinting(false);
+      setPrintStatus(null);
+    }, 1500);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-xl p-4 text-center space-y-2.5 max-h-[92vh] flex flex-col justify-between animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
+      <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl p-4 text-center space-y-2.5 max-h-[92vh] flex flex-col justify-between animate-in zoom-in-95 duration-150 border border-slate-100">
         <div className="flex items-center justify-between pb-1.5 border-b border-gray-100">
           <div className="flex items-center space-x-1.5 text-emerald-800">
             <CheckCircle2 className="w-5 h-5 text-emerald-600" />
@@ -247,21 +244,21 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
         </div>
 
         {/* APERÇU DU REÇU IMAGE STYLISÉ AVEC TAMPON */}
-        <div className="bg-gray-100 rounded-xl p-1.5 border border-gray-200 overflow-hidden max-h-48 sm:max-h-56 flex items-center justify-center shadow-inner">
+        <div className="bg-slate-50 rounded-2xl p-1.5 border border-slate-200/80 overflow-hidden max-h-48 sm:max-h-56 flex items-center justify-center shadow-inner">
           {isGenerating ? (
-            <div className="py-10 text-xs text-gray-500 font-semibold animate-pulse">
+            <div className="py-10 text-xs text-slate-500 font-semibold animate-pulse">
               Génération du ticket stylisé...
             </div>
           ) : receiptImageUrl ? (
             <img
               src={receiptImageUrl}
               alt="Reçu de Caisse"
-              className="max-h-44 sm:max-h-52 rounded-lg shadow-sm object-contain"
+              className="max-h-44 sm:max-h-52 rounded-xl shadow-xs object-contain"
             />
           ) : null}
         </div>
 
-        {/* STATUT IMPRESSION BLUETOOTH */}
+        {/* STATUT IMPRESSION */}
         {printStatus && (
           <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs p-2 rounded-xl flex items-center justify-center space-x-2 animate-in fade-in">
             {isPrinting ? <Loader2 className="w-3.5 h-3.5 text-emerald-600 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
@@ -283,13 +280,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
           {/* 2. Grille 2 boutons : Imprimer & Télécharger */}
           <div className="grid grid-cols-2 gap-2">
-            {/* Bouton Imprimer (Bluetooth / ESC-POS) */}
+            {/* Bouton Imprimer (Bluetooth / ESC-POS / Système) */}
             <button
               type="button"
               disabled={isPrinting}
               onClick={handlePrintReceipt}
               className="py-2.5 px-2 bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-xs active:scale-98 disabled:opacity-50"
-              title="Rechercher et imprimer directement sur imprimante Bluetooth 58mm ou Wi-Fi"
+              title="Imprimer directement sur imprimante thermique Bluetooth ou système"
             >
               {isPrinting ? (
                 <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
