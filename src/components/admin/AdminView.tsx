@@ -3,7 +3,7 @@ import {
   Store, Crown, Key, Lock, LogOut, Search, Plus, Copy, Check, Trash2,
   MessageCircle, ArrowLeft, Sparkles, Eye, EyeOff, RefreshCw,
   BarChart3, Smartphone, Radio, Download, Phone, Users,
-  ShieldAlert, ShieldCheck, MapPin, Send, CheckCircle2, Megaphone
+  MapPin, Send, CheckCircle2, Megaphone
 } from 'lucide-react';
 import { adminService, AdminStats, ShopAdminDetails } from '../../db/services/adminService';
 import { LicenseKey, ExtendedAdminAnalytics, AdminBroadcastMessage } from '../../types';
@@ -44,7 +44,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [licenses, setLicenses] = useState<LicenseKey[]>([]);
   const [broadcast, setBroadcast] = useState<AdminBroadcastMessage | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'trial' | 'expired' | 'suspended'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'trial' | 'expired'>('all');
   const [genPlan, setGenPlan] = useState<'monthly' | 'semi-annual' | 'annual'>('monthly');
   const [genCount, setGenCount] = useState<number>(1);
   const [genNotes, setGenNotes] = useState('');
@@ -188,19 +188,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
     }
   };
 
-  const handleToggleSuspension = async (shopId: string, currentStatus?: boolean) => {
-    const newStatus = !currentStatus;
-    const reason = newStatus ? prompt('Raison de la suspension (optionnel) :', 'Compte suspendu temporairement par l\'administration.') : undefined;
-    if (newStatus && reason === null) return; // Annulé
-
-    try {
-      await adminService.toggleShopSuspension(shopId, newStatus, reason || undefined);
-      await loadData();
-    } catch (err: any) {
-      alert(err.message || 'Erreur lors de la modification du statut.');
-    }
-  };
-
   const handleDeleteShop = async (shopId: string, shopName: string) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer définitivement la boutique ' + shopName + ' ?')) {
       await adminService.deleteShop(shopId);
@@ -312,8 +299,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
 
     if (!matchesSearch) return false;
     if (filterStatus === 'all') return true;
-    if (filterStatus === 'suspended') return !!shop.isSuspended;
-    return shop.statusType === filterStatus && !shop.isSuspended;
+    return shop.statusType === filterStatus;
   });
 
   if (!isAuthenticated) {
@@ -546,7 +532,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               </div>
 
               <div className="flex space-x-1 bg-slate-900 p-1 rounded-2xl border border-slate-800 overflow-x-auto no-scrollbar shrink-0">
-                {(['all', 'active', 'trial', 'expired', 'suspended'] as const).map((st) => (
+                {(['all', 'active', 'trial', 'expired'] as const).map((st) => (
                   <button
                     key={st}
                     type="button"
@@ -557,7 +543,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    {st === 'all' ? 'Tous' : st === 'active' ? 'Actifs' : st === 'trial' ? 'Essai' : st === 'suspended' ? 'Suspendus' : 'Expirés'}
+                    {st === 'all' ? 'Tous' : st === 'active' ? 'Actifs' : st === 'trial' ? 'Essai' : 'Expirés'}
                   </button>
                 ))}
               </div>
@@ -579,9 +565,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                     <div
                       key={shop.id}
                       className={`bg-slate-900 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all space-y-3 ${
-                        shop.isSuspended
-                          ? 'border-red-800/80 bg-red-950/20'
-                          : shop.statusType === 'active'
+                        shop.statusType === 'active'
                           ? 'border-slate-800 hover:border-emerald-500/50'
                           : shop.statusType === 'trial'
                           ? 'border-slate-800 hover:border-amber-500/50'
@@ -594,16 +578,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                             <h3 className="font-black text-white text-sm sm:text-base tracking-tight font-display truncate">{shop.name}</h3>
                             <span
                               className={`px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider font-display shrink-0 ${
-                                shop.isSuspended
-                                  ? 'bg-red-600 text-white'
-                                  : shop.statusType === 'active'
+                                shop.statusType === 'active'
                                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                                   : shop.statusType === 'trial'
                                   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                                   : 'bg-red-500/20 text-red-300 border border-red-500/40'
                               }`}
                             >
-                              {shop.isSuspended ? '⛔ Suspendu' : shop.statusLabel}
+                              {shop.statusLabel}
                             </span>
                           </div>
 
@@ -652,21 +634,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-1.5 sm:space-x-2 w-full md:w-auto justify-between md:justify-end">
-                          {/* Bouton Suspension / Déblocage */}
-                          <button
-                            type="button"
-                            onClick={() => handleToggleSuspension(shop.id, shop.isSuspended)}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center space-x-1 transition-all cursor-pointer ${
-                              shop.isSuspended
-                                ? 'bg-amber-600 hover:bg-amber-500 text-white'
-                                : 'bg-slate-800 hover:bg-red-900/60 text-slate-300 hover:text-red-200 border border-slate-700'
-                            }`}
-                            title={shop.isSuspended ? 'Réactiver la boutique' : 'Suspendre temporairement l\'accès'}
-                          >
-                            {shop.isSuspended ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldAlert className="w-3.5 h-3.5 text-red-400" />}
-                            <span>{shop.isSuspended ? 'Réactiver' : 'Suspendre'}</span>
-                          </button>
-
                           <a
                             href={waReminderUrl}
                             target="_blank"

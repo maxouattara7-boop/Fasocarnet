@@ -480,31 +480,45 @@ export const adminService = {
   },
 
   /**
-   * Suspend ou réactive une boutique commerçante à distance (Killswitch / Suspension)
+   * Rétablit et débloque toutes les boutiques éventuellement suspendues (Local + Cloud)
    */
-  async toggleShopSuspension(shopId: string, isSuspended: boolean, reason?: string): Promise<ShopProfile> {
-    const cloudDb = await syncService.fetchRemoteDatabase();
-    let shop = await db.shopProfiles.get(shopId);
-    if (!shop && cloudDb[shopId]) {
-      shop = cloudDb[shopId].profile;
-    }
-    if (!shop) throw new Error('Boutique introuvable.');
+  async restoreAllSuspendedShops(): Promise<number> {
+    let count = 0;
 
-    const updated: ShopProfile = {
-      ...shop,
-      isSuspended,
-      suspendedReason: isSuspended ? (reason?.trim() || 'Compte suspendu par l\'administrateur.') : undefined,
-      updatedAt: new Date().toISOString()
-    };
-
-    await db.shopProfiles.put(updated);
-    if (cloudDb[shopId]) {
-      cloudDb[shopId].profile = updated;
-      cloudDb[shopId].lastUpdatedAt = new Date().toISOString();
-      await syncService.pushRemoteDatabase(cloudDb);
+    // 1. Débloquer en local dans IndexedDB
+    const localShops = await db.shopProfiles.toArray();
+    for (const shop of localShops) {
+      if (shop.isSuspended || shop.suspendedReason) {
+        shop.isSuspended = false;
+        delete shop.suspendedReason;
+        shop.updatedAt = new Date().toISOString();
+        await db.shopProfiles.put(shop);
+        count++;
+      }
     }
 
-    return updated;
+    // 2. Débloquer dans la base partagée réseau / Cloud
+    try {
+      const cloudDb = await syncService.fetchRemoteDatabase();
+      let cloudModified = false;
+      for (const key of Object.keys(cloudDb)) {
+        const data = cloudDb[key];
+        if (data?.profile && (data.profile.isSuspended || data.profile.suspendedReason)) {
+          data.profile.isSuspended = false;
+          delete data.profile.suspendedReason;
+          data.lastUpdatedAt = new Date().toISOString();
+          cloudModified = true;
+          count++;
+        }
+      }
+      if (cloudModified) {
+        await syncService.pushRemoteDatabase(cloudDb);
+      }
+    } catch (err) {
+      console.warn('Erreur synchronisation cloud pour réactiver les boutiques:', err);
+    }
+
+    return count;
   },
 
   /**
@@ -526,7 +540,6 @@ export const adminService = {
       'Chiffre d\'Affaires Total (FCFA)',
       'Nombre de Clients',
       'Dettes en cours (FCFA)',
-      'Suspendu',
       'Date Création'
     ];
 
@@ -544,7 +557,6 @@ export const adminService = {
       s.totalSalesVolume,
       s.customersCount,
       s.totalDebtsAmount,
-      s.isSuspended ? 'OUI' : 'NON',
       s.createdAt ? new Date(s.createdAt).toLocaleDateString('fr-FR') : ''
     ]);
 

@@ -12,8 +12,9 @@ import { AdminView } from './components/admin/AdminView';
 import { LandingPageView } from './components/landing/LandingPageView';
 import { subscriptionService } from './db/services/subscriptionService';
 import { syncService } from './db/services/syncService';
+import { adminService } from './db/services/adminService';
 import { AdminBroadcastMessage } from './types';
-import { Crown, Megaphone, ShieldAlert, MessageCircle, X } from 'lucide-react';
+import { Crown, Megaphone, X } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { updateService, AppUpdateInfo } from './services/updateService';
 import { UpdateModal } from './components/common/UpdateModal';
@@ -27,6 +28,8 @@ export const App: React.FC = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   useEffect(() => {
+    // Rétablir automatiquement tout compte précédemment suspendu
+    adminService.restoreAllSuspendedShops().catch(() => {});
     loadCurrentShop();
     
     // Vérification des mises à jour distantes au lancement
@@ -80,40 +83,6 @@ export const App: React.FC = () => {
   // Si aucun commerce n'est configuré sur cet appareil, afficher l'écran d'accueil
   if (!activeShopId || !shopProfile) {
     return <OnboardingView />;
-  }
-
-  // Si la boutique a été suspendue à distance par le Super-Admin
-  if (shopProfile.isSuspended) {
-    const contactAdminUrl = `https://wa.me/22672990310?text=${encodeURIComponent(
-      `Bonjour Administrateur FasoCarnet,\nMon compte pour la boutique "${shopProfile.name}" (${shopProfile.phone}) est actuellement suspendu. Merci de m'indiquer la démarche pour réactiver mon accès.`
-    )}`;
-
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 text-white">
-        <div className="bg-slate-900 border border-red-900/60 w-full max-w-sm rounded-3xl p-6 text-center space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
-          <div className="w-16 h-16 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center justify-center mx-auto text-red-400">
-            <ShieldAlert className="w-8 h-8" />
-          </div>
-          <div className="space-y-1">
-            <h2 className="text-xl font-black text-white font-display">Boutique Suspendue</h2>
-            <p className="text-xs text-slate-400 font-medium">
-              {shopProfile.suspendedReason || "L'accès à cette boutique a été temporairement suspendu par l'administration."}
-            </p>
-          </div>
-          <div className="pt-2 space-y-2">
-            <a
-              href={contactAdminUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl text-xs flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/25 active:scale-98 transition-all font-display"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>Contacter le Support Administrateur</span>
-            </a>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   const subInfo = subscriptionService.getSubscriptionInfo(shopProfile);

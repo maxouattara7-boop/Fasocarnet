@@ -88,25 +88,26 @@ describe('adminService', () => {
     expect(analytics.cityStats.find(c => c.city === 'Bobo-Dioulasso')?.count).toBe(1);
   });
 
-  it('allows suspending and restoring a merchant shop', async () => {
+  it('restores any suspended merchant shop automatically', async () => {
     const shop: ShopProfile = {
-      id: 'shop_to_suspend',
-      name: 'Boutique Suspecte',
+      id: 'shop_to_restore',
+      name: 'Boutique Suspendue Test',
       phone: '70112233',
       currency: 'FCFA',
       isConfigured: true,
+      isSuspended: true,
+      suspendedReason: 'Ancienne suspension',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     await db.shopProfiles.put(shop);
 
-    const suspended = await adminService.toggleShopSuspension('shop_to_suspend', true, 'Litige impayé');
-    expect(suspended.isSuspended).toBe(true);
-    expect(suspended.suspendedReason).toBe('Litige impayé');
+    const restoredCount = await adminService.restoreAllSuspendedShops();
+    expect(restoredCount).toBeGreaterThanOrEqual(1);
 
-    const restored = await adminService.toggleShopSuspension('shop_to_suspend', false);
-    expect(restored.isSuspended).toBe(false);
-    expect(restored.suspendedReason).toBeUndefined();
+    const check = await db.shopProfiles.get('shop_to_restore');
+    expect(check?.isSuspended).toBe(false);
+    expect(check?.suspendedReason).toBeUndefined();
   });
 
   it('exports merchant data to formatted CSV', async () => {
