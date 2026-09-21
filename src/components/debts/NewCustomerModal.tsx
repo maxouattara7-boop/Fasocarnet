@@ -45,23 +45,23 @@ export const NewCustomerModal: React.FC<NewCustomerModalProps> = ({ isOpen, onCl
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl p-6 space-y-4.5 animate-in zoom-in-95 duration-150 border border-slate-100">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
-          <div className="flex items-center space-x-2.5 text-emerald-800">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-              <UserPlus className="w-4 h-4" />
+    <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-3.5 sm:p-4">
+      <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-xl p-4 sm:p-5 space-y-3.5 animate-in zoom-in-95 duration-150 border border-slate-100">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div className="flex items-center space-x-2 text-emerald-800">
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+              <UserPlus className="w-3.5 h-3.5" />
             </div>
-            <h3 className="font-black text-lg text-slate-900 font-display">Nouveau Client</h3>
+            <h3 className="font-extrabold text-base text-slate-900 font-display">Nouveau Client</h3>
           </div>
           <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-all">
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3.5">
+        <form onSubmit={handleSubmit} className="space-y-2.5">
           <div>
-            <label className="block text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 font-display">
+            <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1 font-display">
               Nom complet *
             </label>
             <input
@@ -70,12 +70,12 @@ export const NewCustomerModal: React.FC<NewCustomerModalProps> = ({ isOpen, onCl
               placeholder="Ex: Moussa Ouédraogo"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 font-display">
+            <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1 font-display">
               Numéro de téléphone / WhatsApp *
             </label>
             <input
@@ -84,12 +84,12 @@ export const NewCustomerModal: React.FC<NewCustomerModalProps> = ({ isOpen, onCl
               placeholder="Ex: 70 12 34 56"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1.5 font-display">
+            <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1 font-display">
               Note ou description (Optionnel)
             </label>
             <input
@@ -97,22 +97,22 @@ export const NewCustomerModal: React.FC<NewCustomerModalProps> = ({ isOpen, onCl
               placeholder="Ex: Voisin boutique, mécanicien..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
             />
           </div>
 
-          <div className="pt-2 flex space-x-2.5">
+          <div className="pt-1 flex space-x-2">
             <button
               type="button"
               onClick={onClose}
-              className="w-1/3 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-xs transition-all active:scale-98"
+              className="w-1/3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all active:scale-98"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-2/3 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl text-xs shadow-lg shadow-emerald-600/30 active:scale-98 transition-all"
+              className="w-2/3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-600/20 active:scale-98 transition-all"
             >
               {isSubmitting ? 'Enregistrement...' : 'Créer le Client'}
             </button>

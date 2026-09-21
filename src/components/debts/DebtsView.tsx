@@ -32,22 +32,22 @@ export const DebtsView: React.FC = () => {
   );
 
   return (
-    <div className="max-w-md mx-auto p-4 space-y-4 pb-24">
+    <div className="max-w-md mx-auto p-3.5 sm:p-4 space-y-3 pb-24">
       {/* Carte du Total Général des Créances */}
-      <div className="bg-gradient-to-br from-amber-600 to-amber-900 text-white p-6 rounded-3xl shadow-xl space-y-2 border border-amber-500/40">
-        <div className="flex items-center justify-between text-amber-200 text-xs font-bold uppercase tracking-wider">
+      <div className="bg-gradient-to-br from-amber-600 to-amber-900 text-white p-4.5 sm:p-5 rounded-2xl shadow-lg space-y-1.5 border border-amber-500/40">
+        <div className="flex items-center justify-between text-amber-200 text-[11px] font-bold uppercase tracking-wider">
           <div className="flex items-center space-x-1.5">
-            <BookOpen className="w-4 h-4" />
+            <BookOpen className="w-3.5 h-3.5" />
             <span>Total des Dettes Clients</span>
           </div>
-          <span>{debtorCustomers.length} Débiteur(s)</span>
+          <span className="bg-amber-700/60 px-2 py-0.5 rounded-md text-[10px] font-bold">{debtorCustomers.length} Débiteur(s)</span>
         </div>
 
-        <div className="text-3xl sm:text-4xl font-black text-white">
+        <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
           {formatCurrency(totalOutstanding)}
         </div>
 
-        <p className="text-[11px] text-amber-200/80">
+        <p className="text-[10px] text-amber-200/80">
           Argent en circulation à recouvrer auprès de vos clients
         </p>
       </div>
@@ -55,41 +55,41 @@ export const DebtsView: React.FC = () => {
       {/* Barre de recherche et Bouton d'ajout */}
       <div className="flex items-center space-x-2">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
+          <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3" />
           <input
             type="text"
             placeholder="Rechercher par nom ou numéro..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-xs font-medium focus:ring-2 focus:ring-amber-500 outline-none shadow-sm"
+            className="w-full pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-amber-500 outline-none shadow-xs"
           />
         </div>
 
         <button
           type="button"
           onClick={() => setIsNewCustomerModalOpen(true)}
-          className="p-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-md active:scale-95 transition-all flex items-center justify-center"
+          className="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm active:scale-95 transition-all flex items-center justify-center flex-shrink-0"
           title="Nouveau Client"
         >
-          <UserPlus className="w-5 h-5" />
+          <UserPlus className="w-4 h-4" />
         </button>
       </div>
 
       {/* Liste des clients */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {filteredCustomers.length === 0 ? (
-          <div className="bg-white p-8 rounded-3xl text-center space-y-3 border border-gray-100 shadow-sm">
-            <AlertCircle className="w-10 h-10 text-gray-300 mx-auto" />
+          <div className="bg-white p-6 rounded-2xl text-center space-y-2.5 border border-gray-100 shadow-xs">
+            <AlertCircle className="w-8 h-8 text-gray-300 mx-auto" />
             <div>
-              <h4 className="font-bold text-gray-700 text-sm">Aucun client trouvé</h4>
-              <p className="text-xs text-gray-400 mt-1">
+              <h4 className="font-bold text-gray-700 text-xs sm:text-sm">Aucun client trouvé</h4>
+              <p className="text-[11px] text-gray-400 mt-0.5">
                 Créez un nouveau client ou enregistrez une vente à crédit depuis la caisse.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setIsNewCustomerModalOpen(true)}
-              className="px-4 py-2 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 hover:bg-emerald-100"
+              className="px-3.5 py-1.5 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-xl border border-emerald-200 hover:bg-emerald-100"
             >
               + Ajouter un premier client
             </button>

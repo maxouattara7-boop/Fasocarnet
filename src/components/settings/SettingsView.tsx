@@ -223,23 +223,23 @@ export const SettingsView: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-md mx-auto p-4 space-y-4 pb-28">
+    <div className="max-w-md mx-auto p-3.5 sm:p-4 space-y-3 pb-28">
       {/* En-tête titre */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2 text-emerald-900">
-          <Store className="w-6 h-6 text-emerald-700" />
-          <h2 className="text-xl font-black">Paramètres</h2>
+          <Store className="w-5 h-5 text-emerald-700" />
+          <h2 className="text-base sm:text-lg font-extrabold">Paramètres</h2>
         </div>
         {savedSuccess && (
-          <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full flex items-center space-x-1 animate-in fade-in">
-            <Check className="w-3.5 h-3.5" />
+          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full flex items-center space-x-1 animate-in fade-in">
+            <Check className="w-3 h-3" />
             <span>Enregistré !</span>
           </span>
         )}
       </div>
 
       {/* SÉLECTEUR DE RUBRIQUES (4 TABS MODERNES) */}
-      <div className="grid grid-cols-4 gap-1.5 bg-gray-200/80 p-1.5 rounded-2xl">
+      <div className="grid grid-cols-4 gap-1 bg-gray-200/80 p-1 rounded-xl">
         {tabs.map((tab) => {
           const isActive = activeSubTab === tab.id;
           return (
@@ -247,21 +247,21 @@ export const SettingsView: React.FC = () => {
               key={tab.id}
               type="button"
               onClick={() => setActiveSubTab(tab.id)}
-              className={`py-2 px-1 rounded-xl text-xs font-bold flex flex-col items-center justify-center space-y-1 transition-all ${
+              className={`py-1.5 px-1 rounded-lg text-xs font-bold flex flex-col items-center justify-center space-y-0.5 transition-all ${
                 isActive
-                  ? 'bg-white text-emerald-800 shadow-sm'
+                  ? 'bg-white text-emerald-800 shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               <div className="relative flex items-center justify-center">
                 {tab.icon}
                 {tab.badge !== undefined && (
-                  <span className={`absolute -top-1.5 -right-3 text-[9px] font-black text-white px-1 py-0.2 rounded-full leading-tight ${tab.badgeColor || 'bg-emerald-500'}`}>
+                  <span className={`absolute -top-1.5 -right-2.5 text-[8px] font-black text-white px-1 py-0.2 rounded-full leading-tight ${tab.badgeColor || 'bg-emerald-500'}`}>
                     {tab.badge}
                   </span>
                 )}
               </div>
-              <span className="text-[11px] leading-none">{tab.label}</span>
+              <span className="text-[10px] leading-none mt-0.5">{tab.label}</span>
             </button>
           );
         })}
@@ -271,18 +271,18 @@ export const SettingsView: React.FC = () => {
       {/* RUBRIQUE 1 : BOUTIQUE (Identité, Sécurité, Sauvegarde)   */}
       {/* ======================================================== */}
       {activeSubTab === 'shop' && (
-        <div className="space-y-4 animate-in fade-in duration-150">
+        <div className="space-y-3 animate-in fade-in duration-150">
           {/* Identité du Commerce */}
-          <form onSubmit={handleSaveProfile} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-            <div className="flex items-center space-x-2.5 text-emerald-900 border-b border-slate-100 pb-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
-                <Store className="w-4 h-4" />
+          <form onSubmit={handleSaveProfile} className="bg-white p-4 sm:p-4.5 rounded-2xl border border-slate-100 shadow-xs space-y-3">
+            <div className="flex items-center space-x-2 text-emerald-900 border-b border-slate-100 pb-2">
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
+                <Store className="w-3.5 h-3.5" />
               </div>
-              <h3 className="font-extrabold text-sm tracking-tight">Identité du Commerce</h3>
+              <h3 className="font-extrabold text-xs sm:text-sm tracking-tight">Identité du Commerce</h3>
             </div>
 
             <div>
-              <label className="block text-[11px] font-black uppercase text-slate-700 tracking-wider mb-1.5">
+              <label className="block text-[10px] font-bold uppercase text-slate-700 tracking-wider mb-1">
                 Nom de la Boutique / Commerce *
               </label>
               <input
@@ -290,7 +290,7 @@ export const SettingsView: React.FC = () => {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all placeholder-slate-400"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all placeholder-slate-400"
                 placeholder="Ex: Boutique La Grâce"
               />
             </div>

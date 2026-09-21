@@ -267,52 +267,52 @@ export const OnboardingView: React.FC = () => {
         {/* ONGLET 1 : SE CONNECTER                                   */}
         {/* ======================================================== */}
         {authMode === 'login' && (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            <form onSubmit={handleLoginSubmit} className="bg-white text-slate-900 p-6 rounded-3xl shadow-2xl space-y-4 border border-emerald-100">
-              <div className="border-b border-slate-100 pb-3">
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <form onSubmit={handleLoginSubmit} className="bg-white text-slate-900 p-4 sm:p-5 rounded-2xl shadow-xl space-y-3 border border-emerald-100">
+              <div className="border-b border-slate-100 pb-2.5">
                 <div className="flex items-center space-x-2 text-emerald-800">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
-                    <Lock className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
+                    <Lock className="w-3.5 h-3.5" />
                   </div>
-                  <h3 className="text-base font-extrabold tracking-tight">Connexion à votre Espace</h3>
+                  <h3 className="text-sm sm:text-base font-extrabold tracking-tight">Connexion à votre Espace</h3>
                 </div>
-                <p className="text-xs text-slate-500 mt-1 font-medium leading-relaxed">
-                  Connectez cet appareil à votre commerce pour retrouver immédiatement toutes vos données synchronisées.
+                <p className="text-[11px] text-slate-500 mt-0.5 font-medium leading-relaxed">
+                  Retrouvez immédiatement toutes vos données synchronisées.
                 </p>
               </div>
 
               {loginError && (
-                <div className="p-3.5 bg-red-50/90 border border-red-200 rounded-2xl flex items-start space-x-2.5 text-xs font-semibold text-red-700 animate-in shake shadow-xs">
-                  <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <div className="p-2.5 bg-red-50/90 border border-red-200 rounded-xl flex items-start space-x-2 text-xs font-semibold text-red-700 animate-in shake shadow-xs">
+                  <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
                   <span>{loginError}</span>
                 </div>
               )}
 
               {/* Numéro de téléphone */}
               <div>
-                <label className="block text-[11px] font-black uppercase text-slate-700 tracking-wider mb-1.5">
+                <label className="block text-[10px] font-bold uppercase text-slate-700 tracking-wider mb-1">
                   Numéro de Téléphone *
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="tel"
                     required
                     placeholder="Ex: 70 12 34 56"
                     value={loginPhone}
                     onChange={(e) => setLoginPhone(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all placeholder-slate-400"
+                    className="w-full pl-8.5 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
                   />
                 </div>
               </div>
 
               {/* Code PIN */}
               <div>
-                <label className="block text-[11px] font-black uppercase text-slate-700 tracking-wider mb-1.5">
+                <label className="block text-[10px] font-bold uppercase text-slate-700 tracking-wider mb-1">
                   Code PIN de Sécurité *
                 </label>
                 <div className="relative">
-                  <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <KeyRound className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type={showLoginPin ? 'text' : 'password'}
                     inputMode="numeric"
@@ -322,14 +322,14 @@ export const OnboardingView: React.FC = () => {
                     placeholder="• • • •"
                     value={loginPin}
                     onChange={(e) => setLoginPin(e.target.value.replace(/\D/g, ''))}
-                    className="w-full pl-10 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-extrabold tracking-widest text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all placeholder-slate-400"
+                    className="w-full pl-8.5 pr-9 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold tracking-widest text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
                   />
                   <button
                     type="button"
                     onClick={() => setShowLoginPin(!showLoginPin)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-0.5 transition-colors"
                   >
-                    {showLoginPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showLoginPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
@@ -337,16 +337,16 @@ export const OnboardingView: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSyncing}
-                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-2xl text-sm shadow-lg shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center space-x-2 mt-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-600/20 active:scale-98 transition-all flex items-center justify-center space-x-1.5 mt-1 cursor-pointer disabled:opacity-50"
               >
                 {isSyncing ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Connexion & Synchronisation...</span>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Connexion...</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-4 h-4" />
+                    <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>SE CONNECTER</span>
                   </>
                 )}
@@ -359,96 +359,96 @@ export const OnboardingView: React.FC = () => {
         {/* ONGLET 2 : CRÉER SON ESPACE                              */}
         {/* ======================================================== */}
         {authMode === 'register' && (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            <form onSubmit={handleRegisterSubmit} className="bg-white text-slate-900 p-6 rounded-3xl shadow-2xl space-y-4 border border-emerald-100">
-              <div className="border-b border-slate-100 pb-3">
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <form onSubmit={handleRegisterSubmit} className="bg-white text-slate-900 p-4 sm:p-5 rounded-2xl shadow-xl space-y-3 border border-emerald-100">
+              <div className="border-b border-slate-100 pb-2.5">
                 <div className="flex items-center space-x-2 text-emerald-800">
-                  <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-500 shrink-0">
-                    <Sparkles className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-500 shrink-0">
+                    <Sparkles className="w-3.5 h-3.5" />
                   </div>
-                  <h3 className="text-base font-extrabold tracking-tight">Créer votre Espace Commerce</h3>
+                  <h3 className="text-sm sm:text-base font-extrabold tracking-tight">Créer votre Espace Commerce</h3>
                 </div>
-                <p className="text-xs text-slate-500 mt-1 font-medium leading-relaxed">
-                  Renseignez ces informations pour configurer votre caisse tactile et votre carnet de crédits.
+                <p className="text-[11px] text-slate-500 mt-0.5 font-medium leading-relaxed">
+                  Configurez votre caisse tactile et votre carnet de crédits.
                 </p>
               </div>
 
               {registerError && (
-                <div className="p-3.5 bg-red-50/90 border border-red-200 rounded-2xl flex items-start space-x-2.5 text-xs font-semibold text-red-700 animate-in shake shadow-xs">
-                  <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <div className="p-2.5 bg-red-50/90 border border-red-200 rounded-xl flex items-start space-x-2 text-xs font-semibold text-red-700 animate-in shake shadow-xs">
+                  <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
                   <span>{registerError}</span>
                 </div>
               )}
 
               {/* 1. Nom du commerce */}
               <div>
-                <label className="block text-[11px] font-black uppercase text-slate-700 tracking-wider mb-1.5">
+                <label className="block text-[10px] font-bold uppercase text-slate-700 tracking-wider mb-1">
                   Nom du Commerce / Boutique *
                 </label>
                 <div className="relative">
-                  <Store className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Store className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     required
-                    placeholder="Ex: Alimentation La Grâce, Kiosque Faso..."
+                    placeholder="Ex: Alimentation La Grâce, Kiosque..."
                     value={shopName}
                     onChange={(e) => setShopName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all placeholder-slate-400"
+                    className="w-full pl-8.5 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
                   />
                 </div>
               </div>
 
               {/* 2. Numéro de téléphone WhatsApp */}
               <div>
-                <label className="block text-[11px] font-black uppercase text-slate-700 tracking-wider mb-1.5">
+                <label className="block text-[10px] font-bold uppercase text-slate-700 tracking-wider mb-1">
                   Numéro WhatsApp / Téléphone *
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-emerald-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Phone className="w-3.5 h-3.5 text-emerald-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="tel"
                     required
                     placeholder="Ex: 70 12 34 56"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all placeholder-slate-400"
+                    className="w-full pl-8.5 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
                   />
                 </div>
               </div>
 
               {/* 3. Email (Optionnel) */}
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-[11px] font-black uppercase text-slate-700 tracking-wider">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[10px] font-bold uppercase text-slate-700 tracking-wider">
                     Adresse Email
                   </label>
-                  <span className="text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-full">
+                  <span className="text-[9px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.2 rounded-full">
                     Optionnel
                   </span>
                 </div>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="email"
                     placeholder="Ex: contact@moncommerce.bf"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all placeholder-slate-400"
+                    className="w-full pl-8.5 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
                   />
                 </div>
               </div>
 
               {/* 4. Ville */}
               <div>
-                <label className="block text-[11px] font-black uppercase text-slate-700 tracking-wider mb-1.5">
+                <label className="block text-[10px] font-bold uppercase text-slate-700 tracking-wider mb-1">
                   Ville / Localité *
                 </label>
                 <div className="relative">
-                  <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <MapPin className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <select
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all appearance-none cursor-pointer"
+                    className="w-full pl-8.5 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all appearance-none cursor-pointer"
                   >
                     <option value="Ouagadougou">Ouagadougou</option>
                     <option value="Bobo-Dioulasso">Bobo-Dioulasso</option>
@@ -469,18 +469,18 @@ export const OnboardingView: React.FC = () => {
                     placeholder="Précisez votre ville ou village..."
                     value={customCity}
                     onChange={(e) => setCustomCity(e.target.value)}
-                    className="w-full mt-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                    className="w-full mt-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
                   />
                 )}
               </div>
 
               {/* 5. Code PIN de Sécurité */}
               <div>
-                <label className="block text-[11px] font-black uppercase text-slate-700 tracking-wider mb-1.5">
+                <label className="block text-[10px] font-bold uppercase text-slate-700 tracking-wider mb-1">
                   Code PIN de Sécurité (4 chiffres) *
                 </label>
                 <div className="relative">
-                  <KeyRound className="w-4 h-4 text-emerald-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <KeyRound className="w-3.5 h-3.5 text-emerald-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type={showPin ? 'text' : 'password'}
                     inputMode="numeric"
@@ -490,65 +490,65 @@ export const OnboardingView: React.FC = () => {
                     placeholder="Ex: 1234"
                     value={pinCode}
                     onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ''))}
-                    className="w-full pl-10 pr-11 py-3 bg-emerald-50/40 border border-emerald-200/80 rounded-2xl text-sm font-extrabold tracking-widest text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all placeholder-slate-400"
+                    className="w-full pl-8.5 pr-9 py-2 bg-emerald-50/40 border border-emerald-200/80 rounded-xl text-xs font-extrabold tracking-widest text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPin(!showPin)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-0.5 transition-colors"
                   >
-                    {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
-                <span className="text-[10px] text-slate-500 mt-1.5 block font-medium">
+                <span className="text-[9px] text-slate-500 mt-1 block font-medium">
                   Ce code vous servira à vous reconnecter sur n'importe quel autre appareil.
                 </span>
               </div>
 
               {/* Options Avancées : Numéros Mobile Money */}
-              <div className="pt-1">
+              <div className="pt-0.5">
                 <button
                   type="button"
                   onClick={() => setShowMobileMoney(!showMobileMoney)}
-                  className="w-full text-left flex items-center justify-between text-xs font-bold text-emerald-800 bg-emerald-50/70 hover:bg-emerald-50 p-3 rounded-2xl border border-emerald-200/60 transition-all cursor-pointer"
+                  className="w-full text-left flex items-center justify-between text-xs font-bold text-emerald-800 bg-emerald-50/70 hover:bg-emerald-50 p-2.5 rounded-xl border border-emerald-200/60 transition-all cursor-pointer"
                 >
-                  <div className="flex items-center space-x-2">
-                    <Smartphone className="w-4 h-4 text-emerald-600" />
+                  <div className="flex items-center space-x-1.5">
+                    <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Numéros Mobile Money pour Relances (Optionnel)</span>
                   </div>
-                  {showMobileMoney ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {showMobileMoney ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                 </button>
 
                 {showMobileMoney && (
-                  <div className="grid grid-cols-3 gap-2 mt-2 pt-1 animate-in fade-in">
+                  <div className="grid grid-cols-3 gap-1.5 mt-1.5 pt-0.5 animate-in fade-in">
                     <div>
-                      <span className="block text-[10px] font-black text-[#ff6600] uppercase mb-1">Orange</span>
+                      <span className="block text-[9px] font-bold text-[#ff6600] uppercase mb-0.5">Orange</span>
                       <input
                         type="tel"
                         placeholder="70..."
                         value={omNumber}
                         onChange={(e) => setOmNumber(e.target.value)}
-                        className="w-full px-3 py-2 bg-orange-50/50 border border-orange-200 rounded-xl text-xs font-semibold outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
+                        className="w-full px-2 py-1 bg-orange-50/50 border border-orange-200 rounded-lg text-xs font-semibold outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
                       />
                     </div>
                     <div>
-                      <span className="block text-[10px] font-black text-[#005baa] uppercase mb-1">Moov</span>
+                      <span className="block text-[9px] font-bold text-[#005baa] uppercase mb-0.5">Moov</span>
                       <input
                         type="tel"
                         placeholder="60..."
                         value={moovNumber}
                         onChange={(e) => setMoovNumber(e.target.value)}
-                        className="w-full px-3 py-2 bg-blue-50/50 border border-blue-200 rounded-xl text-xs font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        className="w-full px-2 py-1 bg-blue-50/50 border border-blue-200 rounded-lg text-xs font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                       />
                     </div>
                     <div>
-                      <span className="block text-[10px] font-black text-[#1dc4fe] uppercase mb-1">Wave</span>
+                      <span className="block text-[9px] font-bold text-[#1dc4fe] uppercase mb-0.5">Wave</span>
                       <input
                         type="tel"
                         placeholder="70..."
                         value={waveNumber}
                         onChange={(e) => setWaveNumber(e.target.value)}
-                        className="w-full px-3 py-2 bg-sky-50/50 border border-sky-200 rounded-xl text-xs font-semibold outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+                        className="w-full px-2 py-1 bg-sky-50/50 border border-sky-200 rounded-lg text-xs font-semibold outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
                       />
                     </div>
                   </div>
@@ -559,16 +559,16 @@ export const OnboardingView: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSyncing}
-                className="w-full py-4 bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-2xl text-sm shadow-xl shadow-emerald-600/30 active:scale-98 transition-all flex items-center justify-center space-x-2 mt-3 cursor-pointer disabled:opacity-50"
+                className="w-full py-3 bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center space-x-1.5 mt-2 cursor-pointer disabled:opacity-50"
               >
                 {isSyncing ? (
                   <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                    <span>Création & Synchronisation...</span>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Création...</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-5 h-5" />
+                    <CheckCircle2 className="w-4 h-4" />
                     <span>VALIDER ET CRÉER MON ESPACE</span>
                   </>
                 )}

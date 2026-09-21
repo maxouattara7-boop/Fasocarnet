@@ -199,86 +199,86 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl p-5 text-center space-y-3.5 max-h-[95vh] flex flex-col justify-between animate-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-          <div className="flex items-center space-x-2 text-emerald-800">
-            <CheckCircle2 className="w-6 h-6 text-emerald-600" />
-            <h3 className="text-lg font-black">Vente Enregistrée !</h3>
+      <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-xl p-4 text-center space-y-2.5 max-h-[92vh] flex flex-col justify-between animate-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between pb-1.5 border-b border-gray-100">
+          <div className="flex items-center space-x-1.5 text-emerald-800">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            <h3 className="text-base font-extrabold">Vente Enregistrée !</h3>
           </div>
-          <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
             {sale.isCredit ? 'À CRÉDIT' : 'PAYÉ'}
           </span>
         </div>
 
         {/* APERÇU DU REÇU IMAGE STYLISÉ AVEC TAMPON */}
-        <div className="bg-gray-100 rounded-2xl p-2 border border-gray-200 overflow-hidden max-h-56 sm:max-h-64 flex items-center justify-center shadow-inner">
+        <div className="bg-gray-100 rounded-xl p-1.5 border border-gray-200 overflow-hidden max-h-48 sm:max-h-56 flex items-center justify-center shadow-inner">
           {isGenerating ? (
-            <div className="py-12 text-xs text-gray-500 font-semibold animate-pulse">
+            <div className="py-10 text-xs text-gray-500 font-semibold animate-pulse">
               Génération du ticket stylisé...
             </div>
           ) : receiptImageUrl ? (
             <img
               src={receiptImageUrl}
               alt="Reçu de Caisse"
-              className="max-h-52 sm:max-h-60 rounded-xl shadow-md object-contain"
+              className="max-h-44 sm:max-h-52 rounded-lg shadow-sm object-contain"
             />
           ) : null}
         </div>
 
         {/* BOUTONS D'ACTION */}
-        <div className="space-y-2 pt-1">
+        <div className="space-y-1.5 pt-0.5">
           {/* Bouton Partage Image WhatsApp */}
           <button
             type="button"
             onClick={handleShareReceiptImage}
-            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow-lg shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center space-x-2 text-xs sm:text-sm cursor-pointer"
+            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md shadow-emerald-600/20 active:scale-98 transition-all flex items-center justify-center space-x-1.5 text-xs cursor-pointer"
           >
             <Share2 className="w-4 h-4" />
             <span>PARTAGER L'IMAGE DU REÇU (WhatsApp)</span>
           </button>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-1.5">
             {/* Bouton Message Texte WhatsApp */}
             <button
               type="button"
               onClick={handleSendTextWhatsApp}
-              className="py-2.5 px-2 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] font-bold rounded-xl text-xs flex flex-col items-center justify-center space-y-1 transition-all cursor-pointer"
+              className="py-2 px-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] font-bold rounded-lg text-xs flex flex-col items-center justify-center space-y-0.5 transition-all cursor-pointer"
               title="Envoyer le détail de la vente en texte sur WhatsApp"
             >
-              <MessageSquare className="w-4 h-4 fill-[#128C7E]" />
-              <span className="text-[10px]">Texte WhatsApp</span>
+              <MessageSquare className="w-3.5 h-3.5 fill-[#128C7E]" />
+              <span className="text-[9px]">Texte WhatsApp</span>
             </button>
 
             {/* Bouton Imprimer Ticket Thermique */}
             <button
               type="button"
               onClick={handlePrintThermalReceipt}
-              className="py-2.5 px-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex flex-col items-center justify-center space-y-1 transition-all cursor-pointer shadow-xs"
+              className="py-2 px-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg text-xs flex flex-col items-center justify-center space-y-0.5 transition-all cursor-pointer shadow-xs"
               title="Imprimer le ticket sur imprimante Bluetooth 58mm ou de caisse"
             >
-              <Printer className="w-4 h-4 text-emerald-400" />
-              <span className="text-[10px]">Imprimer Ticket</span>
+              <Printer className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-[9px]">Imprimer Ticket</span>
             </button>
 
             {/* Bouton Télécharger l'image */}
             <button
               type="button"
               onClick={handleDownloadImage}
-              className="py-2.5 px-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs flex flex-col items-center justify-center space-y-1 transition-all cursor-pointer"
+              className="py-2 px-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg text-xs flex flex-col items-center justify-center space-y-0.5 transition-all cursor-pointer"
               title="Enregistrer l'image du reçu sur votre appareil"
             >
-              <Download className="w-4 h-4" />
-              <span className="text-[10px]">Télécharger</span>
+              <Download className="w-3.5 h-3.5" />
+              <span className="text-[9px]">Télécharger</span>
             </button>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-2xl text-xs transition-all flex items-center justify-center space-x-1 cursor-pointer"
+            className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-xl text-xs transition-all flex items-center justify-center space-x-1 cursor-pointer"
           >
             <span>Nouvelle Vente</span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>

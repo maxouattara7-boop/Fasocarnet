@@ -94,36 +94,36 @@ export const PosView: React.FC = () => {
   const hasCalculation = amountStr.includes('+');
 
   return (
-    <div className="max-w-md mx-auto p-4 space-y-3.5 pb-24">
+    <div className="max-w-md mx-auto p-3.5 sm:p-4 space-y-2.5 sm:space-y-3 pb-24">
       {/* Écran d'affichage du montant et du calcul */}
-      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-5 rounded-3xl shadow-xl flex flex-col justify-between min-h-[145px] border border-emerald-700/50">
-        <div className="flex items-center justify-between text-emerald-300 text-xs font-semibold tracking-wider uppercase">
+      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-4 sm:p-4.5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[118px] sm:min-h-[125px] border border-emerald-700/50">
+        <div className="flex items-center justify-between text-emerald-300 text-[11px] font-bold tracking-wider uppercase">
           <div className="flex items-center space-x-1.5">
             {hasCalculation ? (
-              <Calculator className="w-4 h-4 text-amber-400 animate-pulse" />
+              <Calculator className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
             ) : (
-              <ShoppingCart className="w-4 h-4" />
+              <ShoppingCart className="w-3.5 h-3.5" />
             )}
             <span>{hasCalculation ? 'Total Calculé' : 'Montant à Encaisser'}</span>
           </div>
-          <span className="bg-emerald-700/60 px-2 py-0.5 rounded-full text-[10px] font-bold">FCFA</span>
+          <span className="bg-emerald-700/70 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide">FCFA</span>
         </div>
 
-        <div className="text-right mt-2">
+        <div className="text-right mt-1">
           {/* Formule de calcul si addition en cours */}
           {hasCalculation && (
-            <div className="text-xs sm:text-sm font-semibold text-amber-300 bg-amber-950/40 px-2.5 py-1 rounded-lg inline-block max-w-full truncate mb-1 border border-amber-500/30">
+            <div className="text-[11px] sm:text-xs font-semibold text-amber-300 bg-amber-950/40 px-2 py-0.5 rounded-md inline-block max-w-full truncate mb-0.5 border border-amber-500/30">
               {amountStr} {amountStr.trim().endsWith('+') ? '...' : '='}
             </div>
           )}
 
-          <div className="text-4xl sm:text-5xl font-black tracking-tight text-white drop-shadow-sm truncate">
+          <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white drop-shadow-xs truncate leading-tight">
             {formatCurrency(totalAmount).replace(' FCFA', '')}
           </div>
 
-          <div className="text-[11px] text-emerald-300/80 mt-1">
+          <div className="text-[10px] text-emerald-300/80 mt-0.5">
             {selectedArticlesNotes.length > 0 ? (
-              <span className="font-semibold text-amber-300 truncate block">
+              <span className="font-medium text-amber-300 truncate block">
                 Articles : {selectedArticlesNotes.join(' + ')}
               </span>
             ) : (
@@ -136,16 +136,16 @@ export const PosView: React.FC = () => {
       {/* SÉLECTEUR DÉROULANT DES ARTICLES DU CATALOGUE */}
       {products.length > 0 && (
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-700">
-            <Package className="w-4 h-4" />
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-emerald-700">
+            <Package className="w-3.5 h-3.5" />
           </div>
           <select
             value=""
             onChange={(e) => handleSelectProduct(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-200 text-emerald-900 rounded-2xl text-xs font-bold appearance-none cursor-pointer focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm transition-all"
+            className="w-full pl-8.5 pr-3 py-2 bg-emerald-50/80 hover:bg-emerald-100/70 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-semibold appearance-none cursor-pointer focus:ring-2 focus:ring-emerald-500 outline-none shadow-xs transition-all"
           >
             <option value="" disabled>
-              📦 Choisir un article rapide (+ additionner le prix)...
+              📦 Ajouter un article rapide (+ additionner)...
             </option>
             {products.map((p) => (
               <option key={p.id} value={p.id}>
@@ -157,7 +157,7 @@ export const PosView: React.FC = () => {
       )}
 
       {/* Clavier tactile avec touche + et vibreur */}
-      <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100">
+      <div className="bg-white p-3 sm:p-3.5 rounded-2xl shadow-xs border border-gray-100">
         <Keypad
           value={amountStr}
           onChange={setAmountStr}
@@ -170,14 +170,14 @@ export const PosView: React.FC = () => {
         type="button"
         disabled={totalAmount <= 0}
         onClick={handleOpenPayment}
-        className={`w-full py-4 rounded-2xl font-black text-lg shadow-lg flex items-center justify-center space-x-2 transition-all ${
+        className={`w-full py-3 sm:py-3.5 rounded-xl font-bold text-base shadow-md flex items-center justify-center space-x-2 transition-all ${
           totalAmount > 0
-            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30 active:scale-98'
+            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/25 active:scale-98'
             : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
         }`}
       >
         <span>ENCAISSER ({formatCurrency(totalAmount)})</span>
-        <ArrowRight className="w-6 h-6" />
+        <ArrowRight className="w-5 h-5" />
       </button>
 
       {/* Modal de sélection de mode de paiement */}
