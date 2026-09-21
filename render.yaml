@@ -4,6 +4,13 @@ services:
     env: static
     buildCommand: npm install && npm run build
     staticPublishPath: dist
+    headers:
+      - path: /downloads/*.apk
+        name: Content-Type
+        value: application/vnd.android.package-archive
+      - path: /downloads/*.apk
+        name: Content-Disposition
+        value: attachment; filename="FasoCarnet-v1.2.0-Android.apk"
     routes:
       - type: rewrite
         source: /*
