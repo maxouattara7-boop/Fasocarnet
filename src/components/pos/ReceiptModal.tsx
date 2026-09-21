@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Sale } from '../../types';
 import { useAppStore } from '../../store/appStore';
-import { generateWhatsAppReceiptUrl } from '../../utils/whatsapp';
 import { generateReceiptDataUrl, generateReceiptFile } from '../../utils/receiptGenerator';
 import { formatDateTime } from '../../utils/formatters';
-import { CheckCircle2, MessageSquare, ArrowRight, Download, Share2, Printer } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Download, Share2, Printer } from 'lucide-react';
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -40,11 +39,6 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
   if (!isOpen || !sale) return null;
 
-  const handleSendTextWhatsApp = () => {
-    const url = generateWhatsAppReceiptUrl(sale, shopProfile || undefined, sale.customerPhone);
-    window.open(url, '_blank');
-  };
-
   const handleShareReceiptImage = async () => {
     try {
       const file = await generateReceiptFile(sale, shopProfile || undefined);
@@ -72,12 +66,6 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
   };
 
   const handlePrintThermalReceipt = () => {
-    const printWindow = window.open('', '_blank', 'width=380,height=600');
-    if (!printWindow) {
-      window.print();
-      return;
-    }
-
     const shopName = shopProfile?.name || 'FASOCARNET';
     const phone = shopProfile?.phone || '';
     const city = shopProfile?.city || '';
@@ -99,14 +87,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
               width: 58mm;
               max-width: 100%;
               margin: 0 auto;
-              padding: 10px 4px;
+              padding: 8px 4px;
               color: #000;
               background: #fff;
             }
             .center { text-align: center; }
             .right { text-align: right; }
             .bold { font-weight: 900; }
-            .shop-title { font-size: 16px; font-weight: 900; margin-bottom: 2px; }
+            .shop-title { font-size: 15px; font-weight: 900; margin-bottom: 2px; }
             .divider { border-top: 1px dashed #000; margin: 6px 0; }
             .double-divider { border-top: 2px solid #000; margin: 6px 0; }
             .row { display: flex; justify-content: space-between; margin: 2px 0; }
@@ -179,22 +167,35 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
           <div class="footer">
             <div>Merci pour votre achat !</div>
-            <div style="font-size: 9px; margin-top: 3px;">FASOCARNET MOBILE</div>
+            <div style="font-size: 9px; margin-top: 3px;">FASOCARNET</div>
           </div>
 
           <script>
             window.onload = function() {
               window.print();
-              setTimeout(function() { window.close(); }, 800);
             };
           </script>
         </body>
       </html>
     `;
 
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
+    try {
+      const printWindow = window.open('', '_blank', 'width=380,height=600');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
+      } else {
+        window.print();
+      }
+    } catch {
+      window.print();
+    } finally {
+      // Retour immédiat vers la caisse / nouvelle vente
+      setTimeout(() => {
+        onClose();
+      }, 300);
+    }
   };
 
   return (
@@ -226,56 +227,47 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
         </div>
 
         {/* BOUTONS D'ACTION */}
-        <div className="space-y-1.5 pt-0.5">
-          {/* Bouton Partage Image WhatsApp */}
+        <div className="space-y-2 pt-0.5">
+          {/* 1. Bouton Principal : Partager le Reçu */}
           <button
             type="button"
             onClick={handleShareReceiptImage}
-            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md shadow-emerald-600/20 active:scale-98 transition-all flex items-center justify-center space-x-1.5 text-xs cursor-pointer"
+            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl shadow-md shadow-emerald-600/20 active:scale-98 transition-all flex items-center justify-center space-x-2 text-xs cursor-pointer"
           >
             <Share2 className="w-4 h-4" />
-            <span>PARTAGER L'IMAGE DU REÇU (WhatsApp)</span>
+            <span>Partager le Reçu (WhatsApp)</span>
           </button>
 
-          <div className="grid grid-cols-3 gap-1.5">
-            {/* Bouton Message Texte WhatsApp */}
-            <button
-              type="button"
-              onClick={handleSendTextWhatsApp}
-              className="py-2 px-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] font-bold rounded-lg text-xs flex flex-col items-center justify-center space-y-0.5 transition-all cursor-pointer"
-              title="Envoyer le détail de la vente en texte sur WhatsApp"
-            >
-              <MessageSquare className="w-3.5 h-3.5 fill-[#128C7E]" />
-              <span className="text-[9px]">Texte WhatsApp</span>
-            </button>
-
-            {/* Bouton Imprimer Ticket Thermique */}
+          {/* 2. Grille 2 boutons : Imprimer & Télécharger */}
+          <div className="grid grid-cols-2 gap-2">
+            {/* Bouton Imprimer (Bluetooth / Wi-Fi) */}
             <button
               type="button"
               onClick={handlePrintThermalReceipt}
-              className="py-2 px-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg text-xs flex flex-col items-center justify-center space-y-0.5 transition-all cursor-pointer shadow-xs"
-              title="Imprimer le ticket sur imprimante Bluetooth 58mm ou de caisse"
+              className="py-2.5 px-2 bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-xs active:scale-98"
+              title="Imprimer le ticket sur imprimante Bluetooth 58mm ou Wi-Fi"
             >
-              <Printer className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-[9px]">Imprimer Ticket</span>
+              <Printer className="w-4 h-4 text-emerald-400" />
+              <span>Imprimer Ticket</span>
             </button>
 
             {/* Bouton Télécharger l'image */}
             <button
               type="button"
               onClick={handleDownloadImage}
-              className="py-2 px-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg text-xs flex flex-col items-center justify-center space-y-0.5 transition-all cursor-pointer"
+              className="py-2.5 px-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer border border-slate-200/80 active:scale-98"
               title="Enregistrer l'image du reçu sur votre appareil"
             >
-              <Download className="w-3.5 h-3.5" />
-              <span className="text-[9px]">Télécharger</span>
+              <Download className="w-4 h-4 text-slate-600" />
+              <span>Télécharger</span>
             </button>
           </div>
 
+          {/* 3. Bouton Nouvelle Vente */}
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-xl text-xs transition-all flex items-center justify-center space-x-1 cursor-pointer"
+            className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
           >
             <span>Nouvelle Vente</span>
             <ArrowRight className="w-3.5 h-3.5" />
