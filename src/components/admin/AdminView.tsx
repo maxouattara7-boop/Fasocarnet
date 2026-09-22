@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import {
   Store, Crown, Key, Lock, LogOut, Search, Plus, Copy, Check, Trash2,
   MessageCircle, ArrowLeft, Sparkles, Eye, EyeOff, RefreshCw,
-  BarChart3, Smartphone, Radio, Download, Phone, Users,
-  MapPin, Send, CheckCircle2, Megaphone, Wallet, Server, Activity, Globe, Wifi,
-  Database, Code2, AlertTriangle
+  BarChart3, Smartphone, Download, Users,
+  MapPin, Send, CheckCircle2, Megaphone, Wallet, Database
 } from 'lucide-react';
 import { adminService, AdminStats, ShopAdminDetails } from '../../db/services/adminService';
 import { syncService } from '../../db/services/syncService';
-import { supabaseClient } from '../../db/supabaseClient';
 import { LicenseKey, ExtendedAdminAnalytics, AdminBroadcastMessage } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -58,7 +56,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [broadcastTitle, setBroadcastTitle] = useState('');
   const [broadcastMessage, setBroadcastMessage] = useState('');
-  const [broadcastType, setBroadcastType] = useState<'info' | 'promo' | 'warning' | 'alert'>('info');
+  const [broadcastType, setBroadcastType] = useState<'info' | 'promo'>('info');
   const [isSavingBroadcast, setIsSavingBroadcast] = useState(false);
   const [broadcastSuccess, setBroadcastSuccess] = useState('');
 
@@ -69,30 +67,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [depositMerchant, setDepositMerchant] = useState('Maxime OUATTARA');
   const [isSavingDeposit, setIsSavingDeposit] = useState(false);
   const [depositSuccessMsg, setDepositSuccessMsg] = useState('');
-
-  // Cloud Server Management
-  const [customServerUrl, setCustomServerUrl] = useState(syncService.getServerUrl());
-  const [isTestingServer, setIsTestingServer] = useState(false);
-  const [serverHealthResult, setServerHealthResult] = useState<{ success: boolean; latencyMs: number; version?: string; error?: string } | null>(null);
-  const [serverSaveSuccess, setServerSaveSuccess] = useState('');
-
-  const handleTestServer = async () => {
-    setIsTestingServer(true);
-    setServerHealthResult(null);
-    try {
-      const res = await syncService.checkServerHealth(customServerUrl);
-      setServerHealthResult(res);
-    } finally {
-      setIsTestingServer(false);
-    }
-  };
-
-  const handleSaveServerUrl = (e: React.FormEvent) => {
-    e.preventDefault();
-    syncService.setServerUrl(customServerUrl);
-    setServerSaveSuccess('URL du serveur Cloud mise à jour avec succès !');
-    setTimeout(() => setServerSaveSuccess(''), 3000);
-  };
 
   const handleExportAllShopsJson = () => {
     const allData = syncService.getCloudDatabase();
@@ -107,136 +81,22 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
     URL.revokeObjectURL(url);
   };
 
-  // Supabase PostgreSQL Cloud Management
-  const [supabaseUrl, setSupabaseUrl] = useState(supabaseClient.getConfig().url);
-  const [supabaseAnonKey, setSupabaseAnonKey] = useState(supabaseClient.getConfig().anonKey);
-  const [isTestingSupabase, setIsTestingSupabase] = useState(false);
-  const [supabaseTestResult, setSupabaseTestResult] = useState<{ success: boolean; latencyMs: number; message: string } | null>(null);
-  const [supabaseSaveSuccess, setSupabaseSaveSuccess] = useState('');
-  const [showSqlSchema, setShowSqlSchema] = useState(false);
-  const [copiedSql, setCopiedSql] = useState(false);
-
-  const handleTestSupabase = async () => {
-    setIsTestingSupabase(true);
-    setSupabaseTestResult(null);
-    try {
-      const res = await supabaseClient.testConnection(supabaseUrl, supabaseAnonKey);
-      setSupabaseTestResult(res);
-    } finally {
-      setIsTestingSupabase(false);
-    }
-  };
-
-  const handleSaveSupabase = (e: React.FormEvent) => {
-    e.preventDefault();
-    supabaseClient.setConfig(supabaseUrl, supabaseAnonKey);
-    setSupabaseSaveSuccess('Identifiants Supabase enregistrés avec succès !');
-    setTimeout(() => setSupabaseSaveSuccess(''), 3000);
-  };
-
-  const handleCopySqlScript = () => {
-    const sqlScript = `-- ==============================================================================
--- SCHEMA SUPABASE CLOUD POUR FASOCARNET
--- ==============================================================================
-CREATE TABLE IF NOT EXISTS public.shops (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    phone TEXT NOT NULL,
-    owner_name TEXT,
-    owner_phone TEXT,
-    city TEXT,
-    pin_code TEXT,
-    subscription_plan TEXT DEFAULT 'trial',
-    subscription_status TEXT DEFAULT 'trial',
-    subscription_expires_at TIMESTAMPTZ,
-    data JSONB NOT NULL DEFAULT '{}'::jsonb,
-    telemetry JSONB,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_shops_phone ON public.shops(phone);
-CREATE INDEX IF NOT EXISTS idx_shops_owner_phone ON public.shops(owner_phone);
-CREATE INDEX IF NOT EXISTS idx_shops_updated_at ON public.shops(updated_at);
-
-CREATE TABLE IF NOT EXISTS public.licenses (
-    id TEXT PRIMARY KEY,
-    code TEXT NOT NULL UNIQUE,
-    plan TEXT NOT NULL,
-    duration_days INT NOT NULL,
-    price INT NOT NULL DEFAULT 2000,
-    is_used BOOLEAN DEFAULT FALSE,
-    used_by_shop_id TEXT,
-    used_by_shop_name TEXT,
-    used_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_licenses_code ON public.licenses(code);
-
-CREATE TABLE IF NOT EXISTS public.broadcasts (
-    id TEXT PRIMARY KEY DEFAULT 'current_broadcast',
-    message JSONB NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE public.shops ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.licenses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.broadcasts ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Allow anon full access on shops" ON public.shops;
-CREATE POLICY "Allow anon full access on shops" ON public.shops FOR ALL USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Allow anon full access on licenses" ON public.licenses;
-CREATE POLICY "Allow anon full access on licenses" ON public.licenses FOR ALL USING (true) WITH CHECK (true);
-
-DROP POLICY IF EXISTS "Allow anon full access on broadcasts" ON public.broadcasts;
-CREATE POLICY "Allow anon full access on broadcasts" ON public.broadcasts FOR ALL USING (true) WITH CHECK (true);`;
-
-    navigator.clipboard.writeText(sqlScript);
-    setCopiedSql(true);
-    setTimeout(() => setCopiedSql(false), 2500);
-  };
-
-  // WhatsApp Campaigns & Contacts
-  const [whatsappFilter, setWhatsappFilter] = useState<'all' | 'expired' | 'trial' | 'active'>('all');
-  const [whatsappSearch, setWhatsappSearch] = useState('');
-  const [whatsappTemplateType, setWhatsappTemplateType] = useState<'reminder' | 'promo' | 'update' | 'custom'>('reminder');
-  const [whatsappCustomText, setWhatsappCustomText] = useState(
-    'Bonjour {nom_boutique},\nVotre abonnement FasoCarnet arrive à échéance le {date_fin}.\nPour continuer à gérer vos ventes et reçus WhatsApp en toute sérénité, renouvelez votre licence :\n- 1 Mois : 2 000 FCFA\n- 6 Mois : 10 000 FCFA\n- 1 An : 20 000 FCFA\nPaiement Orange Money / Moov / Wave au 72990310.\nMerci de votre confiance !'
+  // Listes de Relance & Diffusion Groupée WhatsApp
+  const [trialRelanceMessage, setTrialRelanceMessage] = useState(
+    "Bonjour cher commerçant,\nVotre période d'essai gratuite sur l'application FasoCarnet arrive à terme.\nPour continuer à gérer votre caisse, imprimer vos reçus et sécuriser vos ventes en toute sérénité, activez votre abonnement :\n- 1 Mois : 2 000 FCFA\n- 6 Mois : 10 000 FCFA\n- 1 An : 20 000 FCFA\nPaiement Mobile Money (Orange Money / Moov / Wave) au 72990310.\nL'équipe FasoCarnet reste à votre service !"
   );
-  const [copiedShopMessageId, setCopiedShopMessageId] = useState<string | null>(null);
-  const [whatsappCopyFeedback, setWhatsappCopyFeedback] = useState('');
+  const [paidRelanceMessage, setPaidRelanceMessage] = useState(
+    "Bonjour cher abonné FasoCarnet,\nMerci pour votre confiance et votre fidélité !\nUne question, un besoin d'assistance ou une suggestion pour améliorer votre commerce ? Toute notre équipe reste à votre écoute au 72990310.\nBonnes ventes avec FasoCarnet !"
+  );
+  const [relanceFeedback, setRelanceFeedback] = useState('');
 
-  const getTemplateText = (type: 'reminder' | 'promo' | 'update' | 'custom') => {
-    switch (type) {
-      case 'reminder':
-        return 'Bonjour {nom_boutique},\nVotre abonnement FasoCarnet arrive à échéance le {date_fin}.\nPour continuer à gérer vos ventes et reçus WhatsApp en toute sérénité, renouvelez votre licence :\n- 1 Mois : 2 000 FCFA\n- 6 Mois : 10 000 FCFA\n- 1 An : 20 000 FCFA\nPaiement Orange Money / Moov / Wave au 72990310.\nMerci de votre confiance !';
-      case 'promo':
-        return 'Offre Spéciale FasoCarnet pour {nom_boutique} !\nBénéficiez aujourd\'hui d\'une réduction exceptionnelle sur votre abonnement annuel (20 000 FCFA au lieu de 24 000 FCFA) avec assistance 24/7 incluse.\nContactez le support au 72990310 pour activer votre promotion.';
-      case 'update':
-        return 'Chère boutique {nom_boutique},\nUne nouvelle mise à jour de FasoCarnet Mobile est disponible avec des nouveautés pour booster vos ventes et sécuriser vos comptes !\nOuvrez votre application pour découvrir les améliorations.';
-      case 'custom':
-        return whatsappCustomText;
-    }
-  };
+  // Groupes de boutiques pour diffusion groupée
+  const trialShops = shops.filter(s => s.statusType === 'trial' || s.statusType === 'expired' || s.daysRemaining <= 0);
+  const paidShops = shops.filter(s => s.statusType === 'active' && s.daysRemaining > 0);
 
-  const handleExportVCard = () => {
-    const vcf = adminService.generateVCard(filteredWhatsappShops);
-    const blob = new Blob([vcf], { type: 'text/vcard;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `fasocarnet_contacts_whatsapp_${new Date().toISOString().split('T')[0]}.vcf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    setWhatsappCopyFeedback('Fichier Contacts VCF téléchargé !');
-    setTimeout(() => setWhatsappCopyFeedback(''), 3000);
-  };
-
-  const handleCopyAllPhones = () => {
+  const getShopPhones = (shopList: ShopAdminDetails[]) => {
     const phones: string[] = [];
-    filteredWhatsappShops.forEach(s => {
+    shopList.forEach(s => {
       const cleanMain = s.phone.replace(/\D/g, '');
       if (cleanMain) {
         phones.push(cleanMain.startsWith('226') ? `+${cleanMain}` : `+226${cleanMain}`);
@@ -248,32 +108,54 @@ CREATE POLICY "Allow anon full access on broadcasts" ON public.broadcasts FOR AL
         }
       }
     });
-    const unique = Array.from(new Set(phones));
-    navigator.clipboard.writeText(unique.join(', '));
-    setWhatsappCopyFeedback(`${unique.length} numéros WhatsApp copiés !`);
-    setTimeout(() => setWhatsappCopyFeedback(''), 3000);
+    return Array.from(new Set(phones));
   };
 
-  const filteredWhatsappShops = shops.filter(s => {
-    const matchesSearch = !whatsappSearch.trim() || 
-      s.name.toLowerCase().includes(whatsappSearch.toLowerCase()) ||
-      s.phone.includes(whatsappSearch) ||
-      (s.ownerPhone && s.ownerPhone.includes(whatsappSearch)) ||
-      (s.city && s.city.toLowerCase().includes(whatsappSearch.toLowerCase()));
+  const handleCopyGroupPhones = (groupName: string, shopList: ShopAdminDetails[]) => {
+    const phones = getShopPhones(shopList);
+    if (phones.length === 0) {
+      setRelanceFeedback(`Aucun numéro trouvé pour la liste "${groupName}".`);
+      setTimeout(() => setRelanceFeedback(''), 3000);
+      return;
+    }
+    navigator.clipboard.writeText(phones.join(', '));
+    setRelanceFeedback(`${phones.length} numéro(s) de la liste "${groupName}" copiés !`);
+    setTimeout(() => setRelanceFeedback(''), 3000);
+  };
 
-    if (!matchesSearch) return false;
+  const handleCopyGroupMessage = (message: string, groupName: string) => {
+    navigator.clipboard.writeText(message);
+    setRelanceFeedback(`Message pour la liste "${groupName}" copié !`);
+    setTimeout(() => setRelanceFeedback(''), 3000);
+  };
 
-    if (whatsappFilter === 'expired') {
-      return s.daysRemaining <= 0 || s.statusType === 'expired';
+  const handleExportGroupVCard = (groupName: string, shopList: ShopAdminDetails[]) => {
+    if (shopList.length === 0) {
+      setRelanceFeedback(`Aucun contact dans la liste "${groupName}".`);
+      setTimeout(() => setRelanceFeedback(''), 3000);
+      return;
     }
-    if (whatsappFilter === 'trial') {
-      return s.statusType === 'trial';
-    }
-    if (whatsappFilter === 'active') {
-      return s.statusType === 'active' || s.daysRemaining > 0;
-    }
-    return true;
-  });
+    const vcf = adminService.generateVCard(shopList);
+    const blob = new Blob([vcf], { type: 'text/vcard;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `fasocarnet_contacts_${groupName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.vcf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setRelanceFeedback(`Fichier Contacts VCF (${groupName}) téléchargé !`);
+    setTimeout(() => setRelanceFeedback(''), 3000);
+  };
+
+  const handleOpenWhatsAppGroup = (message: string, groupName: string) => {
+    navigator.clipboard.writeText(message);
+    setRelanceFeedback(`Message pour "${groupName}" copié ! Ouverture de WhatsApp...`);
+    setTimeout(() => setRelanceFeedback(''), 3000);
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, '_blank');
+  };
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -300,7 +182,7 @@ CREATE POLICY "Allow anon full access on broadcasts" ON public.broadcasts FOR AL
       if (bc) {
         setBroadcastTitle(bc.title);
         setBroadcastMessage(bc.message);
-        setBroadcastType(bc.type);
+        setBroadcastType(bc.type === 'promo' ? 'promo' : 'info');
       }
       if (dep) {
         setDepositOrange(dep.orangeMoney || '');
@@ -832,12 +714,12 @@ CREATE POLICY "Allow anon full access on broadcasts" ON public.broadcasts FOR AL
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 shadow-sm">
               <div>
                 <h3 className="text-sm sm:text-base font-black text-white font-display">Télémétrie Globale & Démographie</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Données d'utilisation en temps réel de tous les appareils connectés</p>
+                <p className="text-xs text-slate-400 mt-0.5">Données d'utilisation en temps réel des boutiques connectées</p>
               </div>
               <button
                 type="button"
                 onClick={handleExportCsv}
-                className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/25 transition-all font-display cursor-pointer"
+                className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs rounded-xl sm:rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/25 transition-all font-display cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 <span>Exporter Données (CSV / Excel)</span>
@@ -845,7 +727,7 @@ CREATE POLICY "Allow anon full access on broadcasts" ON public.broadcasts FOR AL
             </div>
 
             {/* Cartes KPIs Réseau */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
               <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider font-display">Appareils / Installs</span>
                 <div className="text-xl sm:text-2xl font-black text-white font-display">{analytics.totalInstalls}</div>
@@ -855,13 +737,13 @@ CREATE POLICY "Allow anon full access on broadcasts" ON public.broadcasts FOR AL
               <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
                 <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider font-display">Volume Total Réseau</span>
                 <div className="text-base sm:text-xl font-black text-emerald-400 font-display truncate">{formatCurrency(analytics.totalNetworkSalesVolume)}</div>
-                <span className="text-[10px] text-slate-400 block">{analytics.totalNetworkSalesCount} transactions</span>
+                <span className="text-[10px] text-slate-400 block">{analytics.totalNetworkSalesCount} transaction(s)</span>
               </div>
 
               <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
                 <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider font-display">Dettes en Circulation</span>
                 <div className="text-base sm:text-xl font-black text-amber-400 font-display truncate">{formatCurrency(analytics.totalNetworkDebtsVolume)}</div>
-                <span className="text-[10px] text-slate-400 block">{analytics.totalNetworkCustomersCount} clients au total</span>
+                <span className="text-[10px] text-slate-400 block">{analytics.totalNetworkCustomersCount} client(s) au total</span>
               </div>
 
               <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
@@ -871,181 +753,57 @@ CREATE POLICY "Allow anon full access on broadcasts" ON public.broadcasts FOR AL
               </div>
             </div>
 
-            {/* Graphiques Répartition Opérateurs & Plateformes */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-              {/* Opérateurs Télécom & Mobile Money */}
-              <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
-                <div className="flex items-center space-x-2 text-white border-b border-slate-800 pb-3">
-                  <Radio className="w-5 h-5 text-orange-400" />
-                  <h4 className="font-bold text-xs sm:text-sm font-display">Répartition par Opérateur (Burkina Faso)</h4>
-                </div>
-
-                <div className="space-y-3 text-xs">
-                  {/* Orange */}
-                  <div>
-                    <div className="flex justify-between font-bold mb-1">
-                      <span className="text-orange-400 flex items-center space-x-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#ff6600]"></span>
-                        <span>Orange Burkina Faso</span>
-                      </span>
-                      <span className="text-slate-300 font-mono font-black">
-                        {analytics.operatorStats.orange} ({analytics.totalInstalls ? Math.round((analytics.operatorStats.orange / analytics.totalInstalls) * 100) : 0}%)
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-[#ff6600] rounded-full transition-all duration-500"
-                        style={{ width: `${analytics.totalInstalls ? (analytics.operatorStats.orange / analytics.totalInstalls) * 100 : 0}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  {/* Moov Africa */}
-                  <div>
-                    <div className="flex justify-between font-bold mb-1">
-                      <span className="text-blue-400 flex items-center space-x-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#005baa]"></span>
-                        <span>Moov Africa Burkina</span>
-                      </span>
-                      <span className="text-slate-300 font-mono font-black">
-                        {analytics.operatorStats.moov} ({analytics.totalInstalls ? Math.round((analytics.operatorStats.moov / analytics.totalInstalls) * 100) : 0}%)
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-[#005baa] rounded-full transition-all duration-500"
-                        style={{ width: `${analytics.totalInstalls ? (analytics.operatorStats.moov / analytics.totalInstalls) * 100 : 0}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  {/* Telecel */}
-                  <div>
-                    <div className="flex justify-between font-bold mb-1">
-                      <span className="text-red-400 flex items-center space-x-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-                        <span>Telecel Faso</span>
-                      </span>
-                      <span className="text-slate-300 font-mono font-black">
-                        {analytics.operatorStats.telecel} ({analytics.totalInstalls ? Math.round((analytics.operatorStats.telecel / analytics.totalInstalls) * 100) : 0}%)
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-red-500 rounded-full transition-all duration-500"
-                        style={{ width: `${analytics.totalInstalls ? (analytics.operatorStats.telecel / analytics.totalInstalls) * 100 : 0}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  {/* Autre */}
-                  <div>
-                    <div className="flex justify-between font-bold mb-1">
-                      <span className="text-slate-400 flex items-center space-x-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
-                        <span>Autre / Non Déterminé</span>
-                      </span>
-                      <span className="text-slate-300 font-mono font-black">
-                        {analytics.operatorStats.other} ({analytics.totalInstalls ? Math.round((analytics.operatorStats.other / analytics.totalInstalls) * 100) : 0}%)
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-slate-600 rounded-full transition-all duration-500"
-                        style={{ width: `${analytics.totalInstalls ? (analytics.operatorStats.other / analytics.totalInstalls) * 100 : 0}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Répartition par Plateforme OS */}
-              <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
-                <div className="flex items-center space-x-2 text-white border-b border-slate-800 pb-3">
-                  <Smartphone className="w-5 h-5 text-emerald-400" />
-                  <h4 className="font-bold text-xs sm:text-sm font-display">Plateformes & Appareils</h4>
-                </div>
-
-                <div className="space-y-3 text-xs">
-                  {/* Android APK / Mobile */}
-                  <div>
-                    <div className="flex justify-between font-bold mb-1">
-                      <span className="text-emerald-400 flex items-center space-x-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                        <span>Android (APK / Web Mobile)</span>
-                      </span>
-                      <span className="text-slate-300 font-mono font-black">
-                        {analytics.platformStats.android + analytics.platformStats.webMobile} ({analytics.totalInstalls ? Math.round(((analytics.platformStats.android + analytics.platformStats.webMobile) / analytics.totalInstalls) * 100) : 0}%)
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                        style={{ width: `${analytics.totalInstalls ? ((analytics.platformStats.android + analytics.platformStats.webMobile) / analytics.totalInstalls) * 100 : 0}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  {/* iOS */}
-                  <div>
-                    <div className="flex justify-between font-bold mb-1">
-                      <span className="text-sky-400 flex items-center space-x-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
-                        <span>Apple iOS (iPhone / iPad)</span>
-                      </span>
-                      <span className="text-slate-300 font-mono font-black">
-                        {analytics.platformStats.ios} ({analytics.totalInstalls ? Math.round((analytics.platformStats.ios / analytics.totalInstalls) * 100) : 0}%)
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-sky-500 rounded-full transition-all duration-500"
-                        style={{ width: `${analytics.totalInstalls ? (analytics.platformStats.ios / analytics.totalInstalls) * 100 : 0}%` }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  {/* Desktop */}
-                  <div>
-                    <div className="flex justify-between font-bold mb-1">
-                      <span className="text-purple-400 flex items-center space-x-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-                        <span>Ordinateur PC / Mac / Chrome</span>
-                      </span>
-                      <span className="text-slate-300 font-mono font-black">
-                        {analytics.platformStats.desktop} ({analytics.totalInstalls ? Math.round((analytics.platformStats.desktop / analytics.totalInstalls) * 100) : 0}%)
-                      </span>
-                    </div>
-                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-purple-500 rounded-full transition-all duration-500"
-                        style={{ width: `${analytics.totalInstalls ? (analytics.platformStats.desktop / analytics.totalInstalls) * 100 : 0}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Villes & Provenance Démographique */}
-            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-3 shadow-sm">
-              <div className="flex items-center space-x-2 text-white border-b border-slate-800 pb-3">
-                <MapPin className="w-5 h-5 text-amber-400" />
-                <h4 className="font-bold text-xs sm:text-sm font-display">Provenance Géographique (Villes)</h4>
+            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center space-x-2 text-white">
+                  <MapPin className="w-5 h-5 text-amber-400 shrink-0" />
+                  <div>
+                    <h4 className="font-bold text-xs sm:text-sm font-display">Provenance Géographique des Commerçants</h4>
+                    <p className="text-[11px] text-slate-400">Répartition par ville et localité au Burkina Faso</p>
+                  </div>
+                </div>
+                <span className="text-xs font-black px-2.5 py-1 rounded-full bg-slate-800 text-amber-400 border border-slate-700">
+                  {analytics.cityStats.length} ville(s)
+                </span>
               </div>
 
               {analytics.cityStats.length === 0 ? (
-                <p className="text-xs text-slate-500">Aucune ville renseignée pour le moment.</p>
+                <div className="text-center py-8 text-slate-500 text-xs">
+                  <MapPin className="w-8 h-8 text-slate-600 mx-auto mb-2 opacity-50" />
+                  Aucune ville renseignée pour le moment.
+                </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-2.5 pt-1">
-                  {analytics.cityStats.map((c) => (
-                    <div key={c.city} className="bg-slate-800/60 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border border-slate-700/60 flex items-center justify-between gap-1.5">
-                      <span className="text-xs font-bold text-slate-200 truncate">{c.city}</span>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black font-mono shrink-0">
-                        {c.count}
-                      </span>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                  {analytics.cityStats.map((c) => {
+                    const percentage = analytics.totalInstalls > 0 ? Math.round((c.count / analytics.totalInstalls) * 100) : 0;
+                    return (
+                      <div key={c.city} className="bg-slate-800/60 p-3.5 rounded-2xl border border-slate-700/60 space-y-2 hover:border-slate-600 transition-all">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center space-x-2 min-w-0">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+                            <span className="text-xs sm:text-sm font-bold text-slate-200 truncate">{c.city}</span>
+                          </div>
+                          <div className="flex items-center space-x-1.5 shrink-0">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-black font-mono">
+                              {c.count} {c.count > 1 ? 'boutiques' : 'boutique'}
+                            </span>
+                            <span className="text-[11px] font-mono text-slate-400 font-bold">
+                              {percentage}%
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Barre de progression */}
+                        <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1234,22 +992,20 @@ CREATE POLICY "Allow anon full access on broadcasts" ON public.broadcasts FOR AL
                   <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
                     Type d'Annonce & Style
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {[
-                      { id: 'info', label: 'ℹ️ Info', color: 'border-blue-500 bg-blue-500/20 text-blue-300' },
-                      { id: 'promo', label: '🎁 Promo', color: 'border-emerald-500 bg-emerald-500/20 text-emerald-300' },
-                      { id: 'warning', label: '⚠️ Attention', color: 'border-amber-500 bg-amber-500/20 text-amber-300' },
-                      { id: 'alert', label: '🚨 Urgence', color: 'border-red-500 bg-red-500/20 text-red-300' }
+                      { id: 'info', label: 'ℹ️ Information', color: 'border-blue-500 bg-blue-500/20 text-blue-300' },
+                      { id: 'promo', label: '🎁 Promotion Flash', color: 'border-emerald-500 bg-emerald-500/20 text-emerald-300' }
                     ].map((m) => (
                       <button
                         key={m.id}
                         type="button"
                         onClick={() => setBroadcastType(m.id as any)}
-                        className={`py-2 px-2 text-xs font-bold rounded-xl border-2 transition-all cursor-pointer ${
+                        className={`py-2.5 px-3 text-xs font-bold rounded-xl border-2 transition-all cursor-pointer flex items-center justify-center space-x-2 ${
                           broadcastType === m.id ? m.color : 'border-slate-800 text-slate-400 bg-slate-800/40 hover:text-white'
                         }`}
                       >
-                        {m.label}
+                        <span>{m.label}</span>
                       </button>
                     ))}
                   </div>
@@ -1283,10 +1039,6 @@ CREATE POLICY "Allow anon full access on broadcasts" ON public.broadcasts FOR AL
                 <div className={`p-3 rounded-xl text-xs flex items-start space-x-2.5 ${
                   broadcastType === 'promo'
                     ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-200'
-                    : broadcastType === 'warning'
-                    ? 'bg-amber-500/15 border border-amber-500/30 text-amber-200'
-                    : broadcastType === 'alert'
-                    ? 'bg-red-500/15 border border-red-500/30 text-red-200'
                     : 'bg-blue-500/15 border border-blue-500/30 text-blue-200'
                 }`}>
                   <Megaphone className="w-4 h-4 shrink-0 mt-0.5" />
@@ -1320,289 +1072,182 @@ CREATE POLICY "Allow anon full access on broadcasts" ON public.broadcasts FOR AL
           </div>
         )}
 
-        {/* TAB 5 : RELANCES & CAMPAGNES WHATSAPP */}
+        {/* TAB 5 : RELANCES & DIFFUSION GROUPÉE WHATSAPP */}
         {activeTab === 'whatsapp' && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            {/* Header & Exportation Carnet / Numéros */}
-            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3.5">
-                <div className="flex items-center space-x-2.5 text-emerald-400">
-                  <div className="p-2 rounded-xl bg-emerald-950/60 border border-emerald-800/60 shrink-0">
-                    <MessageCircle className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-xs sm:text-sm text-white font-display">Collecte & Campagnes WhatsApp</h3>
-                    <p className="text-[10px] sm:text-[11px] text-slate-400">Relances ciblées, promotions et diffusion de masse sur les numéros commerçants</p>
-                  </div>
+            {/* Header Relances Groupées */}
+            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-2 shadow-sm">
+              <div className="flex items-center space-x-2.5 text-emerald-400">
+                <div className="p-2 rounded-xl bg-emerald-950/60 border border-emerald-800/60 shrink-0">
+                  <MessageCircle className="w-5 h-5" />
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={handleExportVCard}
-                    className="flex-1 sm:flex-initial px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-md flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display"
-                    title="Télécharger tous les contacts dans un fichier .vcf pour l'importer sur votre smartphone"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Exporter Carnet (.VCF)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleCopyAllPhones}
-                    className="flex-1 sm:flex-initial px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display"
-                    title="Copier tous les numéros au format international (+226...)"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copier Numéros</span>
-                  </button>
+                <div>
+                  <h3 className="font-extrabold text-sm sm:text-base text-white font-display">Listes de Diffusion & Relances WhatsApp</h3>
+                  <p className="text-xs text-slate-400">Relancez vos commerçants par groupe ciblé en un seul clic</p>
                 </div>
               </div>
 
-              {whatsappCopyFeedback && (
-                <p className="text-xs text-emerald-400 font-semibold bg-emerald-950/40 p-2.5 rounded-2xl border border-emerald-800/50 flex items-center space-x-2">
+              {relanceFeedback && (
+                <div className="p-3 bg-emerald-950/60 border border-emerald-800/80 rounded-xl flex items-center space-x-2 text-xs font-bold text-emerald-300 animate-in fade-in duration-150 mt-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>{whatsappCopyFeedback}</span>
-                </p>
+                  <span>{relanceFeedback}</span>
+                </div>
               )}
-
-              {/* Métriques rapides des contacts */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5">
-                <div className="bg-slate-950 p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-800/80">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block font-display">Total Contacts</span>
-                  <div className="text-lg sm:text-xl font-black text-white font-display">{shops.length} boutiques</div>
-                </div>
-
-                <div className="bg-slate-950 p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-800/80">
-                  <span className="text-[10px] font-black text-red-400 uppercase tracking-wider block font-display">À Relancer (Expirés)</span>
-                  <div className="text-lg sm:text-xl font-black text-red-400 font-display">
-                    {shops.filter(s => s.daysRemaining <= 0 || s.statusType === 'expired').length}
-                  </div>
-                </div>
-
-                <div className="bg-slate-950 p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-800/80">
-                  <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider block font-display">En Essai</span>
-                  <div className="text-lg sm:text-xl font-black text-amber-400 font-display">
-                    {shops.filter(s => s.statusType === 'trial').length}
-                  </div>
-                </div>
-
-                <div className="bg-slate-950 p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border border-slate-800/80">
-                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider block font-display">Licences Actives</span>
-                  <div className="text-lg sm:text-xl font-black text-emerald-400 font-display">
-                    {shops.filter(s => s.statusType === 'active' || s.daysRemaining > 0).length}
-                  </div>
-                </div>
-              </div>
             </div>
 
-            {/* Générateur de Modèle de Message */}
-            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
-              <div className="flex items-center space-x-2 text-emerald-400 border-b border-slate-800 pb-3">
-                <Send className="w-4 h-4" />
-                <h4 className="font-bold text-xs text-white uppercase tracking-wider font-display">
-                  Modèle de Message de Campagne
-                </h4>
+            {/* LISTE 1 : ABONNÉS EN VERSION D'ESSAI */}
+            <div className="bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-amber-900/40 space-y-4 shadow-sm relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-800 pb-3.5">
+                <div className="flex items-center space-x-2.5">
+                  <span className="w-3 h-3 rounded-full bg-amber-400 shrink-0 animate-pulse"></span>
+                  <div>
+                    <h4 className="font-black text-sm sm:text-base text-white font-display">
+                      Liste 1 : Abonnés en Version d'Essai
+                    </h4>
+                    <p className="text-[11px] text-slate-400">Commerçants en période d'essai de 10 jours ou arrivant à expiration</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-black font-mono">
+                    {trialShops.length} boutique(s) • {getShopPhones(trialShops).length} contact(s)
+                  </span>
+                </div>
               </div>
 
-              {/* Sélection du Type de Message */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { id: 'reminder', label: '⏳ Relance Expiration' },
-                  { id: 'promo', label: '🎁 Promotion Flash' },
-                  { id: 'update', label: '🚀 Nouvelle Version' },
-                  { id: 'custom', label: '✍️ Message Libre' }
-                ].map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => {
-                      setWhatsappTemplateType(t.id as any);
-                      if (t.id !== 'custom') {
-                        setWhatsappCustomText(getTemplateText(t.id as any));
-                      }
-                    }}
-                    className={`py-2 px-2.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                      whatsappTemplateType === t.id
-                        ? 'bg-emerald-600 border-emerald-500 text-white shadow-xs'
-                        : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Éditeur de Message */}
-              <div>
-                <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
-                  Contenu du Message (Variables disponibles : <code className="text-emerald-400">{`{nom_boutique}`}</code>, <code className="text-emerald-400">{`{date_fin}`}</code>, <code className="text-emerald-400">{`{jours_restants}`}</code>, <code className="text-emerald-400">{`{ville}`}</code>)
+              {/* Message de Relance */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-black text-slate-300 uppercase tracking-wider font-display">
+                  Message de relance (Version d'Essai)
                 </label>
                 <textarea
-                  rows={4}
-                  value={whatsappTemplateType === 'custom' ? whatsappCustomText : getTemplateText(whatsappTemplateType)}
-                  onChange={(e) => {
-                    setWhatsappCustomText(e.target.value);
-                    if (whatsappTemplateType !== 'custom') {
-                      setWhatsappTemplateType('custom');
-                    }
-                  }}
-                  className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500 leading-relaxed font-sans"
-                  placeholder="Rédigez ici votre message personnalisé..."
+                  rows={5}
+                  value={trialRelanceMessage}
+                  onChange={(e) => setTrialRelanceMessage(e.target.value)}
+                  className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-medium text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-amber-500 leading-relaxed font-sans"
+                  placeholder="Rédigez le message pour les abonnés en version d'essai..."
                 />
+              </div>
+
+              {/* Actions Groupées en 1 Clic */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleCopyGroupPhones("Abonnés Essai", trialShops)}
+                  className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display"
+                  title="Copier tous les numéros pour créer une liste de diffusion WhatsApp"
+                >
+                  <Copy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Copier Numéros</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleCopyGroupMessage(trialRelanceMessage, "Abonnés Essai")}
+                  className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display"
+                  title="Copier le texte du message"
+                >
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>Copier Message</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleExportGroupVCard("Abonnes_Essai", trialShops)}
+                  className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display"
+                  title="Télécharger le carnet de contacts .VCF pour votre téléphone"
+                >
+                  <Download className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                  <span>Carnet (.VCF)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenWhatsAppGroup(trialRelanceMessage, "Abonnés Essai")}
+                  className="px-3 py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 active:scale-95 text-slate-950 text-xs font-black rounded-xl flex items-center justify-center space-x-1.5 shadow-md shadow-amber-600/20 transition-all cursor-pointer font-display"
+                  title="Copier le message et ouvrir WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4 shrink-0" />
+                  <span>Relancer WhatsApp</span>
+                </button>
               </div>
             </div>
 
-            {/* Liste Filtrée des Commerçants et Actions Individuelles */}
-            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-800 pb-3">
-                <div className="flex items-center space-x-2">
-                  <Users className="w-4 h-4 text-slate-400" />
-                  <h4 className="font-bold text-xs text-white uppercase tracking-wider font-display">
-                    Destinataires Ciblés ({filteredWhatsappShops.length})
-                  </h4>
+            {/* LISTE 2 : ABONNÉS EN VERSION PAYANTE */}
+            <div className="bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-emerald-900/40 space-y-4 shadow-sm relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-800 pb-3.5">
+                <div className="flex items-center space-x-2.5">
+                  <span className="w-3 h-3 rounded-full bg-emerald-400 shrink-0 animate-pulse"></span>
+                  <div>
+                    <h4 className="font-black text-sm sm:text-base text-white font-display">
+                      Liste 2 : Abonnés en Version Payante
+                    </h4>
+                    <p className="text-[11px] text-slate-400">Commerçants avec une licence active (1 mois, 6 mois, 1 an)</p>
+                  </div>
                 </div>
 
-                {/* Filtres de Statut */}
-                <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
-                  {[
-                    { id: 'all', label: 'Tous' },
-                    { id: 'expired', label: 'À Relancer' },
-                    { id: 'trial', label: 'Essai' },
-                    { id: 'active', label: 'Actifs' }
-                  ].map(f => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() => setWhatsappFilter(f.id as any)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer ${
-                        whatsappFilter === f.id
-                          ? 'bg-emerald-600 text-white shadow-xs'
-                          : 'bg-slate-800 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
+                <div className="flex items-center space-x-2">
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-black font-mono">
+                    {paidShops.length} boutique(s) • {getShopPhones(paidShops).length} contact(s)
+                  </span>
                 </div>
               </div>
 
-              {/* Recherche rapide */}
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Filtrer par boutique, numéro, patron ou ville..."
-                  value={whatsappSearch}
-                  onChange={(e) => setWhatsappSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500 font-sans"
+              {/* Message pour Abonnés Payants */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-black text-slate-300 uppercase tracking-wider font-display">
+                  Message pour les Abonnés Payants
+                </label>
+                <textarea
+                  rows={5}
+                  value={paidRelanceMessage}
+                  onChange={(e) => setPaidRelanceMessage(e.target.value)}
+                  className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-medium text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500 leading-relaxed font-sans"
+                  placeholder="Rédigez le message pour les abonnés payants..."
                 />
               </div>
 
-              {/* Cartes Commerçants WhatsApp */}
-              <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
-                {filteredWhatsappShops.length === 0 ? (
-                  <p className="text-xs text-slate-500 text-center py-6">Aucun contact ne correspond à ce filtre.</p>
-                ) : (
-                  filteredWhatsappShops.map((shop) => {
-                    const currentTemplate = whatsappTemplateType === 'custom' ? whatsappCustomText : getTemplateText(whatsappTemplateType);
-                    const whatsappUrl = adminService.getCustomWhatsAppUrl(shop.phone, currentTemplate, shop);
-                    const ownerWhatsappUrl = shop.ownerPhone ? adminService.getCustomWhatsAppUrl(shop.ownerPhone, currentTemplate, shop) : null;
+              {/* Actions Groupées en 1 Clic */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleCopyGroupPhones("Abonnés Payants", paidShops)}
+                  className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display"
+                  title="Copier tous les numéros pour créer une liste de diffusion WhatsApp"
+                >
+                  <Copy className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>Copier Numéros</span>
+                </button>
 
-                    return (
-                      <div
-                        key={shop.id}
-                        className="p-3 sm:p-3.5 bg-slate-950/60 rounded-xl sm:rounded-2xl border border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:border-slate-700 transition-all"
-                      >
-                        <div className="space-y-1 min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-extrabold text-white text-xs sm:text-sm font-display truncate">{shop.name}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shrink-0 ${
-                              shop.daysRemaining <= 0
-                                ? 'bg-red-900/60 text-red-300 border border-red-700/50'
-                                : shop.statusType === 'trial'
-                                ? 'bg-amber-900/60 text-amber-300 border border-amber-700/50'
-                                : 'bg-emerald-900/60 text-emerald-300 border border-emerald-700/50'
-                            }`}>
-                              {shop.statusLabel} ({shop.daysRemaining >= 0 ? `${shop.daysRemaining}j` : 'Expiré'})
-                            </span>
-                          </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopyGroupMessage(paidRelanceMessage, "Abonnés Payants")}
+                  className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display"
+                  title="Copier le texte du message"
+                >
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>Copier Message</span>
+                </button>
 
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 font-medium">
-                            <span className="flex items-center space-x-1 text-slate-300">
-                              <Phone className="w-3 h-3 text-emerald-400 shrink-0" />
-                              <span>{shop.phone}</span>
-                            </span>
+                <button
+                  type="button"
+                  onClick={() => handleExportGroupVCard("Abonnes_Payants", paidShops)}
+                  className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display"
+                  title="Télécharger le carnet de contacts .VCF pour votre téléphone"
+                >
+                  <Download className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                  <span>Carnet (.VCF)</span>
+                </button>
 
-                            {shop.ownerPhone && (
-                              <span className="flex items-center space-x-1 text-amber-300">
-                                <span>Patron:</span>
-                                <span>{shop.ownerPhone}</span>
-                              </span>
-                            )}
-
-                            {shop.city && (
-                              <span className="flex items-center space-x-1 text-slate-500">
-                                <MapPin className="w-3 h-3 shrink-0" />
-                                <span>{shop.city}</span>
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Boutons d'Action WhatsApp */}
-                        <div className="flex flex-wrap items-center gap-1.5 sm:space-x-2 shrink-0 self-start md:self-center">
-                          <a
-                            href={whatsappUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-sm flex items-center space-x-1.5 active:scale-95 transition-all font-display cursor-pointer"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            <span>Relancer WhatsApp</span>
-                          </a>
-
-                          {ownerWhatsappUrl && (
-                            <a
-                              href={ownerWhatsappUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-2.5 py-2 bg-slate-800 hover:bg-amber-900/50 text-amber-300 border border-slate-700 text-xs rounded-xl flex items-center space-x-1 active:scale-95 transition-all cursor-pointer"
-                              title="Envoyer au propriétaire / patron"
-                            >
-                              <span>Patron</span>
-                            </a>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const cleanMsg = currentTemplate
-                                .replace(/{nom_boutique}/g, shop.name || '')
-                                .replace(/{telephone}/g, shop.phone || '')
-                                .replace(/{proprietaire}/g, shop.ownerName || shop.name || '')
-                                .replace(/{statut}/g, shop.statusLabel || '')
-                                .replace(/{jours_restants}/g, String(shop.daysRemaining >= 0 ? shop.daysRemaining : 0))
-                                .replace(/{date_fin}/g, shop.formattedExpiresAt || '')
-                                .replace(/{ville}/g, shop.city || 'Burkina Faso');
-                              navigator.clipboard.writeText(cleanMsg);
-                              setCopiedShopMessageId(shop.id);
-                              setTimeout(() => setCopiedShopMessageId(null), 2500);
-                            }}
-                            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors cursor-pointer"
-                            title="Copier le message personnalisé pour cette boutique"
-                          >
-                            {copiedShopMessageId === shop.id ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            ) : (
-                              <Copy className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
+                <button
+                  type="button"
+                  onClick={() => handleOpenWhatsAppGroup(paidRelanceMessage, "Abonnés Payants")}
+                  className="px-3 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white text-xs font-black rounded-xl flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer font-display"
+                  title="Copier le message et ouvrir WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4 shrink-0" />
+                  <span>Envoyer WhatsApp</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1737,274 +1382,47 @@ CREATE POLICY "Allow anon full access on broadcasts" ON public.broadcasts FOR AL
               </form>
             </div>
 
-            {/* CONFIGURATION SUPABASE POSTGRESQL CLOUD (GRATUIT & HAUTE DISPONIBILITÉ) */}
-            <div className="bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-emerald-900/60 shadow-sm space-y-4 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-36 h-36 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
-
+            {/* ÉTAT DU CLOUD & SAUVEGARDE GLOBALE (LECTURE SEULE & SÉCURISÉ) */}
+            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 shadow-sm space-y-3.5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                 <div className="flex items-center space-x-2.5 text-emerald-400">
                   <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
                     <Database className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="flex items-center space-x-2">
-                      <h3 className="font-bold text-xs sm:text-sm text-white font-display">Supabase Cloud PostgreSQL</h3>
-                      <span className="text-[9px] font-black uppercase px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                        100% Gratuit
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400">Base de données cloud PostgreSQL sécurisée avec synchronisation en temps réel</p>
+                    <h3 className="font-bold text-xs sm:text-sm text-white font-display">Synchronisation Cloud & Sauvegarde</h3>
+                    <p className="text-[10px] text-slate-400">Base de données PostgreSQL sécurisée en temps réel</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowSqlSchema(!showSqlSchema)}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1.5 transition-all cursor-pointer"
-                  >
-                    <Code2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{showSqlSchema ? 'Masquer SQL' : 'Script SQL Initialisation'}</span>
-                  </button>
-                </div>
+
+                <button
+                  type="button"
+                  onClick={handleExportAllShopsJson}
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display"
+                  title="Télécharger une sauvegarde complète de toutes les boutiques au format JSON"
+                >
+                  <Download className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Sauvegarde Globale (.json)</span>
+                </button>
               </div>
 
-              {/* Accordéon Script SQL */}
-              {showSqlSchema && (
-                <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 animate-in fade-in duration-150">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-300 flex items-center space-x-1.5">
-                      <Code2 className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Copiez ce script et exécutez-le dans Supabase &gt; SQL Editor :</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleCopySqlScript}
-                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded-lg flex items-center space-x-1 transition-all cursor-pointer"
-                    >
-                      {copiedSql ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                      <span>{copiedSql ? 'Copié !' : 'Copier le SQL'}</span>
-                    </button>
-                  </div>
-                  <pre className="p-2.5 bg-slate-900 rounded-xl text-[10px] font-mono text-emerald-300 overflow-x-auto max-h-40 border border-slate-800">
-{`-- Exécutez ce script dans l'onglet SQL Editor de votre projet Supabase :
-CREATE TABLE IF NOT EXISTS public.shops (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    phone TEXT NOT NULL,
-    owner_name TEXT,
-    owner_phone TEXT,
-    city TEXT,
-    pin_code TEXT,
-    subscription_plan TEXT DEFAULT 'trial',
-    subscription_status TEXT DEFAULT 'trial',
-    subscription_expires_at TIMESTAMPTZ,
-    data JSONB NOT NULL DEFAULT '{}'::jsonb,
-    telemetry JSONB,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS idx_shops_phone ON public.shops(phone);
-CREATE INDEX IF NOT EXISTS idx_shops_owner_phone ON public.shops(owner_phone);
-CREATE INDEX IF NOT EXISTS idx_shops_updated_at ON public.shops(updated_at);
-
-CREATE TABLE IF NOT EXISTS public.licenses (
-    id TEXT PRIMARY KEY,
-    code TEXT NOT NULL UNIQUE,
-    plan TEXT NOT NULL,
-    duration_days INT NOT NULL,
-    price INT NOT NULL DEFAULT 2000,
-    is_used BOOLEAN DEFAULT FALSE,
-    used_by_shop_id TEXT,
-    used_by_shop_name TEXT,
-    used_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.broadcasts (
-    id TEXT PRIMARY KEY DEFAULT 'current_broadcast',
-    message JSONB NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE public.shops ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.licenses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.broadcasts ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow anon full access on shops" ON public.shops FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow anon full access on licenses" ON public.licenses FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow anon full access on broadcasts" ON public.broadcasts FOR ALL USING (true) WITH CHECK (true);`}
-                  </pre>
-                </div>
-              )}
-
-              <form onSubmit={handleSaveSupabase} className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1 font-display">
-                      Supabase Project URL (ex: https://xyz.supabase.co)
-                    </label>
-                    <input
-                      type="url"
-                      placeholder="https://votre-projet.supabase.co"
-                      value={supabaseUrl}
-                      onChange={(e) => setSupabaseUrl(e.target.value)}
-                      className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-mono font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1 font-display">
-                      Supabase Anon Public Key (Clé Publique)
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                      value={supabaseAnonKey}
-                      onChange={(e) => setSupabaseAnonKey(e.target.value)}
-                      className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-mono font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
-                  </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-400 font-medium">Base de Données Cloud</span>
+                  <span className="flex items-center space-x-1.5 text-emerald-400 font-bold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>PostgreSQL Supabase (En ligne)</span>
+                  </span>
                 </div>
 
-                {supabaseTestResult && (
-                  <div className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-between ${
-                    supabaseTestResult.success
-                      ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300'
-                      : 'bg-red-950/40 border-red-800 text-red-300'
-                  }`}>
-                    <div className="flex items-center space-x-2">
-                      {supabaseTestResult.success ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      ) : (
-                        <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
-                      )}
-                      <span>{supabaseTestResult.message}</span>
-                    </div>
-                    {supabaseTestResult.latencyMs > 0 && (
-                      <span className="font-mono text-[11px] px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-300">
-                        {supabaseTestResult.latencyMs} ms
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {supabaseSaveSuccess && (
-                  <p className="text-xs text-emerald-400 font-semibold bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-800/50">
-                    {supabaseSaveSuccess}
-                  </p>
-                )}
-
-                <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-1">
-                  <button
-                    type="button"
-                    disabled={isTestingSupabase || !supabaseUrl.trim() || !supabaseAnonKey.trim()}
-                    onClick={handleTestSupabase}
-                    className="w-full sm:w-auto px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl sm:rounded-2xl text-xs flex items-center justify-center space-x-1.5 border border-slate-700 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    <Activity className={`w-3.5 h-3.5 ${isTestingSupabase ? 'animate-spin text-emerald-400' : 'text-emerald-400'}`} />
-                    <span>{isTestingSupabase ? 'Test en cours...' : 'Tester Connexion Supabase'}</span>
-                  </button>
-
-                  <button
-                    type="submit"
-                    className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl sm:rounded-2xl text-xs shadow-md transition-all cursor-pointer"
-                  >
-                    Enregistrer les Identifiants Supabase
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* CONFIGURATION SERVEUR CLOUD CENTRAL */}
-            <div className="bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
-                <div className="flex items-center space-x-2 text-emerald-400">
-                  <Server className="w-5 h-5 text-emerald-400 shrink-0" />
-                  <div>
-                    <h3 className="font-bold text-xs sm:text-sm text-white font-display">Serveur Cloud & Synchronisation Réseau</h3>
-                    <p className="text-[10px] text-slate-400">Point d'accès API pour la synchronisation multi-boutiques et la sauvegarde</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    type="button"
-                    onClick={handleExportAllShopsJson}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1.5 transition-all cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Sauvegarde Globale (.json)</span>
-                  </button>
+                <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-400 font-medium">Chiffrement & Sécurité</span>
+                  <span className="flex items-center space-x-1.5 text-emerald-400 font-bold">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>SSL 256-bit Sécurisé</span>
+                  </span>
                 </div>
               </div>
-
-              <form onSubmit={handleSaveServerUrl} className="space-y-3">
-                <div>
-                  <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
-                    URL du Serveur API Cloud (Production ou Local)
-                  </label>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <div className="relative flex-1">
-                      <Globe className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="url"
-                        required
-                        placeholder="https://votre-serveur-fasocarnet.onrender.com ou http://localhost:3000"
-                        value={customServerUrl}
-                        onChange={(e) => setCustomServerUrl(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-mono font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        disabled={isTestingServer}
-                        onClick={handleTestServer}
-                        className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl sm:rounded-2xl text-xs flex items-center justify-center space-x-1.5 border border-slate-700 transition-all cursor-pointer disabled:opacity-50"
-                      >
-                        <Activity className={`w-3.5 h-3.5 ${isTestingServer ? 'animate-spin text-emerald-400' : 'text-emerald-400'}`} />
-                        <span>{isTestingServer ? 'Test...' : 'Tester Latence'}</span>
-                      </button>
-
-                      <button
-                        type="submit"
-                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl sm:rounded-2xl text-xs shadow-md transition-all cursor-pointer"
-                      >
-                        Sauvegarder
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {serverHealthResult && (
-                  <div className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-between ${
-                    serverHealthResult.success
-                      ? 'bg-emerald-950/40 border-emerald-800 text-emerald-300'
-                      : 'bg-red-950/40 border-red-800 text-red-300'
-                  }`}>
-                    <div className="flex items-center space-x-2">
-                      {serverHealthResult.success ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      ) : (
-                        <Wifi className="w-4 h-4 text-red-400 shrink-0" />
-                      )}
-                      <span>
-                        {serverHealthResult.success
-                          ? `Serveur en ligne (v${serverHealthResult.version || '1.2.2'})`
-                          : `Erreur : ${serverHealthResult.error || 'Inaccessible'}`}
-                      </span>
-                    </div>
-                    <span className="font-mono text-[11px] px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-300">
-                      Latence : {serverHealthResult.latencyMs} ms
-                    </span>
-                  </div>
-                )}
-
-                {serverSaveSuccess && (
-                  <p className="text-xs text-emerald-400 font-semibold bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-800/50">
-                    {serverSaveSuccess}
-                  </p>
-                )}
-              </form>
             </div>
 
             {/* MOT DE PASSE SUPER-ADMIN */}
