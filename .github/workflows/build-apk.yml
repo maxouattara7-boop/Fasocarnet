@@ -52,21 +52,25 @@ jobs:
 
       - name: Build Android Debug APK
         run: |
+          set -e
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee ../build_log.txt
-
-      - name: Upload Build Log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log-txt
-          path: build_log.txt
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          cd ..
+          find android/app/build/outputs/ -type f -name "*.apk"
 
       - name: Prepare APK Release File
         run: |
+          set -e
           mkdir -p release_assets
-          cp android/app/build/outputs/apk/debug/app-debug.apk release_assets/FasoCarnet-v1.2.3-Android.apk
+          APK_FILE=$(find android/app/build/outputs/apk -type f -name "*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "❌ ERREUR: Aucun fichier APK généré !"
+            exit 1
+          fi
+          echo "✅ APK trouvé: $APK_FILE"
+          cp "$APK_FILE" release_assets/FasoCarnet-v1.2.3-Android.apk
+          ls -lh release_assets/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
@@ -90,6 +94,5 @@ jobs:
             - ✅ Caisse tactile, hors-ligne 100%, reçus WhatsApp & tickets thermiques
           files: release_assets/FasoCarnet-v1.2.3-Android.apk
           make_latest: true
-          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
