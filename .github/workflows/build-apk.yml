@@ -66,28 +66,30 @@ jobs:
       - name: Prepare APK Release File
         run: |
           mkdir -p release_assets
-          cp android/app/build/outputs/apk/debug/app-debug.apk release_assets/FasoCarnet-v1.2.0-Android.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk release_assets/FasoCarnet-v1.2.3-Android.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FasoCarnet-v1.2.0-Android-APK
-          path: release_assets/FasoCarnet-v1.2.0-Android.apk
+          name: FasoCarnet-v1.2.3-Android-APK
+          path: release_assets/FasoCarnet-v1.2.3-Android.apk
           if-no-files-found: error
 
-      - name: Publish Direct APK to GitHub Release v1.2.0
+      - name: Publish Direct APK to GitHub Release v1.2.3
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.2.0
-          name: "FasoCarnet v1.2.0 - Version Officielle Android"
+          tag_name: v1.2.3
+          name: "FasoCarnet v1.2.3 - Version Officielle Android"
           body: |
-            ### 🇧🇫 FasoCarnet v1.2.0 - Application Android Officielle
+            ### 🇧🇫 FasoCarnet v1.2.3 - Application Android Officielle
 
-            - ✅ Caisse tactile & calcul instantané
-            - ✅ 100% Fonctionnel hors-ligne
-            - ✅ Reçus WhatsApp & impression thermique Bluetooth
-            - ✅ Carnet des dettes & relances clients en 1 clic
-            - ✅ 10 jours d'essai gratuit
-          files: release_assets/FasoCarnet-v1.2.0-Android.apk
+            - ✅ Interface d'administration optimisée Mobile & Tablette
+            - ✅ Relances WhatsApp groupées en 1 clic (Abonnés essai & payants)
+            - ✅ Analytics épuré avec provenance géographique par ville
+            - ✅ Sécurité Cloud renforcée et sauvegarde globale
+            - ✅ Caisse tactile, hors-ligne 100%, reçus WhatsApp & tickets thermiques
+          files: release_assets/FasoCarnet-v1.2.3-Android.apk
+          make_latest: true
+          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

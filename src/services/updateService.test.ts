@@ -29,7 +29,7 @@ describe('updateService', () => {
 
   it('returns hasUpdate = false when remote versionCode is equal or smaller', async () => {
     const mockUpdate: AppUpdateInfo = {
-      version: '1.2.2',
+      version: '1.2.3',
       versionCode: CURRENT_VERSION_CODE,
       releaseNotes: 'Version actuelle',
       apkUrl: 'https://example.com/app.apk'

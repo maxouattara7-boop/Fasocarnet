@@ -22,7 +22,7 @@ interface LandingPageViewProps {
   onOpenApp?: () => void;
 }
 
-const APK_DOWNLOAD_URL = 'https://github.com/maxouattara7-boop/Fasocarnet/releases/download/v1.2.0/FasoCarnet-v1.2.0-Android.apk';
+const APK_DOWNLOAD_URL = 'https://github.com/maxouattara7-boop/Fasocarnet/releases/download/v1.2.3/FasoCarnet-v1.2.3-Android.apk';
 
 export const LandingPageView: React.FC<LandingPageViewProps> = () => {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
@@ -86,7 +86,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
           <div className="flex items-center space-x-2 sm:space-x-3">
             <a
               href={APK_DOWNLOAD_URL}
-              download="FasoCarnet-v1.2.0-Android.apk"
+              download="FasoCarnet-v1.2.3-Android.apk"
               onClick={() => setShowDownloadModal(true)}
               className="px-3.5 sm:px-5 py-2 sm:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl sm:rounded-2xl text-xs sm:text-sm shadow-md sm:shadow-lg shadow-emerald-600/20 flex items-center space-x-1.5 sm:space-x-2 active:scale-95 transition-all cursor-pointer shrink-0"
             >
@@ -128,7 +128,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-4">
                     <a
                       href={APK_DOWNLOAD_URL}
-                      download="FasoCarnet-v1.2.0-Android.apk"
+                      download="FasoCarnet-v1.2.3-Android.apk"
                       onClick={() => setShowDownloadModal(true)}
                       className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl text-sm sm:text-base shadow-xl shadow-emerald-600/25 flex items-center justify-center space-x-2.5 sm:space-x-3 active:scale-95 transition-transform cursor-pointer group text-center"
                     >
@@ -512,7 +512,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
               </div>
               <h3 className="text-lg sm:text-xl font-black text-slate-900 font-display">Téléchargement en cours...</h3>
               <p className="text-xs text-emerald-700 font-bold">
-                Le fichier <code>FasoCarnet-v1.2.0-Android.apk</code> se télécharge sur votre smartphone.
+                Le fichier <code>FasoCarnet-v1.2.3-Android.apk</code> se télécharge sur votre smartphone.
               </p>
               <div className="pt-1">
                 <a

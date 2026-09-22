@@ -1,10 +1,10 @@
 {
-  "version": "1.2.2",
-  "versionCode": 6,
-  "releaseDate": "2026-09-21",
-  "title": "Scanner Code-Barres & Mises à Jour Automatiques",
-  "releaseNotes": "Scanner code-barres caméra et douchette laser pour encaissement instantané, et système de mise à jour à chaud (Live Update) sans réinstallation d'APK.",
+  "version": "1.2.3",
+  "versionCode": 7,
+  "releaseDate": "2026-09-22",
+  "title": "Optimisation Administrateur & Relances Groupées",
+  "releaseNotes": "Nouvelle interface d'administration ultra-ergonomique sur mobile/tablette, relances groupées WhatsApp en un clic, analytics par ville épuré et sécurisation Cloud renforcée.",
   "bundleUrl": "https://fasocarnet.onrender.com/dist.zip",
-  "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
+  "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/download/v1.2.3/FasoCarnet-v1.2.3-Android.apk",
   "mandatory": false
 }
