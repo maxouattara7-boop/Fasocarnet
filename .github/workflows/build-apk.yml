@@ -55,7 +55,12 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee ../gradle.log
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "=== GRADLE LOG ERROR START ==="
+            tail -n 120 ../gradle.log
+            exit 1
+          fi
           cd ..
           find android/app/build/outputs/ -type f -name "*.apk"
 
