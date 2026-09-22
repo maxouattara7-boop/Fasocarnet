@@ -33,26 +33,26 @@ jobs:
       - name: Build Web Application
         run: npm run build
 
-      - name: Ensure Signing Keystore Exists
+      - name: Setup Signing Keystore
         run: |
-          if [ ! -f android/app/fasocarnet-release.keystore ]; then
-            keytool -genkeypair -v \
-              -keystore android/app/fasocarnet-release.keystore \
-              -alias fasocarnet \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -storepass fasocarnet2026 \
-              -keypass fasocarnet2026 \
-              -dname "CN=FasoCarnet, OU=App, O=FasoCarnet, L=Ouagadougou, ST=Kadiogo, C=BF"
-          fi
+          rm -f android/app/fasocarnet-release.keystore
+          keytool -genkeypair -v \
+            -keystore android/app/fasocarnet-release.keystore \
+            -alias fasocarnet \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass fasocarnet2026 \
+            -keypass fasocarnet2026 \
+            -dname "CN=FasoCarnet, OU=App, O=FasoCarnet, L=Ouagadougou, ST=Kadiogo, C=BF"
 
       - name: Sync Capacitor Android
-        run: npx cap sync android
+        run: |
+          npx cap sync android
+          rm -f android/app/src/main/assets/public/dist.zip
 
       - name: Build Android Debug APK
         run: |
-          set -e
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
