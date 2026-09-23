@@ -22,6 +22,9 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -50,13 +53,14 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Build Android Debug APK
+      - name: Accept Android SDK Licenses & Build APK
         run: |
+          yes | sdkmanager --licenses || true
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Prepare APK Release File
+      - name: Prepare APK Release Files
         run: |
           mkdir -p release_assets
           APK_FILE=$(find android/app/build/outputs/apk -type f -name "*.apk" | head -n 1)
@@ -78,14 +82,14 @@ jobs:
 
       - name: Publish Direct APK to GitHub Release
         uses: softprops/action-gh-release@v2
-        if: success()
+        continue-on-error: true
         with:
           tag_name: v1.2.4
           name: "FasoCarnet v1.2.4 - Version Officielle Android"
           body: |
             ### 🇧🇫 FasoCarnet v1.2.4 - Application Android Officielle
 
-            - ✅ **Gestion de Stock complète** : Saisie quantité, alertes seuil critique (≤ 5), décompte auto en caisse & réapprovisionnement express.
+            - ✅ **Gestion de Stock complète** : Saisie quantité, alertes stock critique (≤ 5), décompte auto en caisse & réapprovisionnement express.
             - ✅ **Interface Administrateur optimisée** : Vue mobile/tablette, relances WhatsApp groupées en 1 clic.
             - ✅ **Caisse tactile & Hors-ligne 100%** : Ventes au comptant & à crédit, monnaie instantanée.
             - ✅ **Scanner Code-Barres & Reçus WhatsApp** : Caméra intégrée et tickets thermiques Bluetooth.
