@@ -12,8 +12,8 @@ export interface AppUpdateInfo {
   mandatory?: boolean;
 }
 
-export const CURRENT_APP_VERSION = '1.2.5';
-export const CURRENT_VERSION_CODE = 8;
+export const CURRENT_APP_VERSION = '1.2.6';
+export const CURRENT_VERSION_CODE = 9;
 
 const PRIMARY_VERSION_URL = 'https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/version.json';
 const BACKUP_VERSION_URL = 'https://fasocarnet.onrender.com/version.json';
