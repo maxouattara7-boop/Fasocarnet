@@ -53,9 +53,8 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Accept Android SDK Licenses & Build APK
+      - name: Build Android APK
         run: |
-          yes | sdkmanager --licenses || true
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
