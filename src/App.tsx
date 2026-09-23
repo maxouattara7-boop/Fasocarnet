@@ -49,6 +49,12 @@ export const App: React.FC = () => {
     updateService.performBackgroundLiveUpdate();
 
     const handleOnline = () => {
+      updateService.checkForUpdate().then(({ hasUpdate, updateInfo }) => {
+        if (hasUpdate && updateInfo) {
+          setAvailableUpdate(updateInfo);
+          setShowUpdateModal(true);
+        }
+      });
       updateService.performBackgroundLiveUpdate();
     };
     window.addEventListener('online', handleOnline);
@@ -102,6 +108,23 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col justify-between font-sans antialiased text-gray-900">
       <Header />
+
+      {/* Bannière de Nouvelle Mise à Jour Disponible */}
+      {availableUpdate && (
+        <div className="bg-gradient-to-r from-emerald-700 via-teal-700 to-emerald-800 text-white px-3.5 py-2.5 text-xs font-bold flex items-center justify-between shadow-md border-b border-emerald-600 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center space-x-2 min-w-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+            <span className="truncate">✨ Mise à jour v{availableUpdate.version} disponible !</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowUpdateModal(true)}
+            className="ml-2 px-3 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-[11px] font-black shrink-0 active:scale-95 transition-all shadow-xs cursor-pointer font-display"
+          >
+            Mettre à jour
+          </button>
+        </div>
+      )}
 
       {/* Bannière de Message Broadcast Administrateur Défilante (Marquee Ticker) */}
       {broadcast && broadcast.isActive && dismissedBroadcastId !== broadcast.id && (

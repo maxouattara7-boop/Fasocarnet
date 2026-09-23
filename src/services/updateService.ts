@@ -77,8 +77,9 @@ class UpdateService {
 
       const data: AppUpdateInfo = await response.json();
 
-      if (data && typeof data.versionCode === 'number') {
-        const hasUpdate = data.versionCode > CURRENT_VERSION_CODE;
+      if (data && (typeof data.versionCode === 'number' || typeof data.version === 'string')) {
+        const hasUpdate = (typeof data.versionCode === 'number' && data.versionCode > CURRENT_VERSION_CODE) ||
+                          (typeof data.version === 'string' && data.version !== CURRENT_APP_VERSION);
         return {
           hasUpdate,
           updateInfo: hasUpdate ? data : undefined

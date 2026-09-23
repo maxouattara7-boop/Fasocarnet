@@ -65,32 +65,32 @@ jobs:
             exit 1
           fi
           echo "✅ APK trouvé: $APK_FILE"
-          cp "$APK_FILE" release_assets/FasoCarnet-v1.2.4-Android.apk
+          cp "$APK_FILE" release_assets/FasoCarnet-v1.2.5-Android.apk
           cp "$APK_FILE" release_assets/fasocarnet-release.apk
           ls -lh release_assets/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FasoCarnet-v1.2.4-Android-APK
-          path: release_assets/FasoCarnet-v1.2.4-Android.apk
+          name: FasoCarnet-v1.2.5-Android-APK
+          path: release_assets/FasoCarnet-v1.2.5-Android.apk
           if-no-files-found: error
 
       - name: Publish Direct APK to GitHub Release
         uses: softprops/action-gh-release@v2
         continue-on-error: true
         with:
-          tag_name: v1.2.4
-          name: "FasoCarnet v1.2.4 - Version Officielle Android"
+          tag_name: v1.2.5
+          name: "FasoCarnet v1.2.5 - Version Officielle Android"
           body: |
-            ### 🇧🇫 FasoCarnet v1.2.4 - Application Android Officielle
+            ### 🇧🇫 FasoCarnet v1.2.5 - Application Android Officielle
 
-            - ✅ **Gestion de Stock complète** : Saisie quantité, alertes stock critique (≤ 5), décompte auto en caisse & réapprovisionnement express.
-            - ✅ **Interface Administrateur optimisée** : Vue mobile/tablette, relances WhatsApp groupées en 1 clic.
-            - ✅ **Caisse tactile & Hors-ligne 100%** : Ventes au comptant & à crédit, monnaie instantanée.
-            - ✅ **Scanner Code-Barres & Reçus WhatsApp** : Caméra intégrée et tickets thermiques Bluetooth.
+            - ✅ **Calculatrice tactile agrandie** : Ergonomie mobile optimisée pour saisir les montants rapidement.
+            - ✅ **Dettes & Débiteurs** : Disparition automatique des dettes soldées et suppression avec confirmation.
+            - ✅ **Bilan Mensuel & Journalier** : Vue mensuelle complète et affichage précis des ventes du jour sélectionné.
+            - ✅ **Gestion de Stock complète** : Décompte automatique et alertes stock critique.
           files: |
-            release_assets/FasoCarnet-v1.2.4-Android.apk
+            release_assets/FasoCarnet-v1.2.5-Android.apk
             release_assets/fasocarnet-release.apk
           make_latest: true
         env:

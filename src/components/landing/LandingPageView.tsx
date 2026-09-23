@@ -86,7 +86,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
           <div className="flex items-center space-x-2 sm:space-x-3">
             <a
               href={APK_DOWNLOAD_URL}
-              download="FasoCarnet-v1.2.4-Android.apk"
+              download="FasoCarnet-v1.2.5-Android.apk"
               onClick={() => setShowDownloadModal(true)}
               className="px-4 sm:px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl sm:rounded-2xl text-xs sm:text-sm flex items-center space-x-2 active:scale-95 transition-all cursor-pointer shrink-0 shadow-md shadow-emerald-600/20"
             >
@@ -128,18 +128,18 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
                     <a
                       href={APK_DOWNLOAD_URL}
-                      download="FasoCarnet-v1.2.4-Android.apk"
+                      download="FasoCarnet-v1.2.5-Android.apk"
                       onClick={() => setShowDownloadModal(true)}
                       className="w-full sm:w-auto px-8 sm:px-10 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl text-base sm:text-lg shadow-xl shadow-emerald-600/25 flex items-center justify-center space-x-3 active:scale-95 transition-transform cursor-pointer group text-center"
                     >
                       <Download className="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-y-0.5 transition-transform stroke-[2.5]" />
-                      <span>Télécharger l'APK Android (v1.2.4)</span>
+                      <span>Télécharger l'APK Android (v1.2.5)</span>
                     </a>
                   </div>
 
                   <p className="text-xs text-slate-500 font-medium flex items-center justify-center lg:justify-start space-x-1.5 sm:space-x-2">
                     <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Version 1.2.4 • 10 jours gratuits • Fonctionne 100% hors-ligne</span>
+                    <span>Version 1.2.5 • 10 jours gratuits • Fonctionne 100% hors-ligne</span>
                   </p>
                 </div>
 
@@ -547,7 +547,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
             <div className="space-y-2 pt-1">
               <a
                 href={APK_DOWNLOAD_URL}
-                download="FasoCarnet-v1.2.4-Android.apk"
+                download="FasoCarnet-v1.2.5-Android.apk"
                 className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-2 shadow-md shadow-emerald-600/20 text-center cursor-pointer active:scale-95 transition-all"
               >
                 <Download className="w-4 h-4 stroke-[2.5]" />
