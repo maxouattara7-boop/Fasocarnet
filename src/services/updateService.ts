@@ -12,11 +12,11 @@ export interface AppUpdateInfo {
   mandatory?: boolean;
 }
 
-export const CURRENT_APP_VERSION = '1.2.4';
-export const CURRENT_VERSION_CODE = 7;
+export const CURRENT_APP_VERSION = '1.2.5';
+export const CURRENT_VERSION_CODE = 8;
 
-const REMOTE_VERSION_URL = 'https://fasocarnet.onrender.com/version.json';
-const BACKUP_VERSION_URL = 'https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/version.json';
+const PRIMARY_VERSION_URL = 'https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/version.json';
+const BACKUP_VERSION_URL = 'https://fasocarnet.onrender.com/version.json';
 const DISMISSED_UPDATE_KEY = 'fasocarnet_dismissed_update';
 
 class UpdateService {
@@ -43,11 +43,11 @@ class UpdateService {
       const cacheBuster = `?_t=${Date.now()}`;
       let response: Response | null = null;
 
-      // 1. Essai Render d'abord
+      // 1. Essai GitHub Raw en premier (CDN ultra-rapide < 50ms, sans temps de réveil)
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
-        response = await fetch(`${REMOTE_VERSION_URL}${cacheBuster}`, {
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        response = await fetch(`${PRIMARY_VERSION_URL}${cacheBuster}`, {
           signal: controller.signal,
           headers: { 'Cache-Control': 'no-cache' }
         });
@@ -56,7 +56,7 @@ class UpdateService {
         response = null;
       }
 
-      // 2. Fallback GitHub
+      // 2. Fallback Render si GitHub échoue
       if (!response || !response.ok) {
         try {
           const controller = new AbortController();
@@ -109,6 +109,14 @@ class UpdateService {
 
       console.log(`[UpdateService] Application du bundle v${version}...`);
       await CapacitorUpdater.set(bundle);
+      
+      // Forcer le rechargement immédiat du conteneur natif
+      try {
+        await CapacitorUpdater.reload();
+      } catch {
+        window.location.reload();
+      }
+
       return { success: true };
     } catch (err: any) {
       console.error('[UpdateService] Erreur applyLiveUpdate:', err);

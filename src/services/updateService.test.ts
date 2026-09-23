@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { updateService, CURRENT_VERSION_CODE, AppUpdateInfo } from './updateService';
+import { updateService, CURRENT_VERSION_CODE, CURRENT_APP_VERSION, AppUpdateInfo } from './updateService';
 
 describe('updateService', () => {
   beforeEach(() => {
@@ -29,7 +29,7 @@ describe('updateService', () => {
 
   it('returns hasUpdate = false when remote versionCode is equal or smaller', async () => {
     const mockUpdate: AppUpdateInfo = {
-      version: '1.2.4',
+      version: CURRENT_APP_VERSION,
       versionCode: CURRENT_VERSION_CODE,
       releaseNotes: 'Version actuelle',
       apkUrl: 'https://example.com/app.apk'

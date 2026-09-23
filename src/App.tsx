@@ -38,8 +38,8 @@ export const App: React.FC = () => {
     // Vérification des mises à jour distantes au lancement
     updateService.checkForUpdate().then(({ hasUpdate, updateInfo }) => {
       if (hasUpdate && updateInfo) {
+        setAvailableUpdate(updateInfo);
         if (updateInfo.mandatory || !updateService.isDismissed(updateInfo.version)) {
-          setAvailableUpdate(updateInfo);
           setShowUpdateModal(true);
         }
       }
@@ -52,7 +52,9 @@ export const App: React.FC = () => {
       updateService.checkForUpdate().then(({ hasUpdate, updateInfo }) => {
         if (hasUpdate && updateInfo) {
           setAvailableUpdate(updateInfo);
-          setShowUpdateModal(true);
+          if (updateInfo.mandatory || !updateService.isDismissed(updateInfo.version)) {
+            setShowUpdateModal(true);
+          }
         }
       });
       updateService.performBackgroundLiveUpdate();
