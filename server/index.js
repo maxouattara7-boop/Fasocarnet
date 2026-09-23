@@ -178,6 +178,22 @@ app.post('/api/cloud/broadcast', (req, res) => {
   res.json({ success: true, broadcast });
 });
 
+// 5. Servir l'application Web & fichiers statiques (Landing page, PWA, dist.zip, version.json)
+const DIST_DIR = path.join(__dirname, '../dist');
+if (fs.existsSync(DIST_DIR)) {
+  app.use(express.static(DIST_DIR));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
+      return next();
+    }
+    const indexPath = path.join(DIST_DIR, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      return res.sendFile(indexPath);
+    }
+    next();
+  });
+}
+
 // Démarrage du serveur
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`=========================================`);

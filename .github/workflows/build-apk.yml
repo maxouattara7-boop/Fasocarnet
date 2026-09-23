@@ -54,40 +54,44 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee ../build_log.txt
-
-      - name: Upload Build Log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log-txt
-          path: build_log.txt
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Prepare APK Release File
         run: |
           mkdir -p release_assets
-          cp android/app/build/outputs/apk/debug/app-debug.apk release_assets/FasoCarnet-v1.2.0-Android.apk
+          APK_FILE=$(find android/app/build/outputs/apk -type f -name "*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "❌ Aucun APK généré !"
+            exit 1
+          fi
+          echo "✅ APK trouvé: $APK_FILE"
+          cp "$APK_FILE" release_assets/FasoCarnet-v1.2.4-Android.apk
+          cp "$APK_FILE" release_assets/fasocarnet-release.apk
+          ls -lh release_assets/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FasoCarnet-v1.2.0-Android-APK
-          path: release_assets/FasoCarnet-v1.2.0-Android.apk
+          name: FasoCarnet-v1.2.4-Android-APK
+          path: release_assets/FasoCarnet-v1.2.4-Android.apk
           if-no-files-found: error
 
-      - name: Publish Direct APK to GitHub Release v1.2.0
+      - name: Publish Direct APK to GitHub Release
         uses: softprops/action-gh-release@v2
+        if: success()
         with:
-          tag_name: v1.2.0
-          name: "FasoCarnet v1.2.0 - Version Officielle Android"
+          tag_name: v1.2.4
+          name: "FasoCarnet v1.2.4 - Version Officielle Android"
           body: |
-            ### 🇧🇫 FasoCarnet v1.2.0 - Application Android Officielle
+            ### 🇧🇫 FasoCarnet v1.2.4 - Application Android Officielle
 
-            - ✅ Caisse tactile & calcul instantané
-            - ✅ 100% Fonctionnel hors-ligne
-            - ✅ Reçus WhatsApp & impression thermique Bluetooth
-            - ✅ Carnet des dettes & relances clients en 1 clic
-            - ✅ 10 jours d'essai gratuit
-          files: release_assets/FasoCarnet-v1.2.0-Android.apk
+            - ✅ **Gestion de Stock complète** : Saisie quantité, alertes seuil critique (≤ 5), décompte auto en caisse & réapprovisionnement express.
+            - ✅ **Interface Administrateur optimisée** : Vue mobile/tablette, relances WhatsApp groupées en 1 clic.
+            - ✅ **Caisse tactile & Hors-ligne 100%** : Ventes au comptant & à crédit, monnaie instantanée.
+            - ✅ **Scanner Code-Barres & Reçus WhatsApp** : Caméra intégrée et tickets thermiques Bluetooth.
+          files: |
+            release_assets/FasoCarnet-v1.2.4-Android.apk
+            release_assets/fasocarnet-release.apk
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
