@@ -168,13 +168,16 @@ export const SettingsView: React.FC = () => {
       if (res.hasUpdate && res.updateInfo) {
         setManualUpdateInfo(res.updateInfo);
         setShowManualUpdateModal(true);
+      } else if (res.error) {
+        setUpdateCheckStatus(`⚠️ ${res.error} (Vérifiez votre connexion internet)`);
+        setTimeout(() => setUpdateCheckStatus(null), 5000);
       } else {
-        setUpdateCheckStatus(`FasoCarnet v${CURRENT_APP_VERSION} est à jour !`);
+        setUpdateCheckStatus(`✅ FasoCarnet v${CURRENT_APP_VERSION} est à jour !`);
         setTimeout(() => setUpdateCheckStatus(null), 4000);
       }
-    } catch {
-      setUpdateCheckStatus('Impossible de vérifier (vérifiez votre connexion internet)');
-      setTimeout(() => setUpdateCheckStatus(null), 4000);
+    } catch (err: any) {
+      setUpdateCheckStatus(`⚠️ Erreur : ${err?.message || 'Connexion impossible'}`);
+      setTimeout(() => setUpdateCheckStatus(null), 5000);
     } finally {
       setIsCheckingUpdate(false);
     }

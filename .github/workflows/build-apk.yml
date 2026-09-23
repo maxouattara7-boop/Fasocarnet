@@ -90,10 +90,7 @@ jobs:
             - ✅ **Dettes & Débiteurs** : Disparition automatique des dettes soldées et suppression sécurisée.
             - ✅ **Bilan Mensuel & Journalier** : Vue mensuelle complète et affichage précis des ventes du jour sélectionné.
             - ✅ **Mises à jour OTA instantanées** : CDN haute vitesse pour une application fluide des nouveautés.
-          files: |
-            release_assets/FasoCarnet-v1.2.6-Android.apk
-            release_assets/fasocarnet-release.apk
-            dist.zip
+          files: release_assets/*
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

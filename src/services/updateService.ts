@@ -38,58 +38,50 @@ class UpdateService {
    * Vérifie si une mise à jour distante est disponible.
    * Ne bloque jamais l'application en cas d'absence de réseau ou d'erreur.
    */
-  async checkForUpdate(): Promise<{ hasUpdate: boolean; updateInfo?: AppUpdateInfo }> {
-    try {
-      const cacheBuster = `?_t=${Date.now()}`;
-      let response: Response | null = null;
+  async checkForUpdate(): Promise<{ hasUpdate: boolean; updateInfo?: AppUpdateInfo; error?: string }> {
+    const cacheBuster = `?_t=${Date.now()}`;
+    const endpoints = [
+      `${PRIMARY_VERSION_URL}${cacheBuster}`,
+      `${BACKUP_VERSION_URL}${cacheBuster}`
+    ];
 
-      // 1. Essai GitHub Raw en premier (CDN ultra-rapide < 50ms, sans temps de réveil)
+    let lastError: any = null;
+
+    for (const url of endpoints) {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
-        response = await fetch(`${PRIMARY_VERSION_URL}${cacheBuster}`, {
-          signal: controller.signal,
-          headers: { 'Cache-Control': 'no-cache' }
+        let timeoutId: any;
+        const fetchPromise = fetch(url, {
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
         });
+        const timeoutPromise = new Promise<Response>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Délai dépassé')), 6000);
+        });
+
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
         clearTimeout(timeoutId);
-      } catch {
-        response = null;
-      }
 
-      // 2. Fallback Render si GitHub échoue
-      if (!response || !response.ok) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000);
-          response = await fetch(`${BACKUP_VERSION_URL}${cacheBuster}`, {
-            signal: controller.signal,
-            headers: { 'Cache-Control': 'no-cache' }
-          });
-          clearTimeout(timeoutId);
-        } catch {
-          response = null;
+        if (response && response.ok) {
+          const data: AppUpdateInfo = await response.json();
+          if (data && (typeof data.versionCode === 'number' || typeof data.version === 'string')) {
+            const hasUpdate = (typeof data.versionCode === 'number' && data.versionCode > CURRENT_VERSION_CODE) ||
+                              (typeof data.version === 'string' && data.version !== CURRENT_APP_VERSION);
+            return {
+              hasUpdate,
+              updateInfo: hasUpdate ? data : undefined
+            };
+          }
         }
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`[UpdateService] Échec sur ${url}:`, err);
       }
-
-      if (!response || !response.ok) {
-        return { hasUpdate: false };
-      }
-
-      const data: AppUpdateInfo = await response.json();
-
-      if (data && (typeof data.versionCode === 'number' || typeof data.version === 'string')) {
-        const hasUpdate = (typeof data.versionCode === 'number' && data.versionCode > CURRENT_VERSION_CODE) ||
-                          (typeof data.version === 'string' && data.version !== CURRENT_APP_VERSION);
-        return {
-          hasUpdate,
-          updateInfo: hasUpdate ? data : undefined
-        };
-      }
-
-      return { hasUpdate: false };
-    } catch {
-      return { hasUpdate: false };
     }
+
+    if (lastError) {
+      return { hasUpdate: false, error: 'Connexion au serveur impossible' };
+    }
+
+    return { hasUpdate: false };
   }
 
   /**
