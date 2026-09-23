@@ -31,7 +31,10 @@ import {
   Headphones,
   FileJson,
   Barcode,
-  Camera
+  Camera,
+  Boxes,
+  PlusCircle,
+  AlertCircle
 } from 'lucide-react';
 import { soundEffects } from '../../utils/soundEffects';
 import { hashPin } from '../../utils/crypto';
@@ -81,13 +84,21 @@ export const SettingsView: React.FC = () => {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // Gestion du Catalogue d'Articles
+  // Gestion du Catalogue d'Articles & Stock
   const [products, setProducts] = useState<Product[]>([]);
   const [newProductName, setNewProductName] = useState('');
   const [newProductPrice, setNewProductPrice] = useState('');
   const [newProductBarcode, setNewProductBarcode] = useState('');
+  const [newProductStock, setNewProductStock] = useState('');
+  const [newProductMinAlert, setNewProductMinAlert] = useState('5');
   const [isBarcodeModalOpen, setIsBarcodeModalOpen] = useState(false);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [catalogFilter, setCatalogFilter] = useState<'all' | 'low_stock'>('all');
+
+  // Modal de Réapprovisionnement Rapide
+  const [restockProduct, setRestockProduct] = useState<Product | null>(null);
+  const [restockQtyInput, setRestockQtyInput] = useState('10');
+  const [isRestocking, setIsRestocking] = useState(false);
 
   // Gestion de l'Abonnement & Licence
   const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<SubscriptionPlan | null>(null);
@@ -261,18 +272,52 @@ export const SettingsView: React.FC = () => {
       return;
     }
 
+    const stockQty = newProductStock.trim() !== '' ? Math.max(0, parseInt(newProductStock, 10) || 0) : undefined;
+    const minAlert = newProductMinAlert.trim() !== '' ? Math.max(0, parseInt(newProductMinAlert, 10) || 0) : 5;
+
     setIsAddingProduct(true);
     try {
-      await productsService.create(newProductName.trim(), price, newProductBarcode.trim() || undefined);
+      await productsService.create(
+        newProductName.trim(), 
+        price, 
+        newProductBarcode.trim() || undefined,
+        undefined,
+        stockQty,
+        minAlert
+      );
       setNewProductName('');
       setNewProductPrice('');
       setNewProductBarcode('');
+      setNewProductStock('');
+      setNewProductMinAlert('5');
       await loadProducts();
     } catch (err) {
       console.error(err);
       alert("Erreur lors de l'ajout de l'article.");
     } finally {
       setIsAddingProduct(false);
+    }
+  };
+
+  const handleApplyRestockModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restockProduct) return;
+    const qty = parseInt(restockQtyInput, 10);
+    if (isNaN(qty) || qty <= 0) {
+      alert("Veuillez indiquer une quantité valide à ajouter.");
+      return;
+    }
+    setIsRestocking(true);
+    try {
+      await productsService.addStock(restockProduct.id, qty);
+      setRestockProduct(null);
+      setRestockQtyInput('10');
+      await loadProducts();
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors du réapprovisionnement.");
+    } finally {
+      setIsRestocking(false);
     }
   };
 
@@ -308,9 +353,23 @@ export const SettingsView: React.FC = () => {
     logout();
   };
 
+  const lowStockCount = products.filter(
+    (p) => p.stockQuantity !== undefined && p.stockQuantity <= (p.minStockAlert ?? 5)
+  ).length;
+
+  const filteredProducts = catalogFilter === 'low_stock'
+    ? products.filter((p) => p.stockQuantity !== undefined && p.stockQuantity <= (p.minStockAlert ?? 5))
+    : products;
+
   const tabs: { id: SettingsTab; label: string; icon: React.ReactNode; badge?: number | string; badgeColor?: string }[] = [
     { id: 'shop', label: 'Boutique', icon: <Store className="w-4 h-4" /> },
-    { id: 'catalog', label: 'Articles', icon: <Tag className="w-4 h-4" />, badge: products.length },
+    { 
+      id: 'catalog', 
+      label: 'Articles', 
+      icon: <Tag className="w-4 h-4" />, 
+      badge: lowStockCount > 0 ? `${lowStockCount}⚠️` : (products.length > 0 ? products.length : undefined),
+      badgeColor: lowStockCount > 0 ? 'bg-amber-500' : 'bg-emerald-600'
+    },
     { 
       id: 'subscription', 
       label: 'Licence', 
@@ -714,7 +773,7 @@ export const SettingsView: React.FC = () => {
       )}
 
       {/* ======================================================== */}
-      {/* RUBRIQUE 2 : CATALOGUE D'ARTICLES FAVORIS                */}
+      {/* RUBRIQUE 2 : CATALOGUE D'ARTICLES & GESTION DE STOCK     */}
       {/* ======================================================== */}
       {activeSubTab === 'catalog' && (
         <div className="space-y-3 animate-in fade-in duration-150">
@@ -722,53 +781,100 @@ export const SettingsView: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <div className="flex items-center space-x-2 text-emerald-900">
                 <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
-                  <Tag className="w-3.5 h-3.5" />
+                  <Boxes className="w-3.5 h-3.5" />
                 </div>
-                <h3 className="font-extrabold text-xs tracking-tight">Mes Articles Fréquents</h3>
+                <div>
+                  <h3 className="font-extrabold text-xs tracking-tight">Articles & Gestion de Stock</h3>
+                </div>
               </div>
-              <span className="text-[10px] bg-emerald-100/80 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full border border-emerald-200/60">
-                {products.length} enregistré(s)
-              </span>
+              <div className="flex items-center space-x-1.5">
+                {lowStockCount > 0 && (
+                  <span className="text-[10px] bg-amber-100 text-amber-800 font-extrabold px-2 py-0.5 rounded-full border border-amber-300 animate-pulse">
+                    ⚠️ {lowStockCount} stock critique
+                  </span>
+                )}
+                <span className="text-[10px] bg-emerald-100/80 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full border border-emerald-200/60">
+                  {products.length} article(s)
+                </span>
+              </div>
             </div>
 
-            {/* Formulaire d'ajout rapide */}
-            <form onSubmit={handleAddProduct} className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 space-y-2">
-              <span className="text-[9px] font-bold text-slate-700 uppercase tracking-wider block">Ajouter un produit au catalogue</span>
-              <div className="space-y-1.5">
+            {/* Formulaire d'ajout d'article avec Stock */}
+            <form onSubmit={handleAddProduct} className="bg-slate-50 p-3 rounded-xl border border-slate-200/80 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] font-bold text-slate-700 uppercase tracking-wider block">
+                  Ajouter un nouvel article
+                </span>
+                <span className="text-[9px] text-slate-400 font-medium">Stock décompté automatiquement aux ventes</span>
+              </div>
+
+              <div className="space-y-2">
                 <input
                   type="text"
-                  placeholder="Nom de l'article (ex: Sac de riz 25kg)"
+                  placeholder="Nom de l'article (ex: Sac de riz 25kg) *"
                   value={newProductName}
                   onChange={(e) => setNewProductName(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all placeholder:text-slate-400 focus:placeholder:opacity-0"
+                  className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all placeholder:text-slate-400"
                 />
-                <input
-                  type="number"
-                  placeholder="Prix en FCFA (ex: 18500)"
-                  value={newProductPrice}
-                  onChange={(e) => setNewProductPrice(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-black text-emerald-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all placeholder:text-slate-400 focus:placeholder:opacity-0"
-                />
-                <div className="flex space-x-1.5">
-                  <div className="relative flex-1">
-                    <Barcode className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    placeholder="Prix de vente (FCFA) *"
+                    value={newProductPrice}
+                    onChange={(e) => setNewProductPrice(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-black text-emerald-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all placeholder:text-slate-400"
+                  />
+                  <div className="flex space-x-1">
+                    <div className="relative flex-1">
+                      <Barcode className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="Code-barres"
+                        value={newProductBarcode}
+                        onChange={(e) => setNewProductBarcode(e.target.value)}
+                        className="w-full pl-6 pr-1.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono font-medium text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all placeholder:text-slate-400"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsBarcodeModalOpen(true)}
+                      className="px-2 py-1.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-lg text-xs font-bold flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-2xs"
+                      title="Scanner avec la caméra"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Section Gestion de Stock */}
+                <div className="bg-emerald-50/50 border border-emerald-200/70 p-2 rounded-lg grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[9px] font-bold text-emerald-900 mb-0.5">
+                      Quantité en Stock (Initiale)
+                    </label>
                     <input
-                      type="text"
-                      placeholder="Code-barres (optionnel)"
-                      value={newProductBarcode}
-                      onChange={(e) => setNewProductBarcode(e.target.value)}
-                      className="w-full pl-8 pr-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono font-medium text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all placeholder:text-slate-400"
+                      type="number"
+                      min="0"
+                      placeholder="Ex: 20 (vide = illimité)"
+                      value={newProductStock}
+                      onChange={(e) => setNewProductStock(e.target.value)}
+                      className="w-full px-2 py-1 bg-white border border-emerald-200 rounded text-xs font-bold text-slate-800 focus:border-emerald-500 outline-none placeholder:text-slate-400 placeholder:text-[10px]"
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsBarcodeModalOpen(true)}
-                    className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-lg text-xs font-bold flex items-center space-x-1 transition-all shrink-0 cursor-pointer shadow-2xs"
-                    title="Scanner le code-barres avec la caméra"
-                  >
-                    <Camera className="w-3.5 h-3.5" />
-                    <span>Scanner</span>
-                  </button>
+                  <div>
+                    <label className="block text-[9px] font-bold text-emerald-900 mb-0.5">
+                      Seuil d'alerte stock
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Par défaut: 5"
+                      value={newProductMinAlert}
+                      onChange={(e) => setNewProductMinAlert(e.target.value)}
+                      className="w-full px-2 py-1 bg-white border border-emerald-200 rounded text-xs font-bold text-slate-800 focus:border-emerald-500 outline-none placeholder:text-slate-400 placeholder:text-[10px]"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -778,41 +884,128 @@ export const SettingsView: React.FC = () => {
                 className="w-full py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-lg text-xs shadow-xs flex items-center justify-center space-x-1.5 transition-all active:scale-98 cursor-pointer disabled:opacity-50"
               >
                 <PackagePlus className="w-3.5 h-3.5" />
-                <span>{isAddingProduct ? 'Ajout en cours...' : '+ Ajouter au Catalogue'}</span>
+                <span>{isAddingProduct ? 'Ajout en cours...' : '+ Ajouter au Catalogue & Stock'}</span>
               </button>
             </form>
 
+            {/* Filtres de liste (Tous / Stock Critique) */}
+            {products.length > 0 && (
+              <div className="flex items-center space-x-1.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setCatalogFilter('all')}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                    catalogFilter === 'all'
+                      ? 'bg-slate-800 text-white shadow-2xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Tous ({products.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCatalogFilter('low_stock')}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center space-x-1 transition-all ${
+                    catalogFilter === 'low_stock'
+                      ? 'bg-amber-600 text-white shadow-2xs'
+                      : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  <AlertCircle className="w-3 h-3" />
+                  <span>Stock critique (≤ {lowStockCount})</span>
+                </button>
+              </div>
+            )}
+
             {/* Liste des articles */}
-            {products.length === 0 ? (
-              <div className="text-center py-4 text-slate-400 text-xs font-medium">
-                Aucun article enregistré. Ajoutez vos premiers produits ci-dessus.
+            {filteredProducts.length === 0 ? (
+              <div className="text-center py-6 text-slate-400 text-xs font-medium bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                {catalogFilter === 'low_stock' ? (
+                  <div className="space-y-1">
+                    <span className="text-emerald-600 font-bold">🎉 Tout va bien !</span>
+                    <p className="text-[11px]">Aucun article en rupture ou sous le seuil d'alerte.</p>
+                  </div>
+                ) : (
+                  'Aucun article enregistré. Ajoutez vos premiers produits ci-dessus.'
+                )}
               </div>
             ) : (
-              <div className="space-y-1 max-h-56 overflow-y-auto divide-y divide-slate-100 pt-0.5">
-                {products.map((prod) => (
-                  <div key={prod.id} className="pt-2 pb-1.5 flex items-center justify-between text-xs">
-                    <div>
-                      <div className="flex items-center space-x-1.5">
-                        <span className="font-bold text-slate-800 text-xs">{prod.name}</span>
-                        {prod.barcode && (
-                          <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.2 bg-amber-50 border border-amber-200 text-amber-800 rounded font-mono text-[9px] font-semibold">
-                            <Barcode className="w-2.5 h-2.5" />
-                            <span>{prod.barcode}</span>
+              <div className="space-y-1.5 max-h-72 overflow-y-auto divide-y divide-slate-100 pt-0.5">
+                {filteredProducts.map((prod) => {
+                  const hasStock = prod.stockQuantity !== undefined;
+                  const isOutOfStock = hasStock && prod.stockQuantity! <= 0;
+                  const isLowStock = hasStock && !isOutOfStock && prod.stockQuantity! <= (prod.minStockAlert ?? 5);
+
+                  return (
+                    <div key={prod.id} className="pt-2.5 pb-2 flex items-center justify-between text-xs hover:bg-slate-50/80 px-1 rounded-lg transition-colors">
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                          <span className="font-bold text-slate-900 text-xs">{prod.name}</span>
+                          {prod.barcode && (
+                            <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.2 bg-slate-100 border border-slate-200 text-slate-700 rounded font-mono text-[9px] font-semibold">
+                              <Barcode className="w-2.5 h-2.5" />
+                              <span>{prod.barcode}</span>
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <span className="text-emerald-700 font-extrabold text-xs tracking-tight">
+                            {formatCurrency(prod.price)}
                           </span>
-                        )}
+
+                          {/* Badge de Stock */}
+                          {!hasStock && (
+                            <span className="text-[9px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                              Stock illimité
+                            </span>
+                          )}
+                          {isOutOfStock && (
+                            <span className="text-[9px] font-extrabold text-red-700 bg-red-100 border border-red-200 px-1.5 py-0.5 rounded flex items-center space-x-0.5">
+                              <span>🔴 Rupture (0)</span>
+                            </span>
+                          )}
+                          {isLowStock && (
+                            <span className="text-[9px] font-extrabold text-amber-800 bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded flex items-center space-x-0.5">
+                              <span>🟠 Faible ({prod.stockQuantity} rest.)</span>
+                            </span>
+                          )}
+                          {hasStock && !isOutOfStock && !isLowStock && (
+                            <span className="text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                              🟢 Stock: {prod.stockQuantity}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <span className="text-emerald-700 font-extrabold text-[11px] tracking-tight">{formatCurrency(prod.price)}</span>
+
+                      <div className="flex items-center space-x-1 shrink-0 ml-2">
+                        {/* Bouton Réapprovisionner */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRestockProduct(prod);
+                            setRestockQtyInput('10');
+                          }}
+                          className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-lg border border-emerald-200 text-[10px] flex items-center space-x-1 active:scale-95 transition-all shadow-2xs"
+                          title="Réapprovisionner le stock"
+                        >
+                          <PlusCircle className="w-3 h-3 text-emerald-600" />
+                          <span>+ Stock</span>
+                        </button>
+
+                        {/* Bouton Supprimer */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteProduct(prod.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                          title="Supprimer du catalogue"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteProduct(prod.id)}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                      title="Supprimer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1256,6 +1449,92 @@ export const SettingsView: React.FC = () => {
           triggerDoubleHaptic();
         }}
       />
+
+      {/* Modal de Réapprovisionnement Rapide de Stock */}
+      {restockProduct && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-xl p-4 space-y-3 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center space-x-2 text-emerald-900 border-b border-slate-100 pb-2">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                <Boxes className="w-4 h-4" />
+              </div>
+              <div className="overflow-hidden">
+                <h3 className="text-xs font-black text-slate-900">Réapprovisionner le Stock</h3>
+                <p className="text-[11px] font-bold text-emerald-700 truncate">
+                  {restockProduct.name}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs space-y-1">
+              <div className="flex justify-between text-slate-600">
+                <span>Stock actuel :</span>
+                <span className="font-extrabold text-slate-900">
+                  {restockProduct.stockQuantity !== undefined ? `${restockProduct.stockQuantity} unité(s)` : 'Non suivi'}
+                </span>
+              </div>
+              <div className="flex justify-between text-emerald-800 font-bold">
+                <span>Prix unitaire :</span>
+                <span>{formatCurrency(restockProduct.price)}</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleApplyRestockModal} className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
+                  Quantité à ajouter au stock *
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  value={restockQtyInput}
+                  onChange={(e) => setRestockQtyInput(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border-2 border-emerald-500 rounded-xl text-sm font-black text-center text-slate-900 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                  placeholder="Ex: 10"
+                  autoFocus
+                />
+              </div>
+
+              {/* Boutons de raccourcis rapides */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {[5, 10, 20, 50].map((qty) => (
+                  <button
+                    key={qty}
+                    type="button"
+                    onClick={() => setRestockQtyInput(String(qty))}
+                    className={`py-1 rounded-lg text-xs font-bold border transition-all ${
+                      restockQtyInput === String(qty)
+                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                        : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                    }`}
+                  >
+                    +{qty}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex space-x-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setRestockProduct(null)}
+                  className="w-1/2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isRestocking}
+                  className="w-1/2 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs shadow-xs active:scale-98 flex items-center justify-center space-x-1 disabled:opacity-50"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>{isRestocking ? 'Ajout...' : 'Confirmer'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

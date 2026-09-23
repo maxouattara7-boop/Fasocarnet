@@ -41,4 +41,46 @@ describe('productsService', () => {
     const updated = await productsService.findByBarcode('1234567890128');
     expect(updated?.id).toBe(pWithBarcode.id);
   });
+
+  it('manages stock quantities, alerts and restock operations', async () => {
+    // 1. Creation with stock and min alert
+    const p1 = await productsService.create('Lait Nido 400g', 3500, undefined, undefined, 10, 3);
+    const p2 = await productsService.create('Sucre 1kg', 800, undefined, undefined, 2, 5);
+    const p3 = await productsService.create('Service Divers', 1000); // stock non suivi
+
+    expect(p1.stockQuantity).toBe(10);
+    expect(p1.minStockAlert).toBe(3);
+    expect(p3.stockQuantity).toBeUndefined();
+
+    // 2. Low stock retrieval
+    let lowStockList = await productsService.getLowStockProducts();
+    expect(lowStockList.length).toBe(1);
+    expect(lowStockList[0].id).toBe(p2.id); // 2 <= 5
+
+    // 3. Stock decrementation
+    await productsService.decrementStock([
+      { productId: p1.id, description: p1.name, quantity: 8 }, // 10 - 8 = 2 (now <= 3 alert)
+      { productId: p2.id, description: p2.name, quantity: 5 }  // 2 - 5 = 0 (never negative)
+    ]);
+
+    const p1After = await productsService.getById(p1.id);
+    const p2After = await productsService.getById(p2.id);
+
+    expect(p1After?.stockQuantity).toBe(2);
+    expect(p2After?.stockQuantity).toBe(0);
+
+    // Both are now low stock or out of stock
+    lowStockList = await productsService.getLowStockProducts();
+    expect(lowStockList.length).toBe(2);
+
+    // 4. Restock
+    await productsService.addStock(p1.id, 15); // 2 + 15 = 17
+    const p1Restocked = await productsService.getById(p1.id);
+    expect(p1Restocked?.stockQuantity).toBe(17);
+
+    // 5. Direct stock override
+    await productsService.setStock(p2.id, 50);
+    const p2Overridden = await productsService.getById(p2.id);
+    expect(p2Overridden?.stockQuantity).toBe(50);
+  });
 });

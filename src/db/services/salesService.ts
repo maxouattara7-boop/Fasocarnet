@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { DailySummary, PaymentMethod, Sale } from '../../types';
 import { debtsService } from './debtsService';
+import { productsService } from './productsService';
 
 export const salesService = {
   async recordSale(data: {
@@ -30,6 +31,11 @@ export const salesService = {
     };
 
     await db.sales.put(sale);
+
+    // Décrémentation automatique du stock pour les articles vendus
+    if (data.items && data.items.length > 0) {
+      await productsService.decrementStock(data.items);
+    }
 
     // Si la vente est à crédit, créer l'enregistrement de dette correspondant
     if (data.isCredit && data.customerId && data.customerName && data.customerPhone) {

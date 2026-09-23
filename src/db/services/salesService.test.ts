@@ -60,4 +60,35 @@ describe('Database Services (Offline-First)', () => {
     const customerAfterPayment = await customersService.getById(customer.id);
     expect(customerAfterPayment?.totalDebt).toBe(15000);
   });
+
+  it('automatically decrements product stock when sale is recorded with items', async () => {
+    await db.products.add({
+      id: 'prod_stock_test_1',
+      name: 'Savon BF',
+      price: 350,
+      stockQuantity: 15,
+      minStockAlert: 5,
+      createdAt: new Date().toISOString()
+    });
+
+    await salesService.recordSale({
+      totalAmount: 1400,
+      paymentMethod: 'CASH',
+      isCredit: false,
+      receivedAmount: 1400,
+      changeAmount: 0,
+      items: [
+        {
+          id: 'item_1',
+          productId: 'prod_stock_test_1',
+          description: 'Savon BF',
+          unitPrice: 350,
+          quantity: 4
+        }
+      ]
+    });
+
+    const updatedProduct = await db.products.get('prod_stock_test_1');
+    expect(updatedProduct?.stockQuantity).toBe(11); // 15 - 4
+  });
 });

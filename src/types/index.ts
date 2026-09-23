@@ -44,12 +44,15 @@ export interface Product {
   price: number;
   barcode?: string;
   category?: string;
+  stockQuantity?: number; // Quantité en stock disponible (si indéfini, stock non géré / illimité)
+  minStockAlert?: number; // Seuil d'alerte de stock faible (par défaut 5)
   createdAt: string;
   updatedAt?: string;
 }
 
 export interface SaleItem {
   id: string;
+  productId?: string;
   description: string;
   quantity: number;
   unitPrice: number;
