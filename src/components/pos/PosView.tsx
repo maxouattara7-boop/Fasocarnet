@@ -224,7 +224,7 @@ export const PosView: React.FC = () => {
   );
 
   return (
-    <div className="max-w-md mx-auto p-3.5 sm:p-4 space-y-2.5 sm:space-y-3 pb-24">
+    <div className="max-w-lg mx-auto p-3.5 sm:p-4 space-y-3 sm:space-y-3.5 pb-24">
       {/* Écran d'affichage du montant et du calcul */}
       <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-4 sm:p-4.5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[118px] sm:min-h-[125px] border border-emerald-700/50">
         <div className="flex items-center justify-between text-emerald-300 text-[11px] font-bold tracking-wider uppercase">
@@ -354,14 +354,14 @@ export const PosView: React.FC = () => {
         type="button"
         disabled={totalAmount <= 0}
         onClick={handleOpenPayment}
-        className={`w-full py-3 sm:py-3.5 rounded-xl font-bold text-base shadow-md flex items-center justify-center space-x-2 transition-all ${
+        className={`w-full py-4 sm:py-4.5 rounded-2xl font-black text-base sm:text-lg shadow-lg flex items-center justify-center space-x-2 transition-all cursor-pointer ${
           totalAmount > 0
-            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/25 active:scale-98'
+            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30 active:scale-98'
             : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
         }`}
       >
         <span>ENCAISSER ({formatCurrency(totalAmount)})</span>
-        <ArrowRight className="w-5 h-5" />
+        <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
       </button>
 
       {/* Modal de sélection de mode de paiement */}
