@@ -95,5 +95,77 @@ export const salesService = {
     }
 
     return summary;
+  },
+
+  async getSalesByDate(dateString: string): Promise<Sale[]> {
+    const targetDate = dateString || new Date().toISOString().split('T')[0];
+    const startOfDay = `${targetDate}T00:00:00.000Z`;
+    const endOfDay = `${targetDate}T23:59:59.999Z`;
+
+    const sales = await db.sales
+      .where('createdAt')
+      .between(startOfDay, endOfDay, true, true)
+      .toArray();
+
+    return sales.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  },
+
+  async getMonthlySummary(monthString: string): Promise<DailySummary> {
+    const targetMonth = monthString || new Date().toISOString().slice(0, 7);
+    const [year, month] = targetMonth.split('-').map(Number);
+    const lastDay = new Date(year, month, 0).getDate();
+    const startOfMonth = `${targetMonth}-01T00:00:00.000Z`;
+    const endOfMonth = `${targetMonth}-${String(lastDay).padStart(2, '0')}T23:59:59.999Z`;
+
+    const monthSales = await db.sales
+      .where('createdAt')
+      .between(startOfMonth, endOfMonth, true, true)
+      .toArray();
+
+    const monthPayments = await db.debtPayments
+      .where('createdAt')
+      .between(startOfMonth, endOfMonth, true, true)
+      .toArray();
+
+    const summary: DailySummary = {
+      date: targetMonth,
+      totalSales: 0,
+      cashSales: 0,
+      orangeMoneySales: 0,
+      moovMoneySales: 0,
+      waveSales: 0,
+      creditSales: 0,
+      salesCount: monthSales.length,
+      totalRecoveredDebts: monthPayments.reduce((sum, p) => sum + p.amount, 0)
+    };
+
+    for (const sale of monthSales) {
+      if (sale.isCredit) {
+        summary.creditSales += sale.totalAmount;
+      } else {
+        summary.totalSales += sale.totalAmount;
+        if (sale.paymentMethod === 'CASH') summary.cashSales += sale.totalAmount;
+        if (sale.paymentMethod === 'ORANGE_MONEY') summary.orangeMoneySales += sale.totalAmount;
+        if (sale.paymentMethod === 'MOOV_MONEY') summary.moovMoneySales += sale.totalAmount;
+        if (sale.paymentMethod === 'WAVE') summary.waveSales += sale.totalAmount;
+      }
+    }
+
+    return summary;
+  },
+
+  async getSalesByMonth(monthString: string): Promise<Sale[]> {
+    const targetMonth = monthString || new Date().toISOString().slice(0, 7);
+    const [year, month] = targetMonth.split('-').map(Number);
+    const lastDay = new Date(year, month, 0).getDate();
+    const startOfMonth = `${targetMonth}-01T00:00:00.000Z`;
+    const endOfMonth = `${targetMonth}-${String(lastDay).padStart(2, '0')}T23:59:59.999Z`;
+
+    const sales = await db.sales
+      .where('createdAt')
+      .between(startOfMonth, endOfMonth, true, true)
+      .toArray();
+
+    return sales.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 };

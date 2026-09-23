@@ -96,5 +96,11 @@ export const customersService = {
     };
     await db.customers.put(updatedCustomer);
     return updatedCustomer;
+  },
+
+  async delete(customerId: string): Promise<void> {
+    await db.customers.delete(customerId);
+    await db.debts.where('customerId').equals(customerId).delete();
+    await db.debtPayments.where('customerId').equals(customerId).delete();
   }
 };

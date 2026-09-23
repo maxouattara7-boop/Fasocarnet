@@ -11,26 +11,39 @@ import {
   Calendar, 
   ChevronDown, 
   ChevronUp, 
-  Wallet 
+  Wallet,
+  ShoppingBag,
+  CalendarDays
 } from 'lucide-react';
 
 export const DailyReportView: React.FC = () => {
+  const [reportPeriod, setReportPeriod] = useState<'day' | 'month'>('day');
   const [summary, setSummary] = useState<DailySummary | null>(null);
-  const [recentSales, setRecentSales] = useState<Sale[]>([]);
+  const [salesList, setSalesList] = useState<Sale[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
+  );
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    new Date().toISOString().slice(0, 7)
   );
   const [isCashDetailsOpen, setIsCashDetailsOpen] = useState(false);
 
   useEffect(() => {
     loadReportData();
-  }, [selectedDate]);
+  }, [reportPeriod, selectedDate, selectedMonth]);
 
   const loadReportData = async () => {
-    const sum = await salesService.getDailySummary(selectedDate);
-    const sales = await salesService.getRecentSales(30);
-    setSummary(sum);
-    setRecentSales(sales);
+    if (reportPeriod === 'day') {
+      const sum = await salesService.getDailySummary(selectedDate);
+      const sales = await salesService.getSalesByDate(selectedDate);
+      setSummary(sum);
+      setSalesList(sales);
+    } else {
+      const sum = await salesService.getMonthlySummary(selectedMonth);
+      const sales = await salesService.getSalesByMonth(selectedMonth);
+      setSummary(sum);
+      setSalesList(sales);
+    }
   };
 
   const totalCashCollected = 
@@ -39,68 +52,132 @@ export const DailyReportView: React.FC = () => {
     (summary?.moovMoneySales || 0) + 
     (summary?.waveSales || 0);
 
+  const formatMonthLabel = (mString: string) => {
+    try {
+      const [year, month] = mString.split('-');
+      const date = new Date(Number(year), Number(month) - 1, 1);
+      return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    } catch {
+      return mString;
+    }
+  };
+
+  const formatDateLabel = (dString: string) => {
+    try {
+      const date = new Date(dString + 'T00:00:00');
+      return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    } catch {
+      return dString;
+    }
+  };
+
   return (
-    <div className="max-w-md mx-auto p-3 space-y-2.5 pb-28">
-      {/* Sélecteur de date */}
-      <div className="flex items-center justify-between bg-white p-2 rounded-xl border border-slate-100 shadow-xs">
-        <div className="flex items-center space-x-1.5 text-slate-700">
-          <Calendar className="w-3.5 h-3.5 text-emerald-600 stroke-[2.2]" />
-          <span className="text-[11px] font-bold font-display">Date du Bilan :</span>
+    <div className="max-w-md mx-auto p-3.5 sm:p-4 space-y-3 pb-28">
+      {/* Onglets Période : Bilan du Jour vs Bilan du Mois */}
+      <div className="flex items-center p-1 bg-slate-100 rounded-xl sm:rounded-2xl gap-1 text-xs font-bold shadow-2xs">
+        <button
+          type="button"
+          onClick={() => setReportPeriod('day')}
+          className={`flex-1 py-2 rounded-lg sm:rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
+            reportPeriod === 'day'
+              ? 'bg-emerald-600 text-white shadow-xs font-black'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <Calendar className="w-3.5 h-3.5" />
+          <span>Bilan Journalier</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setReportPeriod('month')}
+          className={`flex-1 py-2 rounded-lg sm:rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
+            reportPeriod === 'month'
+              ? 'bg-emerald-600 text-white shadow-xs font-black'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <CalendarDays className="w-3.5 h-3.5" />
+          <span>Bilan Mensuel</span>
+        </button>
+      </div>
+
+      {/* Sélecteur de date / mois */}
+      <div className="flex items-center justify-between bg-white p-2.5 rounded-2xl border border-slate-100 shadow-xs">
+        <div className="flex items-center space-x-2 text-slate-700">
+          <Calendar className="w-4 h-4 text-emerald-600 stroke-[2.2]" />
+          <span className="text-xs font-black font-display">
+            {reportPeriod === 'day' ? 'Jour choisi :' : 'Mois choisi :'}
+          </span>
         </div>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-0.5 text-[11px] font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer"
-        />
+
+        {reportPeriod === 'day' ? (
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer"
+          />
+        ) : (
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer"
+          />
+        )}
       </div>
 
       {/* Carte du Chiffre d'Affaires Encaissé */}
-      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-4 rounded-2xl shadow-md space-y-1 border border-emerald-700/50">
-        <div className="flex items-center justify-between text-emerald-300 text-[10px] font-bold uppercase tracking-wider font-display">
+      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-md space-y-1.5 border border-emerald-700/50">
+        <div className="flex items-center justify-between text-emerald-300 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider font-display">
           <div className="flex items-center space-x-1.5">
-            <BarChart3 className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>Total Encaissé</span>
+            <BarChart3 className="w-4 h-4 stroke-[2.5]" />
+            <span>{reportPeriod === 'day' ? 'Total Encaissé du Jour' : 'Total Encaissé du Mois'}</span>
           </div>
-          <span className="bg-emerald-700/60 px-2 py-0.5 rounded-md text-[9px] font-extrabold">{summary?.salesCount || 0} vente(s)</span>
+          <span className="bg-emerald-700/70 px-2 py-0.5 rounded-md text-[10px] font-extrabold">
+            {summary?.salesCount || 0} vente{summary?.salesCount && summary.salesCount > 1 ? 's' : ''}
+          </span>
         </div>
 
-        <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight font-display">
+        <div className="text-2xl sm:text-3xl font-black text-white tracking-tight font-display drop-shadow-xs">
           {formatCurrency(summary?.totalSales || 0)}
         </div>
 
-        <p className="text-[9px] text-emerald-300/80 font-medium">
-          Chiffre d'affaires net encaissé (espèces + mobile money)
+        <p className="text-[10px] text-emerald-200/80 font-medium">
+          {reportPeriod === 'day' 
+            ? `Chiffre d'affaires net pour le ${formatDateLabel(selectedDate)}`
+            : `Chiffre d'affaires net pour ${formatMonthLabel(selectedMonth)}`}
         </p>
       </div>
 
       {/* BLOC 1 : PAIEMENTS CASH & MOBILE MONEY (SECTION AVEC DÉTAIL DÉROULANT) */}
-      <div className="bg-white rounded-xl border border-slate-100 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
         <div 
           onClick={() => setIsCashDetailsOpen(!isCashDetailsOpen)}
-          className="p-3 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
+          className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
         >
-          <div className="flex items-center space-x-2">
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <Wallet className="w-4 h-4" />
             </div>
             <div>
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Paiements CASH & Mobile</span>
-              <span className="text-sm font-extrabold text-slate-900 font-display">{formatCurrency(totalCashCollected)}</span>
+              <span className="text-sm font-black text-slate-900 font-display">{formatCurrency(totalCashCollected)}</span>
             </div>
           </div>
-          <div className="flex items-center space-x-1 text-emerald-700 text-[10px] font-bold">
+          <div className="flex items-center space-x-1 text-emerald-700 text-xs font-bold">
             <span>{isCashDetailsOpen ? 'Masquer' : 'Détails'}</span>
-            {isCashDetailsOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            {isCashDetailsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
         </div>
 
         {/* Partie déroulante : Détail des 4 opérateurs */}
         {isCashDetailsOpen && (
-          <div className="px-3 pb-3 pt-1 border-t border-slate-100 grid grid-cols-2 gap-1.5 animate-in fade-in duration-150">
-            <div className="bg-slate-50 p-2 rounded-lg space-y-0.5">
+          <div className="px-3 pb-3 pt-1 border-t border-slate-100 grid grid-cols-2 gap-2 animate-in fade-in duration-150">
+            <div className="bg-slate-50 p-2.5 rounded-xl space-y-0.5">
               <div className="flex items-center space-x-1 text-emerald-700 text-[10px] font-bold font-display">
-                <Banknote className="w-3 h-3 stroke-[2.2]" />
+                <Banknote className="w-3.5 h-3.5 stroke-[2.2]" />
                 <span>Espèces</span>
               </div>
               <div className="text-xs font-extrabold text-slate-900 font-display truncate">
@@ -108,9 +185,9 @@ export const DailyReportView: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-slate-50 p-2 rounded-lg space-y-0.5">
+            <div className="bg-slate-50 p-2.5 rounded-xl space-y-0.5">
               <div className="flex items-center space-x-1 text-[#ff6600] text-[10px] font-bold font-display">
-                <Smartphone className="w-3 h-3 stroke-[2.2] text-[#ff6600]" />
+                <Smartphone className="w-3.5 h-3.5 stroke-[2.2] text-[#ff6600]" />
                 <span>Orange Money</span>
               </div>
               <div className="text-xs font-extrabold text-slate-900 font-display truncate">
@@ -118,9 +195,9 @@ export const DailyReportView: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-slate-50 p-2 rounded-lg space-y-0.5">
+            <div className="bg-slate-50 p-2.5 rounded-xl space-y-0.5">
               <div className="flex items-center space-x-1 text-[#005baa] text-[10px] font-bold font-display">
-                <Smartphone className="w-3 h-3 stroke-[2.2] text-[#005baa]" />
+                <Smartphone className="w-3.5 h-3.5 stroke-[2.2] text-[#005baa]" />
                 <span>Moov Money</span>
               </div>
               <div className="text-xs font-extrabold text-slate-900 font-display truncate">
@@ -128,9 +205,9 @@ export const DailyReportView: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-slate-50 p-2 rounded-lg space-y-0.5">
+            <div className="bg-slate-50 p-2.5 rounded-xl space-y-0.5">
               <div className="flex items-center space-x-1 text-[#1dc4fe] text-[10px] font-bold font-display">
-                <Smartphone className="w-3 h-3 stroke-[2.2] text-[#1dc4fe]" />
+                <Smartphone className="w-3.5 h-3.5 stroke-[2.2] text-[#1dc4fe]" />
                 <span>Wave</span>
               </div>
               <div className="text-xs font-extrabold text-slate-900 font-display truncate">
@@ -143,45 +220,71 @@ export const DailyReportView: React.FC = () => {
 
       {/* BLOC 2 : PAIEMENTS À CRÉDIT & DETTES */}
       <div className="grid grid-cols-2 gap-2">
-        <div className="bg-amber-50/80 p-2.5 rounded-xl border border-amber-200/80 shadow-xs space-y-0.5">
+        <div className="bg-amber-50/80 p-3 rounded-2xl border border-amber-200/80 shadow-xs space-y-0.5">
           <div className="text-[9px] font-bold text-amber-800 uppercase tracking-wider flex items-center space-x-1 font-display">
             <CreditCard className="w-3 h-3 text-amber-700" />
             <span>Crédits Accordés</span>
           </div>
-          <div className="text-xs sm:text-sm font-extrabold text-amber-950 font-display truncate">
+          <div className="text-xs sm:text-sm font-black text-amber-950 font-display truncate">
             {formatCurrency(summary?.creditSales || 0)}
           </div>
         </div>
 
-        <div className="bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-200/80 shadow-xs space-y-0.5">
+        <div className="bg-emerald-50/80 p-3 rounded-2xl border border-emerald-200/80 shadow-xs space-y-0.5">
           <div className="text-[9px] font-bold text-emerald-800 uppercase tracking-wider flex items-center space-x-1 font-display">
             <ArrowDownLeft className="w-3 h-3 text-emerald-700" />
             <span>Dettes Récupérées</span>
           </div>
-          <div className="text-xs sm:text-sm font-extrabold text-emerald-950 font-display truncate">
+          <div className="text-xs sm:text-sm font-black text-emerald-950 font-display truncate">
             {formatCurrency(summary?.totalRecoveredDebts || 0)}
           </div>
         </div>
       </div>
 
-      {/* Historique Récent des Ventes */}
-      <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-xs space-y-2">
-        <h4 className="font-bold text-slate-900 text-xs tracking-tight font-display">Dernières Ventes Enregistrées</h4>
-        <div className="divide-y divide-slate-100">
-          {recentSales.slice(0, 10).map((sale) => (
-            <div key={sale.id} className="py-1.5 flex items-center justify-between text-xs">
-              <div className="min-w-0 pr-2">
-                <div className="font-semibold text-slate-900 text-[11px] truncate">
-                  {sale.isCredit ? `Crédit : ${sale.customerName || 'Client'}` : `Vente ${sale.paymentMethod}`}
-                </div>
-                <div className="text-[9px] text-slate-400">{formatDateTime(sale.createdAt)}</div>
-              </div>
-              <div className={`font-extrabold font-display text-xs flex-shrink-0 ${sale.isCredit ? 'text-amber-700' : 'text-emerald-700'}`}>
-                {formatCurrency(sale.totalAmount)}
-              </div>
-            </div>
-          ))}
+      {/* Historique des Ventes de la Période Choisie */}
+      <div className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-xs space-y-2.5">
+        <div className="flex items-center justify-between">
+          <h4 className="font-bold text-slate-900 text-xs tracking-tight font-display flex items-center space-x-1.5">
+            <ShoppingBag className="w-3.5 h-3.5 text-emerald-600" />
+            <span>
+              {reportPeriod === 'day' ? 'Ventes de cette date' : 'Ventes de ce mois'}
+            </span>
+          </h4>
+          <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+            {salesList.length} enregistrement{salesList.length > 1 ? 's' : ''}
+          </span>
         </div>
+
+        {salesList.length === 0 ? (
+          <div className="py-6 text-center text-slate-400 space-y-1">
+            <ShoppingBag className="w-8 h-8 text-slate-300 mx-auto" />
+            <p className="text-xs font-semibold">Aucune vente enregistrée pour cette sélection</p>
+            <p className="text-[10px] text-slate-400">
+              {reportPeriod === 'day' ? formatDateLabel(selectedDate) : formatMonthLabel(selectedMonth)}
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto pr-1">
+            {salesList.map((sale) => (
+              <div key={sale.id} className="py-2 flex items-center justify-between text-xs">
+                <div className="min-w-0 pr-2">
+                  <div className="font-bold text-slate-900 text-xs truncate font-display">
+                    {sale.isCredit ? `Crédit : ${sale.customerName || 'Client'}` : `Vente ${sale.paymentMethod}`}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">{formatDateTime(sale.createdAt)}</div>
+                  {sale.items && sale.items.length > 0 && (
+                    <div className="text-[10px] text-slate-500 truncate mt-0.5">
+                      {sale.items.map(it => `${it.description} (x${it.quantity})`).join(', ')}
+                    </div>
+                  )}
+                </div>
+                <div className={`font-black font-display text-xs sm:text-sm flex-shrink-0 ${sale.isCredit ? 'text-amber-700' : 'text-emerald-700'}`}>
+                  {formatCurrency(sale.totalAmount)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

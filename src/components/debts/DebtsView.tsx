@@ -5,13 +5,16 @@ import { CustomerCard } from './CustomerCard';
 import { NewCustomerModal } from './NewCustomerModal';
 import { DebtPaymentModal } from './PaymentModal';
 import { formatCurrency } from '../../utils/formatters';
-import { Search, UserPlus, BookOpen, Users } from 'lucide-react';
+import { triggerHaptic } from '../../utils/haptics';
+import { Search, UserPlus, BookOpen, Users, CheckCircle2, Trash2, AlertTriangle } from 'lucide-react';
 
 export const DebtsView: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterTab, setFilterTab] = useState<'active' | 'settled' | 'all'>('active');
   const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState(false);
   const [payingCustomer, setPayingCustomer] = useState<Customer | null>(null);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
 
   useEffect(() => {
     loadData();
@@ -23,13 +26,24 @@ export const DebtsView: React.FC = () => {
   };
 
   const debtorCustomers = customers.filter(c => c.totalDebt > 0);
+  const settledCustomers = customers.filter(c => c.totalDebt <= 0);
   const totalOutstanding = debtorCustomers.reduce((sum, c) => sum + c.totalDebt, 0);
 
-  const filteredCustomers = customers.filter(
-    c =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.phone.includes(searchQuery)
-  );
+  const displayedList = customers.filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone.includes(searchQuery);
+    if (!matchesSearch) return false;
+    if (filterTab === 'active') return c.totalDebt > 0;
+    if (filterTab === 'settled') return c.totalDebt <= 0;
+    return true;
+  });
+
+  const handleDeleteConfirm = async () => {
+    if (!customerToDelete) return;
+    triggerHaptic(50);
+    await customersService.delete(customerToDelete.id);
+    setCustomerToDelete(null);
+    await loadData();
+  };
 
   return (
     <div className="max-w-md mx-auto p-3.5 sm:p-4 space-y-3.5 pb-24">
@@ -66,6 +80,44 @@ export const DebtsView: React.FC = () => {
         </div>
       </div>
 
+      {/* Onglets Dettes En cours vs Dettes Soldées */}
+      <div className="flex items-center p-1 bg-slate-100 rounded-xl sm:rounded-2xl gap-1 text-xs font-bold">
+        <button
+          type="button"
+          onClick={() => setFilterTab('active')}
+          className={`flex-1 py-2 rounded-lg sm:rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
+            filterTab === 'active'
+              ? 'bg-amber-600 text-white shadow-xs font-extrabold'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <span>En cours</span>
+          <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+            filterTab === 'active' ? 'bg-amber-800/80 text-amber-100' : 'bg-slate-200 text-slate-700'
+          }`}>
+            {debtorCustomers.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setFilterTab('settled')}
+          className={`flex-1 py-2 rounded-lg sm:rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
+            filterTab === 'settled'
+              ? 'bg-emerald-600 text-white shadow-xs font-extrabold'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          <span>Soldées</span>
+          <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+            filterTab === 'settled' ? 'bg-emerald-800/80 text-emerald-100' : 'bg-slate-200 text-slate-700'
+          }`}>
+            {settledCustomers.length}
+          </span>
+        </button>
+      </div>
+
       {/* Barre de recherche et Bouton d'ajout de dette */}
       <div className="flex items-center space-x-2">
         <div className="relative flex-1">
@@ -92,36 +144,79 @@ export const DebtsView: React.FC = () => {
 
       {/* Liste des clients */}
       <div className="space-y-2.5">
-        {filteredCustomers.length === 0 ? (
+        {displayedList.length === 0 ? (
           <div className="bg-white p-6 sm:p-8 rounded-2xl sm:rounded-3xl text-center space-y-3 border border-gray-200/80 shadow-xs">
             <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 mx-auto">
-              <BookOpen className="w-6 h-6" />
+              {filterTab === 'settled' ? <CheckCircle2 className="w-6 h-6 text-emerald-600" /> : <BookOpen className="w-6 h-6" />}
             </div>
             <div className="space-y-1">
-              <h4 className="font-bold text-gray-800 text-sm font-display">Aucune dette trouvée</h4>
+              <h4 className="font-bold text-gray-800 text-sm font-display">
+                {filterTab === 'settled' ? 'Aucune dette soldée' : 'Aucune dette en cours trouvée'}
+              </h4>
               <p className="text-xs text-gray-500 max-w-xs mx-auto">
-                Enregistrez une dette directe (emprunt/prêt) ou une vente à crédit depuis la caisse.
+                {filterTab === 'settled' 
+                  ? 'Les dettes entièrement réglées apparaîtront ici.'
+                  : 'Enregistrez une dette directe ou une vente à crédit depuis la caisse.'}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setIsNewCustomerModalOpen(true)}
-              className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-black text-xs rounded-xl sm:rounded-2xl shadow-sm transition-all inline-flex items-center space-x-1.5 cursor-pointer font-display active:scale-95"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>+ Ajouter une première dette</span>
-            </button>
+            {filterTab === 'active' && (
+              <button
+                type="button"
+                onClick={() => setIsNewCustomerModalOpen(true)}
+                className="px-4 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-black text-xs rounded-xl sm:rounded-2xl shadow-sm transition-all inline-flex items-center space-x-1.5 cursor-pointer font-display active:scale-95"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>+ Ajouter une première dette</span>
+              </button>
+            )}
           </div>
         ) : (
-          filteredCustomers.map((customer) => (
+          displayedList.map((customer) => (
             <CustomerCard
               key={customer.id}
               customer={customer}
               onPayDebt={(c) => setPayingCustomer(c)}
+              onDelete={(c) => setCustomerToDelete(c)}
             />
           ))
         )}
       </div>
+
+      {/* MODALE DE CONFIRMATION DE SUPPRESSION */}
+      {customerToDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl p-5 max-w-sm w-full space-y-4 shadow-2xl border border-slate-100 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600 mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="font-black text-slate-900 text-base font-display">Supprimer cette dette ?</h3>
+              <p className="text-xs text-slate-600">
+                Êtes-vous sûr de vouloir supprimer la fiche de <strong>{customerToDelete.name}</strong> ({customerToDelete.phone}) ? Cette action est irréversible.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setCustomerToDelete(null)}
+                className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                className="py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm shadow-red-600/30 flex items-center justify-center space-x-1"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Supprimer</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <NewCustomerModal

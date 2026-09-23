@@ -91,4 +91,54 @@ describe('Database Services (Offline-First)', () => {
     const updatedProduct = await db.products.get('prod_stock_test_1');
     expect(updatedProduct?.stockQuantity).toBe(11); // 15 - 4
   });
+
+  it('filters sales by specific date and computes monthly summary', async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const thisMonth = today.slice(0, 7);
+
+    await salesService.recordSale({
+      totalAmount: 5000,
+      paymentMethod: 'CASH',
+      isCredit: false
+    });
+
+    await salesService.recordSale({
+      totalAmount: 15000,
+      paymentMethod: 'ORANGE_MONEY',
+      isCredit: false
+    });
+
+    const todaySales = await salesService.getSalesByDate(today);
+    expect(todaySales.length).toBe(2);
+    expect(todaySales[0].totalAmount).toBe(15000);
+
+    const monthlySummary = await salesService.getMonthlySummary(thisMonth);
+    expect(monthlySummary.totalSales).toBe(20000);
+    expect(monthlySummary.cashSales).toBe(5000);
+    expect(monthlySummary.orangeMoneySales).toBe(15000);
+    expect(monthlySummary.salesCount).toBe(2);
+
+    const monthSales = await salesService.getSalesByMonth(thisMonth);
+    expect(monthSales.length).toBe(2);
+  });
+
+  it('deletes customer and associated debt records completely', async () => {
+    const customer = await customersService.create({
+      name: 'Traore Moussa',
+      phone: '78998877',
+      initialDebt: 50000
+    });
+
+    expect(customer.id).toBeDefined();
+    let found = await customersService.getById(customer.id);
+    expect(found?.totalDebt).toBe(50000);
+
+    await customersService.delete(customer.id);
+
+    found = await customersService.getById(customer.id);
+    expect(found).toBeUndefined();
+
+    const debts = await db.debts.where('customerId').equals(customer.id).toArray();
+    expect(debts.length).toBe(0);
+  });
 });

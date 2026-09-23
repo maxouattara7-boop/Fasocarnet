@@ -3,14 +3,15 @@ import { Customer } from '../../types';
 import { useAppStore } from '../../store/appStore';
 import { formatCurrency } from '../../utils/formatters';
 import { generateWhatsAppDebtReminderUrl } from '../../utils/whatsapp';
-import { MessageSquare, Phone, ArrowDownRight, User } from 'lucide-react';
+import { MessageSquare, Phone, ArrowDownRight, User, Trash2 } from 'lucide-react';
 
 interface CustomerCardProps {
   customer: Customer;
   onPayDebt: (customer: Customer) => void;
+  onDelete?: (customer: Customer) => void;
 }
 
-export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt }) => {
+export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt, onDelete }) => {
   const { shopProfile } = useAppStore();
 
   const handleWhatsAppReminder = () => {
@@ -23,7 +24,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt 
   };
 
   return (
-    <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200/80 shadow-xs hover:border-amber-400/80 transition-all space-y-3">
+    <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200/80 shadow-xs hover:border-amber-400/80 transition-all space-y-3 relative group">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start space-x-2.5 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 flex items-center justify-center font-bold text-xs shrink-0 font-display">
@@ -43,13 +44,26 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt 
           </div>
         </div>
 
-        <div className="bg-amber-50/80 px-2.5 py-1.5 rounded-xl border border-amber-200/80 text-right shrink-0">
-          <span className="text-[9px] uppercase font-black text-amber-800 tracking-wider block font-display">
-            Dette Restante
-          </span>
-          <span className="text-xs sm:text-sm font-black text-amber-700 font-display">
-            {formatCurrency(customer.totalDebt)}
-          </span>
+        <div className="flex items-center space-x-1.5 shrink-0">
+          <div className="bg-amber-50/80 px-2.5 py-1.5 rounded-xl border border-amber-200/80 text-right">
+            <span className="text-[9px] uppercase font-black text-amber-800 tracking-wider block font-display">
+              Dette Restante
+            </span>
+            <span className="text-xs sm:text-sm font-black text-amber-700 font-display">
+              {formatCurrency(customer.totalDebt)}
+            </span>
+          </div>
+
+          {onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(customer)}
+              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
+              title="Supprimer cette dette"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
