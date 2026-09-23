@@ -26,7 +26,6 @@ export const App: React.FC = () => {
   const [showBroadcastDetail, setShowBroadcastDetail] = useState(false);
   const [availableUpdate, setAvailableUpdate] = useState<AppUpdateInfo | null>(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [forceAppMode, setForceAppMode] = useState(false);
 
   useEffect(() => {
     // Confirmer le bon démarrage pour le système de Live Update (anti-rollback)
@@ -65,15 +64,15 @@ export const App: React.FC = () => {
     return <AdminView onClose={() => setIsAdminOpen(false)} />;
   }
 
-  // 1. SUR LE WEB (Navigateur / Render) : Afficher la Landing Page sauf si mode app ou clic ouvrir l'app
+  // 1. SUR LE WEB (Navigateur / Render) : Afficher la Landing Page sauf si mode app explicite
   const isNative = Capacitor.isNativePlatform();
-  const isExplicitAppMode = forceAppMode || (typeof window !== 'undefined' && (
+  const isExplicitAppMode = typeof window !== 'undefined' && (
     window.location.search.includes('mode=app') ||
     window.location.pathname.startsWith('/app')
-  ));
+  );
 
   if (!isNative && !isExplicitAppMode) {
-    return <LandingPageView onOpenApp={() => setForceAppMode(true)} />;
+    return <LandingPageView />;
   }
 
   // Pendant le chargement initial de l'espace local (IndexedDB)

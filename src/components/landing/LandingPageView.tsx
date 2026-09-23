@@ -14,8 +14,7 @@ import {
   Zap,
   Printer,
   FileText,
-  HelpCircle,
-  Smartphone
+  HelpCircle
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
 
@@ -25,7 +24,7 @@ interface LandingPageViewProps {
 
 const APK_DOWNLOAD_URL = 'https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk';
 
-export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) => {
+export const LandingPageView: React.FC<LandingPageViewProps> = () => {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showFaqModal, setShowFaqModal] = useState(false);
   const [showCguModal, setShowCguModal] = useState(false);
@@ -85,24 +84,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) =
           </nav>
 
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenApp) onOpenApp();
-                else window.location.href = '/?mode=app';
-              }}
-              className="px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl sm:rounded-2xl text-xs sm:text-sm flex items-center space-x-1.5 active:scale-95 transition-all cursor-pointer shrink-0 shadow-xs"
-            >
-              <Smartphone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>Ouvrir l'App</span>
-            </button>
             <a
               href={APK_DOWNLOAD_URL}
               download="FasoCarnet-v1.2.4-Android.apk"
               onClick={() => setShowDownloadModal(true)}
-              className="px-3 sm:px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl sm:rounded-2xl text-xs sm:text-sm flex items-center space-x-1.5 active:scale-95 transition-all cursor-pointer shrink-0"
+              className="px-4 sm:px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl sm:rounded-2xl text-xs sm:text-sm flex items-center space-x-2 active:scale-95 transition-all cursor-pointer shrink-0 shadow-md shadow-emerald-600/20"
             >
-              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+              <Download className="w-4 h-4 stroke-[2.5]" />
               <span>Télécharger l'APK</span>
             </a>
           </div>
@@ -135,35 +123,23 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) =
                   </p>
                 </div>
 
-                {/* Bloc Téléchargement & Accès Direct Principal */}
+                {/* Bloc Téléchargement Principal */}
                 <div className="pt-1 sm:pt-2 space-y-3 sm:space-y-4">
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (onOpenApp) onOpenApp();
-                        else window.location.href = '/?mode=app';
-                      }}
-                      className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl text-sm sm:text-base shadow-xl shadow-emerald-600/25 flex items-center justify-center space-x-2.5 sm:space-x-3 active:scale-95 transition-transform cursor-pointer group text-center"
-                    >
-                      <Smartphone className="w-5 h-5 group-hover:scale-110 transition-transform stroke-[2.5]" />
-                      <span>Ouvrir l'Application (En 1 Clic)</span>
-                    </button>
-
                     <a
                       href={APK_DOWNLOAD_URL}
                       download="FasoCarnet-v1.2.4-Android.apk"
                       onClick={() => setShowDownloadModal(true)}
-                      className="w-full sm:w-auto px-5 sm:px-6 py-3.5 sm:py-4 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-2xl text-sm sm:text-base shadow-lg flex items-center justify-center space-x-2.5 sm:space-x-3 active:scale-95 transition-transform cursor-pointer group text-center"
+                      className="w-full sm:w-auto px-8 sm:px-10 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl text-base sm:text-lg shadow-xl shadow-emerald-600/25 flex items-center justify-center space-x-3 active:scale-95 transition-transform cursor-pointer group text-center"
                     >
-                      <Download className="w-5 h-5 group-hover:translate-y-0.5 transition-transform stroke-[2.5]" />
-                      <span>Télécharger l'APK</span>
+                      <Download className="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-y-0.5 transition-transform stroke-[2.5]" />
+                      <span>Télécharger l'APK Android (v1.2.4)</span>
                     </a>
                   </div>
 
                   <p className="text-xs text-slate-500 font-medium flex items-center justify-center lg:justify-start space-x-1.5 sm:space-x-2">
                     <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>10 jours gratuits • Fonctionne 100% hors-ligne</span>
+                    <span>Version 1.2.4 • 10 jours gratuits • Fonctionne 100% hors-ligne</span>
                   </p>
                 </div>
 
@@ -569,22 +545,18 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) =
             </div>
 
             <div className="space-y-2 pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDownloadModal(false);
-                  if (onOpenApp) onOpenApp();
-                  else window.location.href = '/?mode=app';
-                }}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/20"
+              <a
+                href={APK_DOWNLOAD_URL}
+                download="FasoCarnet-v1.2.4-Android.apk"
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-2 shadow-md shadow-emerald-600/20 text-center cursor-pointer active:scale-95 transition-all"
               >
-                <Smartphone className="w-4 h-4" />
-                <span>📱 Ou Utiliser Directement l'Application en Ligne</span>
-              </button>
+                <Download className="w-4 h-4 stroke-[2.5]" />
+                <span>Télécharger à nouveau l'APK</span>
+              </a>
               <button
                 type="button"
                 onClick={() => setShowDownloadModal(false)}
-                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer transition-colors"
               >
                 Fermer
               </button>
