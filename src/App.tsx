@@ -47,6 +47,12 @@ export const App: React.FC = () => {
 
     // En tâche de fond silencieuse : télécharger les nouveautés si disponibles
     updateService.performBackgroundLiveUpdate();
+
+    const handleOnline = () => {
+      updateService.performBackgroundLiveUpdate();
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
   }, [loadCurrentShop]);
 
   useEffect(() => {
