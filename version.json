@@ -1,9 +1,9 @@
 {
-  "version": "1.2.10",
-  "versionCode": 13,
+  "version": "1.2.11",
+  "versionCode": 14,
   "releaseDate": "2026-09-24",
-  "title": "Téléchargement Universel Bilan Excel & Partage Reçu Image WhatsApp",
-  "releaseNotes": "1. Téléchargement et partage direct du Bilan Mensuel Excel (.xlsx / .csv) sur Android et Web.\n2. Partage instantané du reçu sous forme d'image photo PNG sur WhatsApp (avec Logo & Mentions IFU/RCCM).\n3. Enregistrement direct des tickets de caisse dans les documents/galerie du téléphone.\n4. Maintien et fiabilisation continue du système de mise à jour à chaud.",
+  "title": "Téléchargement Universel Bilan Excel & Reçu Photo WhatsApp",
+  "releaseNotes": "1. Téléchargement et partage direct du Bilan Mensuel Excel (.csv / .xlsx) avec confirmation et copie rapide.\n2. Partage instantané du reçu de caisse sous forme d'image photo PNG sur WhatsApp (avec Logo agrandi et mentions IFU/RCCM).\n3. Enregistrement direct des reçus dans les photos/documents et zoom plein écran.\n4. Maintien et fiabilisation continue du système de mise à jour à chaud.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false

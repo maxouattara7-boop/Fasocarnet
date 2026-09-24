@@ -14,7 +14,12 @@ import {
   Wallet,
   ShoppingBag,
   CalendarDays,
-  FileSpreadsheet
+  FileSpreadsheet,
+  CheckCircle2,
+  Copy,
+  Share2,
+  X,
+  Loader2
 } from 'lucide-react';
 import { exportMonthlyReportToExcel } from '../../utils/excelExporter';
 import { useAppStore } from '../../store/appStore';
@@ -33,6 +38,32 @@ export const DailyReportView: React.FC = () => {
   );
   const [isCashDetailsOpen, setIsCashDetailsOpen] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [exportModalData, setExportModalData] = useState<{
+    isOpen: boolean;
+    fileName: string;
+    csvContent: string;
+    monthLabel: string;
+    copied: boolean;
+  } | null>(null);
+
+  const formatMonthLabel = (mString: string) => {
+    try {
+      const [year, month] = mString.split('-');
+      const date = new Date(Number(year), Number(month) - 1, 1);
+      return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    } catch {
+      return mString;
+    }
+  };
+
+  const formatDateLabel = (dString: string) => {
+    try {
+      const date = new Date(dString + 'T00:00:00');
+      return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+    } catch {
+      return dString;
+    }
+  };
 
   const handleExportExcel = async () => {
     setIsExportingExcel(true);
@@ -47,19 +78,67 @@ export const DailyReportView: React.FC = () => {
         .between(startOfMonth, endOfMonth, true, true)
         .toArray();
 
-      exportMonthlyReportToExcel({
+      const exportRes = await exportMonthlyReportToExcel({
         monthString: selectedMonth,
         summary,
         sales: salesList,
         debtPayments: payments,
         shopProfile
       });
+
+      setExportModalData({
+        isOpen: true,
+        fileName: exportRes.fileName,
+        csvContent: exportRes.csvContent,
+        monthLabel: formatMonthLabel(selectedMonth),
+        copied: false
+      });
     } catch (err) {
-      console.error(err);
-      alert("Erreur lors de l'exportation du fichier Excel.");
+      console.error('Erreur export excel:', err);
+      alert("Erreur lors de l'exportation du bilan.");
     } finally {
       setIsExportingExcel(false);
     }
+  };
+
+  const handleCopyCsv = async () => {
+    if (!exportModalData?.csvContent) return;
+    try {
+      await navigator.clipboard.writeText(exportModalData.csvContent);
+      setExportModalData(prev => prev ? { ...prev, copied: true } : null);
+      setTimeout(() => {
+        setExportModalData(prev => prev ? { ...prev, copied: false } : null);
+      }, 2500);
+    } catch (err) {
+      console.warn('Erreur copie:', err);
+    }
+  };
+
+  const handleShareSummaryWhatsApp = () => {
+    if (!summary) return;
+    const shopName = shopProfile?.name || 'FasoCarnet';
+    const month = exportModalData?.monthLabel || selectedMonth;
+    const totalMobile = (summary.orangeMoneySales || 0) + (summary.moovMoneySales || 0) + (summary.waveSales || 0);
+
+    let text = `📊 *BILAN COMPTABLE MENSUEL - ${month.toUpperCase()}*\n`;
+    text += `🏪 *Commerce :* ${shopName}\n`;
+    if (shopProfile?.ifu) text += `📋 *IFU :* ${shopProfile.ifu}\n`;
+    text += `──────────────────────\n`;
+    text += `💰 *Chiffre d'Affaires Net :* ${formatCurrency(summary.totalSales || 0)}\n`;
+    text += `💵 *Espèces (Cash) :* ${formatCurrency(summary.cashSales || 0)}\n`;
+    text += `📱 *Paiements Mobile Money :* ${formatCurrency(totalMobile)}\n`;
+    text += `  • Orange Money : ${formatCurrency(summary.orangeMoneySales || 0)}\n`;
+    text += `  • Moov Money : ${formatCurrency(summary.moovMoneySales || 0)}\n`;
+    text += `  • Wave : ${formatCurrency(summary.waveSales || 0)}\n`;
+    text += `🤝 *Ventes à Crédit (Dettes émises) :* ${formatCurrency(summary.creditSales || 0)}\n`;
+    text += `📥 *Dettes Récupérées :* ${formatCurrency(summary.totalRecoveredDebts || 0)}\n`;
+    text += `🛍️ *Nombre Total de Ventes :* ${summary.salesCount || 0}\n`;
+    text += `──────────────────────\n`;
+    text += `_Rapport certifié généré par FasoCarnet_`;
+
+    const encoded = encodeURIComponent(text);
+    const waUrl = `https://wa.me/?text=${encoded}`;
+    window.open(waUrl, '_blank');
   };
 
   useEffect(() => {
@@ -85,25 +164,6 @@ export const DailyReportView: React.FC = () => {
     (summary?.orangeMoneySales || 0) + 
     (summary?.moovMoneySales || 0) + 
     (summary?.waveSales || 0);
-
-  const formatMonthLabel = (mString: string) => {
-    try {
-      const [year, month] = mString.split('-');
-      const date = new Date(Number(year), Number(month) - 1, 1);
-      return date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-    } catch {
-      return mString;
-    }
-  };
-
-  const formatDateLabel = (dString: string) => {
-    try {
-      const date = new Date(dString + 'T00:00:00');
-      return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-    } catch {
-      return dString;
-    }
-  };
 
   return (
     <div className="max-w-md mx-auto p-3.5 sm:p-4 space-y-3 pb-28">
@@ -191,9 +251,13 @@ export const DailyReportView: React.FC = () => {
           type="button"
           disabled={isExportingExcel}
           onClick={handleExportExcel}
-          className="w-full py-3 px-4 bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-white rounded-2xl font-black text-xs flex items-center justify-center space-x-2 shadow-sm active:scale-98 transition-all cursor-pointer font-display disabled:opacity-50"
+          className="w-full py-3.5 px-4 bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-white rounded-2xl font-black text-xs flex items-center justify-center space-x-2 shadow-md active:scale-98 transition-all cursor-pointer font-display disabled:opacity-50"
         >
-          <FileSpreadsheet className="w-4 h-4 text-amber-300" />
+          {isExportingExcel ? (
+            <Loader2 className="w-4 h-4 text-amber-300 animate-spin" />
+          ) : (
+            <FileSpreadsheet className="w-4 h-4 text-amber-300" />
+          )}
           <span>{isExportingExcel ? 'Génération du fichier...' : '📥 Télécharger le Bilan Mensuel Excel (.csv / .xlsx)'}</span>
         </button>
       )}
@@ -333,6 +397,76 @@ export const DailyReportView: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* MODALE DE CONFIRMATION ET PARTAGE DU BILAN MENSUEL */}
+      {exportModalData?.isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-4 sm:p-5 shadow-2xl border border-slate-100 space-y-3.5 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center space-x-2 text-emerald-800">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-extrabold text-sm font-display">Bilan Mensuel Prêt !</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExportModalData(null)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-100 text-xs text-emerald-950 space-y-1">
+              <p className="font-bold flex items-center space-x-1.5">
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                <span>{exportModalData.fileName}</span>
+              </p>
+              <p className="text-[11px] text-emerald-800">
+                Période : <strong>{exportModalData.monthLabel}</strong>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {/* Bouton Partager sur WhatsApp */}
+              <button
+                type="button"
+                onClick={handleShareSummaryWhatsApp}
+                className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-xs active:scale-98"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Envoyer le Résumé sur WhatsApp</span>
+              </button>
+
+              {/* Bouton Copier tout le tableau */}
+              <button
+                type="button"
+                onClick={handleCopyCsv}
+                className="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs flex items-center justify-center space-x-2 transition-all cursor-pointer border border-slate-200/70 active:scale-98"
+              >
+                {exportModalData.copied ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span className="text-emerald-700">Copié dans le presse-papier !</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 text-slate-600" />
+                    <span>Copier les données (pour Excel / Notes)</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setExportModalData(null)}
+              className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 font-semibold rounded-xl text-xs transition-all cursor-pointer"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

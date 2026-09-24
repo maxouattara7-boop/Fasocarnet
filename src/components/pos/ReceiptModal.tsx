@@ -5,9 +5,8 @@ import { generateReceiptDataUrl, extractReceiptItems } from '../../utils/receipt
 import { printViaBluetooth, printViaRawBt, printViaHiddenIframe, isBluetoothSupported } from '../../utils/bluetoothPrinter';
 import { generateWhatsAppReceiptUrl } from '../../utils/whatsapp';
 import { formatDateTime } from '../../utils/formatters';
-import { CheckCircle2, ArrowRight, Download, Share2, Printer, Loader2 } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Download, Share2, Printer, Loader2, Maximize2, X } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-
 import { downloadOrShareImage } from '../../utils/fileDownloader';
 
 interface ReceiptModalProps {
@@ -21,7 +20,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
   const [receiptImageUrl, setReceiptImageUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [printStatus, setPrintStatus] = useState<string | null>(null);
+  const [isFullscreenImageOpen, setIsFullscreenImageOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen && sale) {
@@ -30,6 +32,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
     } else {
       setReceiptImageUrl(null);
       setPrintStatus(null);
+      setIsFullscreenImageOpen(false);
     }
   }, [isOpen, sale]);
 
@@ -40,7 +43,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
       const url = await generateReceiptDataUrl(sale, shopProfile || undefined);
       setReceiptImageUrl(url);
     } catch (err) {
-      console.error(err);
+      console.error('Erreur génération image reçu:', err);
     } finally {
       setIsGenerating(false);
     }
@@ -50,15 +53,21 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
   const handleShareReceiptImage = async () => {
     if (!receiptImageUrl) {
-      alert('Génération du reçu en cours, veuillez patienter...');
+      if (isGenerating) {
+        setPrintStatus('⏳ Génération du reçu en cours...');
+        return;
+      }
       return;
     }
+
+    setIsSharing(true);
+    setPrintStatus('📤 Ouverture du partage...');
 
     const safeShop = (shopProfile?.name || 'fasocarnet').toLowerCase().replace(/[^a-z0-9]/g, '_');
     const fileName = `recu_${safeShop}_${sale.id.slice(-6)}.png`;
 
     try {
-      const success = await downloadOrShareImage({
+      const result = await downloadOrShareImage({
         fileName,
         dataUrl: receiptImageUrl,
         title: `Reçu de caisse - ${shopProfile?.name || 'FasoCarnet'}`,
@@ -66,39 +75,61 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
         directShare: true
       });
 
-      if (!success) {
+      if (result.success) {
+        setPrintStatus('✓ Reçu partagé avec succès !');
+        setTimeout(() => setPrintStatus(null), 3500);
+      } else {
         // Fallback WhatsApp Web/URL
+        setPrintStatus('✓ Ouverture de WhatsApp...');
         const waUrl = generateWhatsAppReceiptUrl(sale, shopProfile || undefined, sale.customerPhone);
         window.open(waUrl, '_blank');
+        setTimeout(() => setPrintStatus(null), 3500);
       }
     } catch (err) {
       console.error('Erreur partage:', err);
       const waUrl = generateWhatsAppReceiptUrl(sale, shopProfile || undefined, sale.customerPhone);
       window.open(waUrl, '_blank');
+    } finally {
+      setIsSharing(false);
     }
   };
 
   const handleDownloadImage = async () => {
     if (!receiptImageUrl) {
-      alert('Génération du reçu en cours, veuillez patienter...');
+      if (isGenerating) {
+        setPrintStatus('⏳ Génération du reçu en cours...');
+        return;
+      }
       return;
     }
+
+    setIsDownloading(true);
+    setPrintStatus('💾 Enregistrement du reçu...');
 
     const safeShop = (shopProfile?.name || 'fasocarnet').toLowerCase().replace(/[^a-z0-9]/g, '_');
     const fileName = `recu_${safeShop}_${sale.id.slice(-6)}.png`;
 
     try {
-      await downloadOrShareImage({
+      const result = await downloadOrShareImage({
         fileName,
         dataUrl: receiptImageUrl,
         title: `Reçu de caisse - ${shopProfile?.name || 'FasoCarnet'}`,
         text: `Reçu de paiement #${sale.id.slice(-6).toUpperCase()}`,
         directShare: false
       });
-      setPrintStatus('✓ Reçu téléchargé sur votre appareil !');
-      setTimeout(() => setPrintStatus(null), 3000);
+
+      if (result.success) {
+        setPrintStatus('✓ Reçu téléchargé avec succès !');
+      } else {
+        setIsFullscreenImageOpen(true);
+        setPrintStatus('💡 Maintenez le doigt sur l\'image pour l\'enregistrer');
+      }
+      setTimeout(() => setPrintStatus(null), 4000);
     } catch (err) {
       console.error('Erreur téléchargement image:', err);
+      setIsFullscreenImageOpen(true);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -109,6 +140,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
     const shopName = shopProfile?.name || 'FASOCARNET';
     const phone = shopProfile?.phone || '';
     const city = shopProfile?.city || '';
+    const ifu = shopProfile?.ifu || '';
+    const rccm = shopProfile?.rccm || '';
     const dateStr = formatDateTime(sale.createdAt);
     const items = extractReceiptItems(sale);
 
@@ -160,6 +193,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             <div class="shop-title">${shopName.toUpperCase()}</div>
             ${phone ? `<div>Tél : ${phone}</div>` : ''}
             ${city ? `<div>${city}</div>` : ''}
+            ${ifu ? `<div style="font-size: 11px;">IFU : ${ifu}</div>` : ''}
+            ${rccm ? `<div style="font-size: 11px;">RCCM : ${rccm}</div>` : ''}
             <div style="font-size: 10px; margin-top: 2px; font-weight: 900;">REÇU DE CAISSE</div>
           </div>
 
@@ -197,7 +232,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
           <div class="row">
             <span>Mode :</span>
-            <span>${sale.isCredit ? 'À CRÉDIT' : sale.paymentMethod === 'ORANGE_MONEY' ? 'Orange Money' : sale.paymentMethod === 'WAVE' ? 'Wave' : 'Espèces'}</span>
+            <span>${sale.isCredit ? 'À CRÉDIT' : sale.paymentMethod === 'ORANGE_MONEY' ? 'Orange Money' : sale.paymentMethod === 'WAVE' ? 'Wave' : sale.paymentMethod === 'MOOV_MONEY' ? 'Moov Money' : 'Espèces'}</span>
           </div>
 
           ${!sale.isCredit && sale.receivedAmount && sale.receivedAmount > sale.totalAmount ? `
@@ -256,7 +291,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
       printViaRawBt(sale, shopProfile || undefined);
     }
 
-    // 3. Impression système intégrée via iframe cachée (SANS ouvrir de navigateur externe)
+    // 3. Impression système intégrée via iframe cachée
     const html = buildReceiptHtml();
     printViaHiddenIframe(html);
 
@@ -267,94 +302,170 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl p-4 text-center space-y-2.5 max-h-[92vh] flex flex-col justify-between animate-in zoom-in-95 duration-150 border border-slate-100">
-        <div className="flex items-center justify-between pb-1.5 border-b border-gray-100">
-          <div className="flex items-center space-x-1.5 text-emerald-800">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-            <h3 className="text-base font-extrabold">Vente Enregistrée !</h3>
-          </div>
-          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
-            {sale.isCredit ? 'À CRÉDIT' : 'PAYÉ'}
-          </span>
-        </div>
-
-        {/* APERÇU DU REÇU IMAGE STYLISÉ AVEC TAMPON */}
-        <div className="bg-slate-50 rounded-2xl p-1.5 border border-slate-200/80 overflow-hidden max-h-48 sm:max-h-56 flex items-center justify-center shadow-inner">
-          {isGenerating ? (
-            <div className="py-10 text-xs text-slate-500 font-semibold animate-pulse">
-              Génération du ticket stylisé...
+    <>
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
+        <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl p-4 text-center space-y-2.5 max-h-[92vh] flex flex-col justify-between animate-in zoom-in-95 duration-150 border border-slate-100">
+          <div className="flex items-center justify-between pb-1.5 border-b border-gray-100">
+            <div className="flex items-center space-x-1.5 text-emerald-800">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              <h3 className="text-base font-extrabold font-display">Vente Enregistrée !</h3>
             </div>
-          ) : receiptImageUrl ? (
-            <img
-              src={receiptImageUrl}
-              alt="Reçu de Caisse"
-              className="max-h-44 sm:max-h-52 rounded-xl shadow-xs object-contain"
-            />
-          ) : null}
-        </div>
-
-        {/* STATUT IMPRESSION */}
-        {printStatus && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs p-2 rounded-xl flex items-center justify-center space-x-2 animate-in fade-in">
-            {isPrinting ? <Loader2 className="w-3.5 h-3.5 text-emerald-600 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
-            <span className="font-bold">{printStatus}</span>
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+              {sale.isCredit ? 'À CRÉDIT' : 'PAYÉ'}
+            </span>
           </div>
-        )}
 
-        {/* BOUTONS D'ACTION */}
-        <div className="space-y-2 pt-0.5">
-          {/* 1. Bouton Principal : Partager le Reçu */}
-          <button
-            type="button"
-            onClick={handleShareReceiptImage}
-            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl shadow-md shadow-emerald-600/20 active:scale-98 transition-all flex items-center justify-center space-x-2 text-xs cursor-pointer"
+          {/* APERÇU DU REÇU IMAGE STYLISÉ AVEC TAMPON */}
+          <div 
+            onClick={() => receiptImageUrl && setIsFullscreenImageOpen(true)}
+            className="relative group bg-slate-50 rounded-2xl p-1.5 border border-slate-200/80 overflow-hidden max-h-48 sm:max-h-56 flex items-center justify-center shadow-inner cursor-pointer"
+            title="Cliquer pour voir en grand"
           >
-            <Share2 className="w-4 h-4" />
-            <span>Partager le Reçu (WhatsApp)</span>
-          </button>
+            {isGenerating ? (
+              <div className="py-10 text-xs text-slate-500 font-semibold animate-pulse flex items-center space-x-2">
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                <span>Génération du ticket stylisé...</span>
+              </div>
+            ) : receiptImageUrl ? (
+              <>
+                <img
+                  src={receiptImageUrl}
+                  alt="Reçu de Caisse"
+                  className="max-h-44 sm:max-h-52 rounded-xl shadow-xs object-contain"
+                />
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
+                  <span className="bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded-lg flex items-center space-x-1">
+                    <Maximize2 className="w-3 h-3" />
+                    <span>Agrandir</span>
+                  </span>
+                </div>
+              </>
+            ) : null}
+          </div>
 
-          {/* 2. Grille 2 boutons : Imprimer & Télécharger */}
-          <div className="grid grid-cols-2 gap-2">
-            {/* Bouton Imprimer (Bluetooth / ESC-POS / Système) */}
-            <button
-              type="button"
-              disabled={isPrinting}
-              onClick={handlePrintReceipt}
-              className="py-2.5 px-2 bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-xs active:scale-98 disabled:opacity-50"
-              title="Imprimer directement sur imprimante thermique Bluetooth ou système"
-            >
-              {isPrinting ? (
-                <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+          {/* STATUT IMPRESSION & TELECHARGEMENT */}
+          {printStatus && (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs p-2 rounded-xl flex items-center justify-center space-x-2 animate-in fade-in">
+              {isPrinting || isSharing || isDownloading ? (
+                <Loader2 className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
               ) : (
-                <Printer className="w-4 h-4 text-emerald-400" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
               )}
-              <span>{isPrinting ? 'Impression...' : 'Imprimer Ticket'}</span>
-            </button>
+              <span className="font-bold">{printStatus}</span>
+            </div>
+          )}
 
-            {/* Bouton Télécharger l'image */}
+          {/* BOUTONS D'ACTION */}
+          <div className="space-y-2 pt-0.5">
+            {/* 1. Bouton Principal : Partager le Reçu IMAGE PNG */}
             <button
               type="button"
-              onClick={handleDownloadImage}
-              className="py-2.5 px-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer border border-slate-200/80 active:scale-98"
-              title="Enregistrer l'image du reçu sur votre appareil"
+              disabled={isSharing || isGenerating}
+              onClick={handleShareReceiptImage}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl shadow-md shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center space-x-2 text-xs cursor-pointer disabled:opacity-60"
             >
-              <Download className="w-4 h-4 text-slate-600" />
-              <span>Télécharger</span>
+              {isSharing ? (
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+              ) : (
+                <Share2 className="w-4 h-4" />
+              )}
+              <span>{isSharing ? 'Partage en cours...' : 'Partager le Reçu (Photo WhatsApp)'}</span>
+            </button>
+
+            {/* 2. Grille 2 boutons : Imprimer & Télécharger */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Bouton Imprimer (Bluetooth / ESC-POS / Système) */}
+              <button
+                type="button"
+                disabled={isPrinting || isGenerating}
+                onClick={handlePrintReceipt}
+                className="py-2.5 px-2 bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-xs active:scale-98 disabled:opacity-50"
+                title="Imprimer directement sur imprimante thermique Bluetooth ou système"
+              >
+                {isPrinting ? (
+                  <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+                ) : (
+                  <Printer className="w-4 h-4 text-emerald-400" />
+                )}
+                <span>{isPrinting ? 'Impression...' : 'Imprimer Ticket'}</span>
+              </button>
+
+              {/* Bouton Télécharger l'image */}
+              <button
+                type="button"
+                disabled={isDownloading || isGenerating}
+                onClick={handleDownloadImage}
+                className="py-2.5 px-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer border border-slate-200/80 active:scale-98 disabled:opacity-50"
+                title="Enregistrer l'image du reçu sur votre appareil"
+              >
+                {isDownloading ? (
+                  <Loader2 className="w-4 h-4 text-slate-600 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 text-slate-600" />
+                )}
+                <span>{isDownloading ? 'Enregistrement...' : 'Télécharger'}</span>
+              </button>
+            </div>
+
+            {/* 3. Bouton Nouvelle Vente */}
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
+            >
+              <span>Nouvelle Vente</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
-
-          {/* 3. Bouton Nouvelle Vente */}
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
-          >
-            <span>Nouvelle Vente</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
-    </div>
+
+      {/* MODALE PLEIN ÉCRAN POUR ENREGISTRER / VISUALISER L'IMAGE */}
+      {isFullscreenImageOpen && receiptImageUrl && (
+        <div className="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex flex-col items-center justify-between p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-sm flex items-center justify-between text-white pb-2">
+            <span className="text-xs font-bold">Aperçu HD du Reçu</span>
+            <button
+              type="button"
+              onClick={() => setIsFullscreenImageOpen(false)}
+              className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 flex items-center justify-center overflow-auto p-2">
+            <img
+              src={receiptImageUrl}
+              alt="Reçu de Caisse Plein Écran"
+              className="max-h-[75vh] max-w-full rounded-2xl shadow-2xl object-contain border border-white/10"
+            />
+          </div>
+
+          <div className="w-full max-w-sm space-y-2 pt-2 text-center">
+            <p className="text-[11px] text-slate-300 font-medium">
+              💡 <strong>Astuce :</strong> Maintenez votre doigt sur l'image pour l'enregistrer dans votre galerie photos.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleShareReceiptImage}
+                className="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Partager</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsFullscreenImageOpen(false)}
+                className="py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-xs"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

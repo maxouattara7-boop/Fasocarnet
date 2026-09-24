@@ -2,6 +2,14 @@ import { DailySummary, Sale, DebtPayment, ShopProfile } from '../types';
 import { formatDateTime } from './formatters';
 import { downloadOrShareTextFile } from './fileDownloader';
 
+import { FileActionResult } from './fileDownloader';
+
+export interface ExcelExportResponse {
+  result: FileActionResult;
+  csvContent: string;
+  fileName: string;
+}
+
 /**
  * Exporte le bilan mensuel au format Excel / CSV universel avec encodage UTF-8 BOM
  * 100% hors-ligne, compatible Microsoft Excel, LibreOffice et visionneuses mobiles.
@@ -12,7 +20,7 @@ export async function exportMonthlyReportToExcel(params: {
   sales: Sale[];
   debtPayments: DebtPayment[];
   shopProfile?: ShopProfile | null;
-}): Promise<void> {
+}): Promise<ExcelExportResponse> {
   const { monthString, summary, sales, debtPayments, shopProfile } = params;
 
   // Formatage du mois en texte français lisible (ex: Septembre 2026)
@@ -178,10 +186,12 @@ export async function exportMonthlyReportToExcel(params: {
   const safeShopName = (shopProfile?.name || 'commerce').toLowerCase().replace(/[^a-z0-9]/g, '_');
   const fileName = `bilan_mensuel_${safeShopName}_${monthString}.csv`;
 
-  await downloadOrShareTextFile({
+  const result = await downloadOrShareTextFile({
     fileName,
     content: csvContent,
     mimeType: 'text/csv;charset=utf-8;',
     title: `Bilan Mensuel ${monthLabel} - ${shopProfile?.name || 'FasoCarnet'}`
   });
+
+  return { result, csvContent, fileName };
 }
