@@ -12,8 +12,8 @@ export interface AppUpdateInfo {
   mandatory?: boolean;
 }
 
-export const CURRENT_APP_VERSION = '1.2.12';
-export const CURRENT_VERSION_CODE = 15;
+export const CURRENT_APP_VERSION = '1.2.13';
+export const CURRENT_VERSION_CODE = 16;
 
 const PRIMARY_VERSION_URL = 'https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/version.json';
 const BACKUP_VERSION_URL = 'https://fasocarnet.onrender.com/version.json';
@@ -28,94 +28,113 @@ const fetchWithXhr = (url: string, timeoutMs: number): Promise<any> => {
       const xhr = new XMLHttpRequest();
       xhr.open('GET', url, true);
       xhr.timeout = timeoutMs;
+      xhr.responseType = 'json';
+      if (typeof xhr.setRequestHeader === 'function') {
+        try {
+          xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          xhr.setRequestHeader('Pragma', 'no-cache');
+          xhr.setRequestHeader('Expires', '0');
+        } catch {
+          // Ignore
+        }
+      }
+
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const data = JSON.parse(xhr.responseText);
-            resolve(data);
-          } catch (e) {
-            reject(new Error('Format JSON invalide'));
-          }
+          const data = typeof xhr.response === 'string' ? JSON.parse(xhr.response) : xhr.response;
+          resolve(data);
         } else {
           reject(new Error(`HTTP ${xhr.status}`));
         }
       };
+
       xhr.onerror = () => reject(new Error('Erreur réseau XHR'));
-      xhr.ontimeout = () => reject(new Error('Délai dépassé XHR'));
+      xhr.ontimeout = () => reject(new Error('Timeout XHR'));
       xhr.send();
-    } catch (err) {
-      reject(err);
+    } catch (e) {
+      reject(e);
     }
   });
 };
 
+/**
+ * Compare deux chaînes de versions sémantiques (ex: '1.2.13' vs '1.2.12')
+ * @returns true si remoteVersion > localVersion
+ */
+export function isNewerVersion(remoteVersion: string, localVersion: string = CURRENT_APP_VERSION): boolean {
+  try {
+    const rParts = remoteVersion.replace(/^v/, '').split('.').map(Number);
+    const lParts = localVersion.replace(/^v/, '').split('.').map(Number);
+    for (let i = 0; i < Math.max(rParts.length, lParts.length); i++) {
+      const r = rParts[i] || 0;
+      const l = lParts[i] || 0;
+      if (r > l) return true;
+      if (r < l) return false;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 class UpdateService {
   /**
-   * Confirme au plugin Capgo que la version active fonctionne correctement (anti-rollback)
+   * Notifie le plugin natif CapacitorUpdater que l'application actuelle a bien démarré
    */
   async notifyAppReady(): Promise<void> {
-    if (Capacitor.isNativePlatform()) {
-      try {
-        await CapacitorUpdater.notifyAppReady();
-        console.log('[UpdateService] App déclarée prête avec succès');
-      } catch (err) {
-        console.warn('[UpdateService] Erreur notifyAppReady:', err);
-      }
+    if (!Capacitor.isNativePlatform()) return;
+    try {
+      await CapacitorUpdater.notifyAppReady();
+      console.log('[UpdateService] App déclarée prête avec succès');
+    } catch (err) {
+      console.warn('[UpdateService] notifyAppReady warning:', err);
     }
   }
 
   /**
-   * Vérifie si une mise à jour distante est disponible.
-   * Ne bloque jamais l'application en cas d'absence de réseau ou d'erreur.
+   * Vérifie la disponibilité d'une nouvelle version sur GitHub / Render
    */
   async checkForUpdate(): Promise<{ hasUpdate: boolean; updateInfo?: AppUpdateInfo; error?: string }> {
-    const cacheBuster = `?_t=${Date.now()}`;
-    const endpoints = [
-      `${PRIMARY_VERSION_URL}${cacheBuster}`,
-      `${BACKUP_VERSION_URL}${cacheBuster}`
+    const urls = [
+      `${PRIMARY_VERSION_URL}?_t=${Date.now()}`,
+      `${BACKUP_VERSION_URL}?_t=${Date.now()}`
     ];
 
     let lastError: any = null;
 
-    for (const url of endpoints) {
+    for (const url of urls) {
       try {
-        let timeoutId: any;
-        const fetchPromise = fetch(url);
-        const timeoutPromise = new Promise<Response>((_, reject) => {
-          timeoutId = setTimeout(() => reject(new Error('Délai dépassé')), 5000);
-        });
+        let data: AppUpdateInfo | null = null;
+        try {
+          const res = await fetch(url, {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+          });
+          if (res.ok) {
+            data = await res.json();
+          }
+        } catch (fetchErr) {
+          console.warn(`[UpdateService] Échec fetch sur ${url}, tentative XHR...`, fetchErr);
+        }
 
-        const response = await Promise.race([fetchPromise, timeoutPromise]);
-        clearTimeout(timeoutId);
+        if (!data) {
+          data = await fetchWithXhr(url, 4000);
+        }
 
-        if (response && (response as Response).ok) {
-          const data: AppUpdateInfo = await (response as Response).json();
-          if (data && (typeof data.versionCode === 'number' || typeof data.version === 'string')) {
-            const hasUpdate = (typeof data.versionCode === 'number' && data.versionCode > CURRENT_VERSION_CODE) ||
-                              (typeof data.version === 'string' && data.version !== CURRENT_APP_VERSION);
-            return {
-              hasUpdate,
-              updateInfo: hasUpdate ? data : undefined
-            };
+        if (data && data.version) {
+          const isNewer = isNewerVersion(data.version, CURRENT_APP_VERSION);
+          const hasHigherCode = data.versionCode > CURRENT_VERSION_CODE;
+          const hasUpdate = isNewer || hasHigherCode;
+
+          if (hasUpdate) {
+            return { hasUpdate: true, updateInfo: data };
+          } else {
+            return { hasUpdate: false };
           }
         }
       } catch (err: any) {
         lastError = err;
-        console.warn(`[UpdateService] Échec fetch sur ${url}, tentative XHR...`, err);
-        // Fallback XMLHttpRequest
-        try {
-          const data: AppUpdateInfo = await fetchWithXhr(url, 5000);
-          if (data && (typeof data.versionCode === 'number' || typeof data.version === 'string')) {
-            const hasUpdate = (typeof data.versionCode === 'number' && data.versionCode > CURRENT_VERSION_CODE) ||
-                              (typeof data.version === 'string' && data.version !== CURRENT_APP_VERSION);
-            return {
-              hasUpdate,
-              updateInfo: hasUpdate ? data : undefined
-            };
-          }
-        } catch (xhrErr) {
-          console.warn(`[UpdateService] Échec XHR sur ${url}:`, xhrErr);
-        }
+        console.warn(`[UpdateService] Erreur vérification sur ${url}:`, err);
       }
     }
 
@@ -127,9 +146,9 @@ class UpdateService {
   }
 
   /**
-   * Télécharge et applique une mise à jour à chaud (Live Update / OTA)
+   * Télécharge une mise à jour à chaud (Live Update / OTA)
    */
-  async applyLiveUpdate(bundleUrl: string, version: string): Promise<{ success: boolean; message?: string }> {
+  async downloadLiveUpdate(bundleUrl: string, version: string): Promise<{ success: boolean; message?: string }> {
     if (!Capacitor.isNativePlatform()) {
       return { success: false, message: 'Les mises à jour à chaud sont réservées à l\'application installée.' };
     }
@@ -143,26 +162,40 @@ class UpdateService {
 
       console.log(`[UpdateService] Application du bundle v${version}...`);
       await CapacitorUpdater.set(bundle);
-      
-      // Forcer le rechargement immédiat du conteneur natif
-      try {
-        await CapacitorUpdater.reload();
-      } catch {
-        window.location.reload();
-      }
-
       return { success: true };
     } catch (err: any) {
-      console.error('[UpdateService] Erreur applyLiveUpdate:', err);
+      console.error('[UpdateService] Erreur downloadLiveUpdate:', err);
       return {
         success: false,
-        message: err.message || 'Impossible d\'appliquer la mise à jour à chaud.'
+        message: err.message || 'Impossible de télécharger la mise à jour à chaud.'
       };
     }
   }
 
   /**
-   * Vérification et téléchargement silencieux en arrière-plan (sans déranger le commerçant)
+   * Alias pour compatibilité
+   */
+  async applyLiveUpdate(bundleUrl: string, version: string): Promise<{ success: boolean; message?: string }> {
+    return this.downloadLiveUpdate(bundleUrl, version);
+  }
+
+  /**
+   * Applique le rechargement lorsque l'utilisateur clique sur "Compris / C'est noté"
+   */
+  async reloadApp(): Promise<void> {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await CapacitorUpdater.reload();
+        return;
+      } catch (e) {
+        console.warn('Capacitor reload fallback:', e);
+      }
+    }
+    window.location.reload();
+  }
+
+  /**
+   * Vérification et téléchargement silencieux en arrière-plan (sans rechargement brusque)
    */
   async performBackgroundLiveUpdate(): Promise<void> {
     if (!Capacitor.isNativePlatform()) return;
@@ -176,7 +209,7 @@ class UpdateService {
           version: res.updateInfo.version
         });
         await CapacitorUpdater.set(bundle);
-        console.log(`[LiveUpdate] Mise à jour v${res.updateInfo.version} prête pour le prochain démarrage !`);
+        console.log(`[LiveUpdate] Mise à jour v${res.updateInfo.version} enregistrée pour le prochain redémarrage !`);
       }
     } catch (err) {
       console.warn('[LiveUpdate] Échec mise à jour silencieuse:', err);

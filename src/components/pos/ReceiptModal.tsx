@@ -5,9 +5,9 @@ import { generateReceiptDataUrl, extractReceiptItems } from '../../utils/receipt
 import { printViaBluetooth, printViaRawBt, printViaHiddenIframe, isBluetoothSupported } from '../../utils/bluetoothPrinter';
 import { generateWhatsAppReceiptUrl } from '../../utils/whatsapp';
 import { formatDateTime } from '../../utils/formatters';
-import { CheckCircle2, ArrowRight, Download, Share2, Printer, Loader2, Maximize2, X } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Download, Share2, Printer, Loader2, Maximize2, X, Copy, Image as ImageIcon } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import { downloadOrShareImage } from '../../utils/fileDownloader';
+import { downloadOrShareImage, dataUrlToBlob } from '../../utils/fileDownloader';
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -22,6 +22,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
   const [isPrinting, setIsPrinting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const [printStatus, setPrintStatus] = useState<string | null>(null);
   const [isFullscreenImageOpen, setIsFullscreenImageOpen] = useState(false);
 
@@ -29,10 +30,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
     if (isOpen && sale) {
       generateImage();
       setPrintStatus(null);
+      setIsCopied(false);
     } else {
       setReceiptImageUrl(null);
       setPrintStatus(null);
       setIsFullscreenImageOpen(false);
+      setIsCopied(false);
     }
   }, [isOpen, sale]);
 
@@ -51,6 +54,27 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
   if (!isOpen || !sale) return null;
 
+  const handleCopyImage = async () => {
+    if (!receiptImageUrl) return;
+    try {
+      const blob = dataUrlToBlob(receiptImageUrl);
+      if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        setIsCopied(true);
+        setPrintStatus('✓ Photo du reçu copiée ! Prête à coller dans WhatsApp.');
+        setTimeout(() => {
+          setIsCopied(false);
+          setPrintStatus(null);
+        }, 3500);
+      } else {
+        setPrintStatus('💡 Maintenez le doigt sur l\'image pour la copier');
+      }
+    } catch (err) {
+      console.warn('Erreur copie image:', err);
+      setPrintStatus('💡 Maintenez le doigt sur l\'image pour la copier');
+    }
+  };
+
   const handleShareWhatsApp = async () => {
     if (!receiptImageUrl) {
       if (isGenerating) {
@@ -61,13 +85,23 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
     }
 
     setIsSharing(true);
-    setPrintStatus('📲 Ouverture de WhatsApp...');
+    setPrintStatus('📲 Préparation de la photo pour WhatsApp...');
 
     const safeShop = (shopProfile?.name || 'fasocarnet').toLowerCase().replace(/[^a-z0-9]/g, '_');
     const fileName = `recu_${safeShop}_${sale.id.slice(-6)}.png`;
 
+    // 1. Copier automatiquement la photo PNG dans le presse-papier pour collage direct
     try {
-      // 1. Tenter le partage direct de l'image (via intent système / Web Share avec fichier)
+      const blob = dataUrlToBlob(receiptImageUrl);
+      if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      }
+    } catch (clipErr) {
+      console.warn('Clipboard auto-copy:', clipErr);
+    }
+
+    try {
+      // 2. Tenter le partage direct de l'image (via Intent Android natif / Web Share avec fichier)
       const result = await downloadOrShareImage({
         fileName,
         dataUrl: receiptImageUrl,
@@ -77,14 +111,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
       });
 
       if (result.method === 'failed' || result.method === 'download') {
-        // 2. Si le partage de fichier image n'est pas permis par la WebView, ouvrir directement WhatsApp
+        // 3. Si l'intent de fichier n'est pas supporté par la WebView, ouvrir WhatsApp directement
         const waUrl = generateWhatsAppReceiptUrl(sale, shopProfile || undefined, sale.customerPhone);
         window.open(waUrl, '_blank');
-        setPrintStatus('✓ WhatsApp ouvert avec le reçu !');
+        setPrintStatus('✓ WhatsApp ouvert ! Touchez "Coller" pour envoyer la photo');
       } else {
-        setPrintStatus('✓ Choisissez WhatsApp pour envoyer le reçu');
+        setPrintStatus('✓ Choisissez WhatsApp pour envoyer la photo');
       }
-      setTimeout(() => setPrintStatus(null), 3500);
+      setTimeout(() => setPrintStatus(null), 4500);
     } catch (err) {
       console.warn('Fallback ouverture WhatsApp:', err);
       const waUrl = generateWhatsAppReceiptUrl(sale, shopProfile || undefined, sale.customerPhone);
@@ -104,7 +138,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
     }
 
     setIsDownloading(true);
-    setPrintStatus('💾 Enregistrement dans votre appareil...');
+    setPrintStatus('💾 Enregistrement dans votre galerie...');
 
     const safeShop = (shopProfile?.name || 'fasocarnet').toLowerCase().replace(/[^a-z0-9]/g, '_');
     const fileName = `recu_${safeShop}_${sale.id.slice(-6)}.png`;
@@ -119,7 +153,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
       });
 
       if (result.success) {
-        setPrintStatus('✓ Reçu téléchargé dans votre galerie / fichiers !');
+        setPrintStatus('✓ Photo du reçu enregistrée dans vos fichiers/galerie !');
       } else {
         setIsFullscreenImageOpen(true);
         setPrintStatus('💡 Maintenez le doigt sur l\'image pour l\'enregistrer');
@@ -134,7 +168,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
   };
 
   /**
-   * Construit le code HTML ultra-propre pour impression directe
+   * Construit le code HTML ultra-propre pour impression thermique directe
    */
   const buildReceiptHtml = () => {
     const shopName = shopProfile?.name || 'FASOCARNET';
@@ -263,7 +297,6 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
   const handlePrintReceipt = async () => {
     setIsPrinting(true);
 
-    // 1. Si Web Bluetooth direct est disponible (navigateur supporté)
     if (isBluetoothSupported()) {
       setPrintStatus('Recherche des imprimantes Bluetooth...');
       try {
@@ -285,13 +318,11 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
       }
     }
 
-    // 2. Sur Android Native : Tenter l'envoi direct ESC/POS Bluetooth via RawBT
     if (Capacitor.isNativePlatform()) {
       setPrintStatus('Envoi vers l\'imprimante Bluetooth...');
       printViaRawBt(sale, shopProfile || undefined);
     }
 
-    // 3. Impression système intégrée via iframe cachée
     const html = buildReceiptHtml();
     printViaHiddenIframe(html);
 
@@ -304,7 +335,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-        <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl p-4 text-center space-y-2.5 max-h-[92vh] flex flex-col justify-between animate-in zoom-in-95 duration-150 border border-slate-100">
+        <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl p-4 text-center space-y-2.5 max-h-[94vh] flex flex-col justify-between animate-in zoom-in-95 duration-150 border border-slate-100">
           <div className="flex items-center justify-between pb-1.5 border-b border-gray-100">
             <div className="flex items-center space-x-1.5 text-emerald-800">
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
@@ -318,7 +349,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
           {/* APERÇU DU REÇU IMAGE COMPACT AVEC LOGO & TAMPON */}
           <div 
             onClick={() => receiptImageUrl && setIsFullscreenImageOpen(true)}
-            className="relative group bg-slate-50 rounded-2xl p-1.5 border border-slate-200/80 overflow-hidden max-h-48 sm:max-h-56 flex items-center justify-center shadow-inner cursor-pointer"
+            className="relative group bg-slate-50 rounded-2xl p-1.5 border border-slate-200/80 overflow-hidden max-h-44 sm:max-h-52 flex items-center justify-center shadow-inner cursor-pointer"
             title="Cliquer pour voir en grand"
           >
             {isGenerating ? (
@@ -331,7 +362,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
                 <img
                   src={receiptImageUrl}
                   alt="Reçu de Caisse"
-                  className="max-h-44 sm:max-h-52 rounded-xl shadow-xs object-contain"
+                  className="max-h-40 sm:max-h-48 rounded-xl shadow-xs object-contain"
                 />
                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
                   <span className="bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded-lg flex items-center space-x-1">
@@ -351,13 +382,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
               ) : (
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
               )}
-              <span className="font-bold">{printStatus}</span>
+              <span className="font-bold text-[11px] leading-snug">{printStatus}</span>
             </div>
           )}
 
           {/* BOUTONS D'ACTION */}
           <div className="space-y-2 pt-0.5">
-            {/* 1. Bouton Principal : Partager sur WhatsApp */}
+            {/* 1. Bouton Principal : Envoyer la Photo du Reçu sur WhatsApp */}
             <button
               type="button"
               disabled={isSharing || isGenerating}
@@ -369,33 +400,33 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
               ) : (
                 <Share2 className="w-4 h-4" />
               )}
-              <span>{isSharing ? 'Ouverture de WhatsApp...' : 'Partager sur WhatsApp (Photo / Reçu)'}</span>
+              <span>{isSharing ? 'Ouverture de WhatsApp...' : 'Envoyer la Photo sur WhatsApp'}</span>
             </button>
 
-            {/* 2. Grille 2 boutons : Imprimer & Télécharger dans Galerie */}
-            <div className="grid grid-cols-2 gap-2">
-              {/* Bouton Imprimer */}
+            {/* 2. Grille 3 actions complémentaires rapides */}
+            <div className="grid grid-cols-3 gap-1.5">
+              {/* Copier Photo */}
               <button
                 type="button"
-                disabled={isPrinting || isGenerating}
-                onClick={handlePrintReceipt}
-                className="py-2.5 px-2 bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-xs active:scale-98 disabled:opacity-50"
-                title="Imprimer directement sur imprimante thermique Bluetooth ou système"
+                disabled={isGenerating}
+                onClick={handleCopyImage}
+                className="py-2.5 px-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold rounded-xl text-[11px] flex flex-col items-center justify-center space-y-1 transition-all cursor-pointer border border-slate-200/80 active:scale-98"
+                title="Copier la photo du reçu pour coller directement dans WhatsApp"
               >
-                {isPrinting ? (
-                  <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+                {isCopied ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 ) : (
-                  <Printer className="w-4 h-4 text-emerald-400" />
+                  <Copy className="w-4 h-4 text-slate-600" />
                 )}
-                <span>{isPrinting ? 'Impression...' : 'Imprimer Ticket'}</span>
+                <span>{isCopied ? 'Copié !' : 'Copier Photo'}</span>
               </button>
 
-              {/* Bouton Télécharger dans Galerie */}
+              {/* Enregistrer Photo dans Galerie */}
               <button
                 type="button"
                 disabled={isDownloading || isGenerating}
                 onClick={handleDownloadImage}
-                className="py-2.5 px-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer border border-slate-200/80 active:scale-98 disabled:opacity-50"
+                className="py-2.5 px-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold rounded-xl text-[11px] flex flex-col items-center justify-center space-y-1 transition-all cursor-pointer border border-slate-200/80 active:scale-98 disabled:opacity-50"
                 title="Enregistrer la photo du reçu dans votre galerie"
               >
                 {isDownloading ? (
@@ -403,7 +434,23 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
                 ) : (
                   <Download className="w-4 h-4 text-slate-600" />
                 )}
-                <span>{isDownloading ? 'Enregistrement...' : 'Enregistrer Photo'}</span>
+                <span>{isDownloading ? 'Sauvegarde...' : 'Galerie'}</span>
+              </button>
+
+              {/* Imprimer Ticket */}
+              <button
+                type="button"
+                disabled={isPrinting || isGenerating}
+                onClick={handlePrintReceipt}
+                className="py-2.5 px-1.5 bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-bold rounded-xl text-[11px] flex flex-col items-center justify-center space-y-1 transition-all cursor-pointer shadow-xs active:scale-98 disabled:opacity-50"
+                title="Imprimer directement sur imprimante thermique Bluetooth ou système"
+              >
+                {isPrinting ? (
+                  <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
+                ) : (
+                  <Printer className="w-4 h-4 text-emerald-400" />
+                )}
+                <span>{isPrinting ? 'Impression' : 'Imprimer'}</span>
               </button>
             </div>
 
@@ -424,7 +471,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
       {isFullscreenImageOpen && receiptImageUrl && (
         <div className="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex flex-col items-center justify-between p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-sm flex items-center justify-between text-white pb-2">
-            <span className="text-xs font-bold">Aperçu HD du Reçu</span>
+            <span className="text-xs font-bold flex items-center space-x-1.5">
+              <ImageIcon className="w-4 h-4 text-emerald-400" />
+              <span>Aperçu HD de la Photo du Reçu</span>
+            </span>
             <button
               type="button"
               onClick={() => setIsFullscreenImageOpen(false)}
@@ -438,13 +488,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             <img
               src={receiptImageUrl}
               alt="Reçu de Caisse Plein Écran"
-              className="max-h-[75vh] max-w-full rounded-2xl shadow-2xl object-contain border border-white/10"
+              className="max-h-[72vh] max-w-full rounded-2xl shadow-2xl object-contain border border-white/10"
             />
           </div>
 
           <div className="w-full max-w-sm space-y-2 pt-2 text-center">
             <p className="text-[11px] text-slate-300 font-medium">
-              💡 <strong>Astuce Galerie :</strong> Maintenez votre doigt sur l'image pour l'enregistrer dans votre galerie de photos.
+              💡 <strong>Astuce :</strong> Maintenez votre doigt sur l'image pour l'enregistrer directement dans votre galerie de photos.
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -453,7 +503,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
                 className="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5"
               >
                 <Share2 className="w-4 h-4" />
-                <span>Partager WhatsApp</span>
+                <span>Envoyer WhatsApp</span>
               </button>
               <button
                 type="button"

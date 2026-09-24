@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AppUpdateInfo, CURRENT_APP_VERSION, updateService } from '../../services/updateService';
-import { Sparkles, Download, ArrowRight, X, ShieldCheck, Zap, RefreshCw } from 'lucide-react';
+import { Sparkles, Download, ArrowRight, X, ShieldCheck, Zap, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 
 interface UpdateModalProps {
@@ -11,6 +11,7 @@ interface UpdateModalProps {
 
 export const UpdateModal: React.FC<UpdateModalProps> = ({ updateInfo, isOpen, onClose }) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isReadyToRestart, setIsReadyToRestart] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -18,18 +19,17 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ updateInfo, isOpen, on
   const isNative = Capacitor.isNativePlatform();
   const canLiveUpdate = isNative && !!updateInfo.bundleUrl;
 
-  const handleApplyUpdate = async () => {
+  const handleDownloadUpdate = async () => {
     setIsUpdating(true);
     setStatusMessage('Téléchargement des nouveautés...');
 
     if (canLiveUpdate && updateInfo.bundleUrl) {
       try {
-        const res = await updateService.applyLiveUpdate(updateInfo.bundleUrl, updateInfo.version);
+        const res = await updateService.downloadLiveUpdate(updateInfo.bundleUrl, updateInfo.version);
         if (res.success) {
-          setStatusMessage('Application terminée ! Redémarrage...');
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
+          setIsUpdating(false);
+          setIsReadyToRestart(true);
+          setStatusMessage('Mise à jour prête ! Cliquez sur "Compris" pour l\'activer.');
           return;
         }
       } catch (err) {
@@ -37,13 +37,22 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ updateInfo, isOpen, on
       }
     }
 
-    // Repli : téléchargement de l'APK direct
+    // Repli APK
     setStatusMessage('Téléchargement du fichier APK...');
     updateService.downloadAndInstallApk(updateInfo.apkUrl);
     setTimeout(() => {
       setIsUpdating(false);
-      setStatusMessage(null);
-    }, 4000);
+      setIsReadyToRestart(true);
+    }, 2000);
+  };
+
+  const handleApplyAndClose = async () => {
+    if (isReadyToRestart) {
+      await updateService.reloadApp();
+    } else {
+      updateService.dismissUpdate(updateInfo.version);
+      onClose();
+    }
   };
 
   const handleDismiss = () => {
@@ -52,8 +61,8 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ updateInfo, isOpen, on
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3.5 sm:p-4">
-      <div className="bg-white w-full max-w-sm rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl p-4 sm:p-5 text-left space-y-3.5 animate-in zoom-in-95 duration-200 border border-emerald-500/30">
+    <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-3.5 sm:p-4 animate-in fade-in duration-150">
+      <div className="bg-white w-full max-w-sm rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl p-4 sm:p-5 text-left space-y-3.5 animate-in zoom-in-95 duration-150 border border-emerald-500/30">
         {/* Header avec badge */}
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2.5">
@@ -64,7 +73,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ updateInfo, isOpen, on
               <div className="flex items-center space-x-1.5">
                 <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider bg-emerald-100/80 px-2 py-0.5 rounded-full flex items-center space-x-1">
                   <Sparkles className="w-3 h-3 text-amber-500" />
-                  <span>Mise à jour disponible</span>
+                  <span>{isReadyToRestart ? 'Mise à jour prête' : 'Mise à jour disponible'}</span>
                 </span>
                 {updateInfo.mandatory && (
                   <span className="text-[9px] font-black uppercase text-red-700 bg-red-100 px-1.5 py-0.2 rounded-full">
@@ -72,7 +81,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ updateInfo, isOpen, on
                   </span>
                 )}
               </div>
-              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 mt-0.5">
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 mt-0.5 font-display">
                 FasoCarnet v{updateInfo.version}
               </h3>
             </div>
@@ -92,7 +101,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ updateInfo, isOpen, on
         {/* Comparatif de version */}
         <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 flex items-center justify-between text-xs font-semibold">
           <div className="text-slate-500">
-            <span className="block text-[9px] uppercase font-bold text-slate-400">Version installée</span>
+            <span className="block text-[9px] uppercase font-bold text-slate-400">Version actuelle</span>
             <span className="font-mono text-slate-700">v{CURRENT_APP_VERSION}</span>
           </div>
           <ArrowRight className="w-4 h-4 text-emerald-600" />
@@ -102,53 +111,72 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({ updateInfo, isOpen, on
           </div>
         </div>
 
-        {/* Nouveautés */}
+        {/* Nouveautés de la version */}
         <div className="space-y-1">
           <span className="text-[10px] font-bold uppercase text-slate-600 tracking-wider block">
-            Nouveautés de cette version :
+            Nouveautés & Améliorations :
           </span>
-          <div className="bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-100 text-xs text-slate-800 max-h-32 overflow-y-auto leading-relaxed">
+          <div className="bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-100 text-xs text-slate-800 max-h-36 overflow-y-auto leading-relaxed whitespace-pre-line font-medium">
             {updateInfo.releaseNotes}
           </div>
         </div>
 
-        {/* Garanties */}
+        {/* Statut de préparation si téléchargé */}
+        {isReadyToRestart && (
+          <div className="bg-emerald-100/80 border border-emerald-300 text-emerald-900 p-2 rounded-xl text-xs font-bold flex items-center space-x-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+            <span>Nouveautés prêtes ! Appuyez sur « Compris » pour activer.</span>
+          </div>
+        )}
+
+        {/* Garanties de données */}
         <div className="flex items-center space-x-1.5 text-[10px] text-slate-500 font-medium">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-          <span>Toutes vos ventes et vos données restent 100% conservées.</span>
+          <span>Toutes vos ventes et données sont 100% conservées.</span>
         </div>
 
-        {/* Actions */}
-        <div className="pt-1 space-y-1.5">
-          <button
-            type="button"
-            disabled={isUpdating}
-            onClick={handleApplyUpdate}
-            className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-600/25 flex items-center justify-center space-x-1.5 active:scale-98 transition-all cursor-pointer disabled:opacity-75"
-          >
-            {isUpdating ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin text-amber-300" />
-                <span>{statusMessage || 'Mise à jour en cours...'}</span>
-              </>
-            ) : canLiveUpdate ? (
-              <>
-                <Zap className="w-4 h-4 text-amber-300" />
-                <span>Mettre à jour instantanément (sans réinstaller)</span>
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                <span>Mettre à jour maintenant (1 clic)</span>
-              </>
-            )}
-          </button>
+        {/* Actions utilisateur */}
+        <div className="pt-1 space-y-2">
+          {isReadyToRestart ? (
+            <button
+              type="button"
+              onClick={handleApplyAndClose}
+              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-600/25 flex items-center justify-center space-x-2 active:scale-98 transition-all cursor-pointer font-display"
+            >
+              <CheckCircle2 className="w-4 h-4 text-amber-300" />
+              <span>👍 C'est noté / J'ai compris (Activer)</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={isUpdating}
+              onClick={handleDownloadUpdate}
+              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-600/25 flex items-center justify-center space-x-2 active:scale-98 transition-all cursor-pointer disabled:opacity-75 font-display"
+            >
+              {isUpdating ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-amber-300" />
+                  <span>{statusMessage || 'Téléchargement...'}</span>
+                </>
+              ) : canLiveUpdate ? (
+                <>
+                  <Zap className="w-4 h-4 text-amber-300" />
+                  <span>Mettre à jour maintenant (Instantané)</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 text-amber-300" />
+                  <span>Télécharger la mise à jour</span>
+                </>
+              )}
+            </button>
+          )}
 
-          {!updateInfo.mandatory && !isUpdating && (
+          {!updateInfo.mandatory && !isUpdating && !isReadyToRestart && (
             <button
               type="button"
               onClick={handleDismiss}
-              className="w-full py-1.5 text-slate-500 hover:text-slate-800 text-[11px] font-semibold text-center transition-colors"
+              className="w-full py-1 text-slate-500 hover:text-slate-800 text-[11px] font-semibold text-center transition-colors cursor-pointer"
             >
               Plus tard
             </button>

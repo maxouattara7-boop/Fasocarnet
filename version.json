@@ -1,9 +1,9 @@
 {
-  "version": "1.2.12",
-  "versionCode": 15,
+  "version": "1.2.13",
+  "versionCode": 16,
   "releaseDate": "2026-09-24",
-  "title": "En-tête de Reçu Épuré, Téléchargement Galerie & Partage WhatsApp Direct",
-  "releaseNotes": "1. En-tête vert du reçu affiné et compact (~110px) avec intégration parfaite et élégante du logo.\n2. Partage WhatsApp direct avec message pré-rempli et fichier photo HD du reçu.\n3. Enregistrement garanti de la photo du reçu dans la galerie et documents.\n4. Maintien et fiabilisation continue du système de mise à jour à chaud.",
+  "title": "Partage Photo Reçu WhatsApp & Modale de Mise à Jour Maîtrisée",
+  "releaseNotes": "1. Partage Photo Reçu : Copie automatique de la photo HD dans le presse-papier et enregistrement galerie pour un envoi direct de la photo sur WhatsApp.\n2. Bouton rapide 'Copier Photo' pour coller instantanément l'image dans toute conversation.\n3. Modale de mise à jour stable : reste affichée pour lecture des nouveautés et ne se ferme/redémarre que lorsque l'utilisateur appuie sur 'Compris / C'est noté'.\n4. En-tête épuré vert émeraude compact avec intégration harmonieuse du logo.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false
