@@ -12,14 +12,14 @@ export interface AppUpdateInfo {
   mandatory?: boolean;
 }
 
-export const CURRENT_APP_VERSION = '1.2.16';
-export const CURRENT_VERSION_CODE = 19;
+export const CURRENT_APP_VERSION = '1.2.17';
+export const CURRENT_VERSION_CODE = 20;
 
-// Réseau multi-CDN redondant pour une disponibilité 100% sans coupure
+// Réseau multi-CDN redondant (GitHub Raw en direct + CDN jsDelivr + Render)
 const UPDATE_SERVERS = [
+  'https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/version.json',
   'https://cdn.jsdelivr.net/gh/maxouattara7-boop/Fasocarnet@main/version.json',
   'https://fastly.jsdelivr.net/gh/maxouattara7-boop/Fasocarnet@main/version.json',
-  'https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/version.json',
   'https://fasocarnet.onrender.com/version.json'
 ];
 

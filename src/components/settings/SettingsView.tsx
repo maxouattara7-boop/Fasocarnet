@@ -25,7 +25,6 @@ import {
   Mic,
   Vibrate,
   VibrateOff,
-  RefreshCw,
   Download,
   Upload,
   Headphones,
@@ -35,7 +34,6 @@ import {
   Boxes,
   PlusCircle,
   AlertCircle,
-  Zap,
   Search,
   X,
   Package,
@@ -47,8 +45,6 @@ import { isHapticsEnabled, setHapticsEnabled, triggerHaptic, triggerDoubleHaptic
 import { productsService } from '../../db/services/productsService';
 import { subscriptionService, SUBSCRIPTION_PLANS, SubscriptionPlan, getPaymentChannels } from '../../db/services/subscriptionService';
 import { syncService } from '../../db/services/syncService';
-import { updateService, AppUpdateInfo, CURRENT_APP_VERSION } from '../../services/updateService';
-import { UpdateModal } from '../common/UpdateModal';
 import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
 import { Product } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
@@ -219,34 +215,6 @@ export const SettingsView: React.FC = () => {
     navigator.clipboard.writeText(num);
     setCopiedNumber(num);
     setTimeout(() => setCopiedNumber(null), 2000);
-  };
-
-  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
-  const [updateCheckStatus, setUpdateCheckStatus] = useState<string | null>(null);
-  const [manualUpdateInfo, setManualUpdateInfo] = useState<AppUpdateInfo | null>(null);
-  const [showManualUpdateModal, setShowManualUpdateModal] = useState(false);
-
-  const handleManualCheckUpdate = async () => {
-    setIsCheckingUpdate(true);
-    setUpdateCheckStatus(null);
-    try {
-      const res = await updateService.checkForUpdate();
-      if (res.hasUpdate && res.updateInfo) {
-        setManualUpdateInfo(res.updateInfo);
-        setShowManualUpdateModal(true);
-      } else if (res.error) {
-        setUpdateCheckStatus(`⚠️ ${res.error} (Vérifiez votre connexion internet)`);
-        setTimeout(() => setUpdateCheckStatus(null), 5000);
-      } else {
-        setUpdateCheckStatus(`✅ FasoCarnet v${CURRENT_APP_VERSION} est à jour !`);
-        setTimeout(() => setUpdateCheckStatus(null), 4000);
-      }
-    } catch (err: any) {
-      setUpdateCheckStatus(`⚠️ Erreur : ${err?.message || 'Connexion impossible'}`);
-      setTimeout(() => setUpdateCheckStatus(null), 5000);
-    } finally {
-      setIsCheckingUpdate(false);
-    }
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -903,60 +871,6 @@ export const SettingsView: React.FC = () => {
               onChange={handleImportBackup}
               className="hidden"
             />
-          </div>
-
-          {/* Mises à jour de l'application */}
-          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-100 shadow-xs space-y-2.5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <div className="flex items-center space-x-2 text-emerald-900">
-                <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
-                  <RefreshCw className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-xs tracking-tight">Mises à Jour de l'Application</h3>
-                  <p className="text-[10px] text-slate-500">Version actuelle : <span className="font-bold text-slate-700">v{CURRENT_APP_VERSION}</span></p>
-                </div>
-              </div>
-            </div>
-
-            {updateCheckStatus && (
-              <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 flex items-center space-x-2 animate-in fade-in duration-150">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{updateCheckStatus}</span>
-              </div>
-            )}
-
-            {manualUpdateInfo && (
-              <div className="p-3 bg-emerald-50/90 rounded-xl border border-emerald-200 space-y-2 text-xs animate-in fade-in duration-150">
-                <div className="flex items-center justify-between">
-                  <span className="font-black text-emerald-900 text-xs flex items-center space-x-1">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Nouvelle version v{manualUpdateInfo.version} disponible !</span>
-                  </span>
-                </div>
-                <p className="text-[11px] text-emerald-800 leading-relaxed font-medium">
-                  {manualUpdateInfo.releaseNotes}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowManualUpdateModal(true)}
-                  className="w-full py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/25 active:scale-98 transition-all cursor-pointer"
-                >
-                  <Zap className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Installer la mise à jour maintenant</span>
-                </button>
-              </div>
-            )}
-
-            <button
-              type="button"
-              disabled={isCheckingUpdate}
-              onClick={handleManualCheckUpdate}
-              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-2 shadow-xs transition-all active:scale-98 cursor-pointer disabled:opacity-75 font-display"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isCheckingUpdate ? 'animate-spin text-amber-300' : ''}`} />
-              <span>{isCheckingUpdate ? 'Recherche de mise à jour...' : 'Rechercher une mise à jour'}</span>
-            </button>
           </div>
 
           {/* Assistance & Support Client WhatsApp */}
@@ -1752,15 +1666,6 @@ export const SettingsView: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de Mise à Jour Manuelle */}
-      {manualUpdateInfo && (
-        <UpdateModal
-          updateInfo={manualUpdateInfo}
-          isOpen={!!manualUpdateInfo}
-          onClose={() => setManualUpdateInfo(null)}
-        />
-      )}
-
       {/* Modal Scanner Code-Barres Caméra */}
       <BarcodeScannerModal
         isOpen={isBarcodeModalOpen}
@@ -1856,14 +1761,6 @@ export const SettingsView: React.FC = () => {
             </form>
           </div>
         </div>
-      )}
-
-      {manualUpdateInfo && (
-        <UpdateModal
-          updateInfo={manualUpdateInfo}
-          isOpen={showManualUpdateModal}
-          onClose={() => setShowManualUpdateModal(false)}
-        />
       )}
     </div>
   );

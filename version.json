@@ -1,9 +1,9 @@
 {
-  "version": "1.2.16",
-  "versionCode": 19,
+  "version": "1.2.17",
+  "versionCode": 20,
   "releaseDate": "2026-09-24",
-  "title": "En-tête Centré du Reçu, Slogan Boutique & Filigrane FasoCarnet",
-  "releaseNotes": "1. En-tête Reçu 100% Centré : Logo, Nom de la boutique, Slogan/Activité, Contact et IFU/RCCM parfaitement alignés et centrés.\n2. Champ Slogan / Activité : Personnalisez la description de votre commerce (ex: 'Impression sur tous les supports') affichée sous le nom de votre boutique sur les reçus.\n3. Filigrane de Sécurité FasoCarnet : Filigrane professionnel et subtil en arrière-plan sur tout le long du reçu.\n4. Persistance garantie : Tous les paramètres (slogan, logo, IFU, RCCM, téléphones) restent intacts après chaque mise à jour.",
+  "title": "Mise à Jour Automatique & Reçu Centré avec Slogan",
+  "releaseNotes": "1. Mise à jour automatique : Détection et installation transparente dès l'ouverture de l'application avec affichage des nouveautés.\n2. Bouton unique 'OK, J'ai compris' pour fermer et activer les nouveautés en 1 clic.\n3. En-tête de reçu 100% centré avec logo, slogan/activité du commerce, téléphones et mentions fiscales.\n4. Filigrane de sécurité subtil FasoCarnet sur toute la longueur du ticket.\n5. Persistance absolue des données et suppression des menus superflus.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false

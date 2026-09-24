@@ -61,32 +61,50 @@ export const App: React.FC = () => {
     adminService.restoreAllSuspendedShops().catch(() => {});
     loadCurrentShop();
     
-    // Vérification des mises à jour distantes au lancement
-    updateService.checkForUpdate().then(({ hasUpdate, updateInfo }) => {
-      if (hasUpdate && updateInfo) {
-        setAvailableUpdate(updateInfo);
-        if (updateInfo.mandatory || !updateService.isDismissed(updateInfo.version)) {
-          setShowUpdateModal(true);
-        }
-      }
-    });
-
-    // En tâche de fond silencieuse : télécharger les nouveautés si disponibles
-    updateService.performBackgroundLiveUpdate();
-
-    const handleOnline = () => {
-      updateService.checkForUpdate().then(({ hasUpdate, updateInfo }) => {
+    // Fonction universelle de détection et affichage de mise à jour
+    const checkUpdates = async () => {
+      try {
+        const { hasUpdate, updateInfo } = await updateService.checkForUpdate();
         if (hasUpdate && updateInfo) {
           setAvailableUpdate(updateInfo);
-          if (updateInfo.mandatory || !updateService.isDismissed(updateInfo.version)) {
-            setShowUpdateModal(true);
-          }
+          setShowUpdateModal(true);
         }
-      });
-      updateService.performBackgroundLiveUpdate();
+      } catch (err) {
+        console.warn('[AutoUpdate] Erreur vérification:', err);
+      }
     };
+
+    // 1. Vérification immédiate au démarrage
+    checkUpdates();
+
+    // 2. Vérification au retour au premier plan (quand l'utilisateur quitte et revient)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkUpdates();
+      }
+    };
+
+    const handleFocus = () => {
+      checkUpdates();
+    };
+
+    const handleOnline = () => {
+      checkUpdates();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
     window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
+
+    // 3. Vérification périodique toutes les 3 minutes
+    const interval = setInterval(checkUpdates, 3 * 60 * 1000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('online', handleOnline);
+      clearInterval(interval);
+    };
   }, [loadCurrentShop]);
 
   useEffect(() => {
