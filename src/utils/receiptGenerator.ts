@@ -58,6 +58,17 @@ export function extractReceiptItems(sale: Sale): ParsedReceiptItem[] {
   }];
 }
 
+const loadLogoImage = (dataUrl?: string): Promise<HTMLImageElement | null> => {
+  if (!dataUrl) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
+};
+
 /**
  * Génère une image PNG haute définition (Canvas 2D) du ticket de caisse stylisé
  */
@@ -67,10 +78,13 @@ export async function generateReceiptCanvas(
 ): Promise<HTMLCanvasElement> {
   const items = extractReceiptItems(sale);
   const itemsCount = Math.max(1, items.length);
+  const logoImg = await loadLogoImage(shop?.logo);
+  const hasTaxInfo = Boolean(shop?.ifu || shop?.rccm);
+  const headerHeight = hasTaxInfo ? 165 : 140;
 
   const width = 640;
   // Calcul de la hauteur dynamique pour éviter tout débordement
-  const dynamicHeight = Math.max(940, 480 + (itemsCount * 44) + 240);
+  const dynamicHeight = Math.max(940, 480 + (itemsCount * 44) + 240 + (hasTaxInfo ? 30 : 0));
   const height = dynamicHeight;
   const scale = 2; // Rétina 2x pour une netteté parfaite
 
@@ -107,27 +121,60 @@ export async function generateReceiptCanvas(
   ctx.shadowColor = 'transparent'; // Reset ombre
 
   // 3. En-tête vert émeraude élégant de la boutique
-  const headerGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + 140);
+  const headerGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + headerHeight);
   headerGrad.addColorStop(0, '#047857');
   headerGrad.addColorStop(1, '#064e3b');
   ctx.fillStyle = headerGrad;
   ctx.beginPath();
-  ctx.roundRect(cardX, cardY, cardW, 140, [radius, radius, 0, 0]);
+  ctx.roundRect(cardX, cardY, cardW, headerHeight, [radius, radius, 0, 0]);
   ctx.fill();
+
+  // Dessin du logo si présent
+  if (logoImg) {
+    try {
+      ctx.save();
+      const logoSize = 64;
+      const logoX = cardX + 25;
+      const logoY = cardY + (headerHeight - logoSize) / 2;
+      ctx.beginPath();
+      ctx.roundRect(logoX, logoY, logoSize, logoSize, 14);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.clip();
+      ctx.drawImage(logoImg, logoX + 2, logoY + 2, logoSize - 4, logoSize - 4);
+      ctx.restore();
+    } catch {
+      // Ignorer si échec de dessin logo
+    }
+  }
 
   // Nom de la Boutique
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 28px sans-serif';
+  ctx.font = 'bold 26px sans-serif';
   ctx.textAlign = 'center';
   const shopName = shop?.name || 'FASOCARNET';
-  ctx.fillText(shopName.toUpperCase(), width / 2, cardY + 55);
+  ctx.fillText(shopName.toUpperCase(), width / 2, cardY + 50);
 
   // Sous-titre & Contact
   ctx.fillStyle = '#a7f3d0';
   ctx.font = '14px sans-serif';
-  const contactText = shop?.phone ? `Tél : ${shop.phone}` : 'Reçu de Caisse Numérique';
-  ctx.fillText(contactText, width / 2, cardY + 85);
-  ctx.fillText('★ FASOCARNET • GESTION DIGITALE ★', width / 2, cardY + 112);
+  const contactText = shop?.phone ? `Tél : ${shop.phone}${shop?.city ? ` • ${shop.city}` : ''}` : 'Reçu de Caisse Numérique';
+  ctx.fillText(contactText, width / 2, cardY + 76);
+
+  if (hasTaxInfo) {
+    const taxParts: string[] = [];
+    if (shop?.ifu) taxParts.push(`IFU : ${shop.ifu}`);
+    if (shop?.rccm) taxParts.push(`RCCM : ${shop.rccm}`);
+    ctx.fillStyle = '#fde68a'; // Ambre clair très lisible
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(taxParts.join('  |  '), width / 2, cardY + 102);
+
+    ctx.fillStyle = '#a7f3d0';
+    ctx.font = '11px sans-serif';
+    ctx.fillText('★ FASOCARNET • GESTION DIGITALE ★', width / 2, cardY + 128);
+  } else {
+    ctx.fillText('★ FASOCARNET • GESTION DIGITALE ★', width / 2, cardY + 108);
+  }
 
   // 4. Métadonnées (Date, Réf, Client)
   ctx.textAlign = 'left';

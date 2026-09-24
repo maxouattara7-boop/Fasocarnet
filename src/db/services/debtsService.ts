@@ -81,5 +81,17 @@ export const debtsService = {
     await customersService.updateDebt(debt.customerId, -effectivePay);
 
     return { payment, debt: updatedDebt };
+  },
+
+  async getPaymentsByCustomerId(customerId: string): Promise<DebtPayment[]> {
+    return await db.debtPayments.where('customerId').equals(customerId).reverse().toArray();
+  },
+
+  async getCustomerFullDebtHistory(customerId: string): Promise<{ debts: DebtRecord[]; payments: DebtPayment[] }> {
+    const [debts, payments] = await Promise.all([
+      db.debts.where('customerId').equals(customerId).reverse().toArray(),
+      db.debtPayments.where('customerId').equals(customerId).reverse().toArray()
+    ]);
+    return { debts, payments };
   }
 };

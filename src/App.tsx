@@ -18,6 +18,9 @@ import { Crown, Megaphone, X } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { updateService, AppUpdateInfo } from './services/updateService';
 import { UpdateModal } from './components/common/UpdateModal';
+import { DebtAlarmModal } from './components/debts/DebtAlarmModal';
+import { customersService } from './db/services/customersService';
+import { Customer } from './types';
 
 export const App: React.FC = () => {
   const { isInitialized, activeTab, setActiveTab, activeShopId, shopProfile, loadCurrentShop, isAdminOpen, setIsAdminOpen } = useAppStore();
@@ -26,6 +29,29 @@ export const App: React.FC = () => {
   const [showBroadcastDetail, setShowBroadcastDetail] = useState(false);
   const [availableUpdate, setAvailableUpdate] = useState<AppUpdateInfo | null>(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [alarmDebtors, setAlarmDebtors] = useState<Customer[]>([]);
+  const [showDebtAlarm, setShowDebtAlarm] = useState(false);
+
+  useEffect(() => {
+    if (!shopProfile || !shopProfile.isConfigured) return;
+    if (shopProfile.debtAlarmEnabled === false) return;
+
+    const targetDay = shopProfile.debtAlarmDay ?? 1; // 1 = Lundi
+    const today = new Date().getDay();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const lastAlarmDate = localStorage.getItem('fasocarnet_last_debt_alarm_date');
+
+    if (today === targetDay && lastAlarmDate !== todayStr) {
+      customersService.getAll().then((customers) => {
+        const debtors = customers.filter((c) => c.totalDebt > 0);
+        if (debtors.length > 0) {
+          setAlarmDebtors(debtors);
+          setShowDebtAlarm(true);
+          localStorage.setItem('fasocarnet_last_debt_alarm_date', todayStr);
+        }
+      });
+    }
+  }, [shopProfile]);
 
   useEffect(() => {
     // Confirmer le bon démarrage pour le système de Live Update (anti-rollback)
@@ -278,6 +304,12 @@ export const App: React.FC = () => {
           onClose={() => setShowUpdateModal(false)}
         />
       )}
+      <DebtAlarmModal
+        isOpen={showDebtAlarm}
+        debtors={alarmDebtors}
+        onClose={() => setShowDebtAlarm(false)}
+        onNavigateToDebts={() => setActiveTab('debts')}
+      />
     </div>
   );
 };

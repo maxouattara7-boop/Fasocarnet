@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Utilitaire de retours sonores et vocaux (Web Audio API & Speech Synthesis)
  * Fonctionne 100% hors ligne, sans téléchargement de fichiers externes
  */
@@ -79,6 +79,40 @@ class SoundEffectsService {
       osc3.stop(now + 0.7);
     } catch (e) {
       console.warn('Audio feedback non disponible:', e);
+    }
+  }
+
+  /**
+   * Joue l'alarme / carillon de relance des dettes (mélodie professionnelle de réveil / alerte)
+   */
+  playDebtAlarmSound(): void {
+    if (!this.isSoundEnabled) return;
+    try {
+      const ctx = this.getAudioContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const notes = [
+        { freq: 523.25, time: 0.0, dur: 0.25 }, // Do 5
+        { freq: 659.25, time: 0.2, dur: 0.25 }, // Mi 5
+        { freq: 783.99, time: 0.4, dur: 0.4 },  // Sol 5
+        { freq: 1046.5, time: 0.7, dur: 0.6 }   // Do 6
+      ];
+
+      notes.forEach(({ freq, time, dur }) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + time);
+        gain.gain.setValueAtTime(0.28, now + time);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + time + dur);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + time);
+        osc.stop(now + time + dur);
+      });
+    } catch (e) {
+      console.warn('Audio alerte dettes non disponible:', e);
     }
   }
 

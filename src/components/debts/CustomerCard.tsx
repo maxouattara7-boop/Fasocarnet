@@ -1,9 +1,21 @@
-import React from 'react';
-import { Customer } from '../../types';
+import React, { useState } from 'react';
+import { Customer, DebtPayment, DebtRecord } from '../../types';
 import { useAppStore } from '../../store/appStore';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatDateTime } from '../../utils/formatters';
 import { generateWhatsAppDebtReminderUrl } from '../../utils/whatsapp';
-import { MessageSquare, Phone, ArrowDownRight, User, Trash2 } from 'lucide-react';
+import { debtsService } from '../../db/services/debtsService';
+import { 
+  MessageSquare, 
+  Phone, 
+  ArrowDownRight, 
+  User, 
+  Trash2, 
+  Calendar, 
+  ChevronDown, 
+  ChevronUp, 
+  CheckCircle2, 
+  Clock 
+} from 'lucide-react';
 
 interface CustomerCardProps {
   customer: Customer;
@@ -13,6 +25,27 @@ interface CustomerCardProps {
 
 export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt, onDelete }) => {
   const { shopProfile } = useAppStore();
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyData, setHistoryData] = useState<{ debts: DebtRecord[]; payments: DebtPayment[] }>({
+    debts: [],
+    payments: []
+  });
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  const handleToggleHistory = async () => {
+    if (!showHistory) {
+      setIsLoadingHistory(true);
+      try {
+        const res = await debtsService.getCustomerFullDebtHistory(customer.id);
+        setHistoryData(res);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    }
+    setShowHistory(!showHistory);
+  };
 
   const handleWhatsAppReminder = () => {
     const url = generateWhatsAppDebtReminderUrl(
@@ -41,6 +74,10 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt,
             {customer.notes && (
               <p className="text-[10px] text-gray-400 italic mt-0.5 truncate">{customer.notes}</p>
             )}
+            <div className="flex items-center space-x-1 text-[10px] text-slate-400 mt-1">
+              <Calendar className="w-3 h-3 text-slate-400" />
+              <span>Inscrit le {formatDateTime(customer.createdAt).split(' ')[0]}</span>
+            </div>
           </div>
         </div>
 
@@ -66,6 +103,82 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt,
           )}
         </div>
       </div>
+
+      {/* Bouton pour afficher/masquer les dates et l'historique complet des mouvements */}
+      <button
+        type="button"
+        onClick={handleToggleHistory}
+        className="w-full py-1.5 px-2.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/70 rounded-xl text-[11px] font-bold text-slate-600 flex items-center justify-between transition-colors cursor-pointer"
+      >
+        <div className="flex items-center space-x-1.5">
+          <Clock className="w-3.5 h-3.5 text-amber-600" />
+          <span>Dates des dettes & Historique des règlements</span>
+        </div>
+        {showHistory ? <ChevronUp className="w-3.5 h-3.5 text-slate-500" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-500" />}
+      </button>
+
+      {/* Accordéon Historique détaillé */}
+      {showHistory && (
+        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200 space-y-2 text-xs animate-in fade-in duration-150">
+          {isLoadingHistory ? (
+            <p className="text-[11px] text-slate-400 text-center py-2">Chargement de l'historique...</p>
+          ) : (
+            <>
+              {/* Dettes contractées (Dates de création) */}
+              <div className="space-y-1">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
+                  🔴 Dettes contractées :
+                </span>
+                {historyData.debts.length === 0 ? (
+                  <p className="text-[10px] text-slate-400 italic">Aucun enregistrement</p>
+                ) : (
+                  historyData.debts.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-100">
+                      <div>
+                        <p className="font-bold text-slate-800 text-[11px]">
+                          {formatCurrency(d.initialAmount)}
+                        </p>
+                        <p className="text-[10px] text-slate-500">
+                          Date : <span className="font-medium text-slate-700">{formatDateTime(d.createdAt)}</span>
+                        </p>
+                      </div>
+                      <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md ${
+                        d.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {d.status === 'PAID' ? 'Soldée' : `Reste: ${formatCurrency(d.remainingAmount)}`}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Règlements / Acomptes reçus (Dates de règlement) */}
+              <div className="space-y-1 pt-1 border-t border-slate-200">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 block">
+                  🟢 Acomptes & Règlements reçus :
+                </span>
+                {historyData.payments.length === 0 ? (
+                  <p className="text-[10px] text-slate-400 italic">Aucun acompte versé pour le moment</p>
+                ) : (
+                  historyData.payments.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between bg-emerald-50/50 p-2 rounded-lg border border-emerald-100">
+                      <div>
+                        <p className="font-bold text-emerald-900 text-[11px]">
+                          + {formatCurrency(p.amount)} ({p.paymentMethod})
+                        </p>
+                        <p className="text-[10px] text-slate-500">
+                          Réglement le : <span className="font-medium text-slate-700">{formatDateTime(p.createdAt)}</span>
+                        </p>
+                      </div>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Boutons d'action : Relance WhatsApp & Règlement */}
       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">

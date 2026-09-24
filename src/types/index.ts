@@ -15,6 +15,11 @@ export interface ShopProfile {
   orangeMoneyNumber?: string;
   moovMoneyNumber?: string;
   waveNumber?: string;
+  ifu?: string; // Numéro IFU officiel de l'entreprise
+  rccm?: string; // Numéro RCCM officiel de l'entreprise
+  logo?: string; // Logo de l'entreprise (Base64 data URL)
+  debtAlarmEnabled?: boolean; // Alarme automatique de rappel de dettes
+  debtAlarmDay?: number; // Jour de la semaine pour l'alarme (1 = Lundi)
   subscriptionPlan?: 'trial' | 'monthly' | 'semi-annual' | 'annual';
   subscriptionStatus?: 'trial' | 'active' | 'grace' | 'expired';
   subscriptionExpiresAt?: string; // ISO string date d'expiration

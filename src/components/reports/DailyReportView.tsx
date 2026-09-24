@@ -13,10 +13,15 @@ import {
   ChevronUp, 
   Wallet,
   ShoppingBag,
-  CalendarDays
+  CalendarDays,
+  FileSpreadsheet
 } from 'lucide-react';
+import { exportMonthlyReportToExcel } from '../../utils/excelExporter';
+import { useAppStore } from '../../store/appStore';
+import { db } from '../../db/db';
 
 export const DailyReportView: React.FC = () => {
+  const { shopProfile } = useAppStore();
   const [reportPeriod, setReportPeriod] = useState<'day' | 'month'>('day');
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [salesList, setSalesList] = useState<Sale[]>([]);
@@ -27,6 +32,35 @@ export const DailyReportView: React.FC = () => {
     new Date().toISOString().slice(0, 7)
   );
   const [isCashDetailsOpen, setIsCashDetailsOpen] = useState(false);
+  const [isExportingExcel, setIsExportingExcel] = useState(false);
+
+  const handleExportExcel = async () => {
+    setIsExportingExcel(true);
+    try {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const lastDay = new Date(year, month, 0).getDate();
+      const startOfMonth = `${selectedMonth}-01T00:00:00.000Z`;
+      const endOfMonth = `${selectedMonth}-${String(lastDay).padStart(2, '0')}T23:59:59.999Z`;
+
+      const payments = await db.debtPayments
+        .where('createdAt')
+        .between(startOfMonth, endOfMonth, true, true)
+        .toArray();
+
+      exportMonthlyReportToExcel({
+        monthString: selectedMonth,
+        summary,
+        sales: salesList,
+        debtPayments: payments,
+        shopProfile
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'exportation du fichier Excel.");
+    } finally {
+      setIsExportingExcel(false);
+    }
+  };
 
   useEffect(() => {
     loadReportData();
@@ -150,6 +184,19 @@ export const DailyReportView: React.FC = () => {
             : `Chiffre d'affaires net pour ${formatMonthLabel(selectedMonth)}`}
         </p>
       </div>
+
+      {/* Bouton d'exportation Excel pour le Bilan Mensuel */}
+      {reportPeriod === 'month' && (
+        <button
+          type="button"
+          disabled={isExportingExcel}
+          onClick={handleExportExcel}
+          className="w-full py-3 px-4 bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-white rounded-2xl font-black text-xs flex items-center justify-center space-x-2 shadow-sm active:scale-98 transition-all cursor-pointer font-display disabled:opacity-50"
+        >
+          <FileSpreadsheet className="w-4 h-4 text-amber-300" />
+          <span>{isExportingExcel ? 'Génération du fichier...' : '📥 Télécharger le Bilan Mensuel Excel (.csv / .xlsx)'}</span>
+        </button>
+      )}
 
       {/* BLOC 1 : PAIEMENTS CASH & MOBILE MONEY (SECTION AVEC DÉTAIL DÉROULANT) */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">

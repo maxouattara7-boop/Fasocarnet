@@ -38,7 +38,8 @@ import {
   Zap,
   Search,
   X,
-  Package
+  Package,
+  BellRing
 } from 'lucide-react';
 import { soundEffects } from '../../utils/soundEffects';
 import { hashPin } from '../../utils/crypto';
@@ -84,9 +85,50 @@ export const SettingsView: React.FC = () => {
   const [omNumber, setOmNumber] = useState(shopProfile?.orangeMoneyNumber || '');
   const [moovNumber, setMoovNumber] = useState(shopProfile?.moovMoneyNumber || '');
   const [waveNumber, setWaveNumber] = useState(shopProfile?.waveNumber || '');
+  const [ifu, setIfu] = useState(shopProfile?.ifu || '');
+  const [rccm, setRccm] = useState(shopProfile?.rccm || '');
+  const [logo, setLogo] = useState<string | null>(shopProfile?.logo || null);
+  const [debtAlarmEnabled, setDebtAlarmEnabled] = useState(shopProfile?.debtAlarmEnabled !== false);
+  const [debtAlarmDay, setDebtAlarmDay] = useState(shopProfile?.debtAlarmDay ?? 1);
   const [pin, setNewPin] = useState(shopProfile?.pinCode || '');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 180;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/png', 0.85);
+          setLogo(dataUrl);
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Gestion du Catalogue d'Articles & Stock
   const [products, setProducts] = useState<Product[]>([]);
@@ -352,6 +394,11 @@ export const SettingsView: React.FC = () => {
       orangeMoneyNumber: omNumber.trim() || undefined,
       moovMoneyNumber: moovNumber.trim() || undefined,
       waveNumber: waveNumber.trim() || undefined,
+      ifu: ifu.trim() || undefined,
+      rccm: rccm.trim() || undefined,
+      logo: logo || undefined,
+      debtAlarmEnabled: debtAlarmEnabled,
+      debtAlarmDay: debtAlarmDay,
       pinCode: updatedPin
     });
     setSavedSuccess(true);
@@ -511,6 +558,70 @@ export const SettingsView: React.FC = () => {
               />
             </div>
 
+            {/* Mentions Légales pour Reçus : IFU & RCCM */}
+            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+              <div>
+                <label className="block text-[9px] font-bold uppercase text-slate-600 tracking-wider mb-0.5">
+                  N° IFU
+                </label>
+                <input
+                  type="text"
+                  value={ifu}
+                  onChange={(e) => setIfu(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
+                  placeholder="Ex: 00012345A"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold uppercase text-slate-600 tracking-wider mb-0.5">
+                  N° RCCM
+                </label>
+                <input
+                  type="text"
+                  value={rccm}
+                  onChange={(e) => setRccm(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
+                  placeholder="Ex: BF-OUA-2024"
+                />
+              </div>
+            </div>
+
+            {/* Logo de l'entreprise */}
+            <div className="pt-1 border-t border-slate-100">
+              <label className="block text-[9px] font-bold uppercase text-slate-600 tracking-wider mb-1">
+                Logo de l'Entreprise (Reçus & Tickets)
+              </label>
+              {logo ? (
+                <div className="flex items-center space-x-3 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                  <img src={logo} alt="Logo" className="w-10 h-10 object-contain rounded-lg border border-slate-200 bg-white" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-bold text-slate-800 truncate">Logo configuré</p>
+                    <p className="text-[9px] text-slate-500">Apparaît sur les tickets & reçus</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setLogo(null)}
+                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                    title="Supprimer le logo"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center space-x-2 p-2.5 bg-slate-50 border border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30 rounded-xl cursor-pointer text-xs font-bold text-emerald-700 transition-colors">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Importer un logo (PNG / JPG)</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+
             <button
               type="submit"
               className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl shadow-xs flex items-center justify-center space-x-1.5 active:scale-98 transition-all text-xs cursor-pointer"
@@ -519,6 +630,62 @@ export const SettingsView: React.FC = () => {
               <span>Enregistrer les Coordonnées</span>
             </button>
           </form>
+
+          {/* Configuration Alarme / Rappel Dettes */}
+          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-100 shadow-xs space-y-3">
+            <div className="flex items-center space-x-2 text-emerald-900 border-b border-slate-100 pb-2">
+              <div className="w-6 h-6 rounded-lg bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-600 shrink-0">
+                <BellRing className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-xs tracking-tight text-slate-900">Alarme & Relance des Dettes</h3>
+                <p className="text-[10px] text-slate-500">Rappel sonore hebdomadaire des clients à relancer</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-slate-800">Activer l'alarme automatique</p>
+                <p className="text-[10px] text-slate-500">Alerte sonore et modale chaque semaine</p>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  const nextVal = !debtAlarmEnabled;
+                  setDebtAlarmEnabled(nextVal);
+                  await updateShopProfile({ debtAlarmEnabled: nextVal });
+                }}
+                className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
+                  debtAlarmEnabled ? 'bg-emerald-600 justify-end' : 'bg-slate-300 justify-start'
+                }`}
+              >
+                <div className="w-4 h-4 rounded-full bg-white shadow-xs" />
+              </button>
+            </div>
+
+            {debtAlarmEnabled && (
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-700 text-[11px]">Jour du rappel :</span>
+                <select
+                  value={debtAlarmDay}
+                  onChange={async (e) => {
+                    const day = parseInt(e.target.value, 10);
+                    setDebtAlarmDay(day);
+                    await updateShopProfile({ debtAlarmDay: day });
+                  }}
+                  className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg font-bold text-xs text-slate-800 outline-none focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value={1}>Chaque Lundi (Recommandé)</option>
+                  <option value={2}>Chaque Mardi</option>
+                  <option value={3}>Chaque Mercredi</option>
+                  <option value={4}>Chaque Jeudi</option>
+                  <option value={5}>Chaque Vendredi</option>
+                  <option value={6}>Chaque Samedi</option>
+                  <option value={0}>Chaque Dimanche</option>
+                </select>
+              </div>
+            )}
+          </div>
 
           {/* Code PIN de Verrouillage */}
           <form onSubmit={handleSaveProfile} className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-100 shadow-xs space-y-2.5">

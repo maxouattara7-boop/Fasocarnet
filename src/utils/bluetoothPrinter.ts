@@ -115,6 +115,12 @@ export function buildEscPosPayload(
   if (shop?.city) {
     writeLine(shop.city);
   }
+  if (shop?.ifu) {
+    writeLine(`IFU : ${shop.ifu}`);
+  }
+  if (shop?.rccm) {
+    writeLine(`RCCM: ${shop.rccm}`);
+  }
 
   writeLine('--------------------------------');
   write(CMD.BOLD_ON);
