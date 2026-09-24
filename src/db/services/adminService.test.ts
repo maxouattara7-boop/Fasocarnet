@@ -173,5 +173,23 @@ describe('adminService', () => {
     expect(fetched.orangeMoney).toBe('70123456');
     expect(fetched.merchantName).toBe('FasoCarnet Support Officiel');
   });
+
+  it('permanently deletes a shop and its associated records', async () => {
+    const shopToDelete: ShopProfile = {
+      id: 'shop_delete_test',
+      name: 'Boutique à Supprimer',
+      phone: '70998877',
+      currency: 'FCFA',
+      isConfigured: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await db.shopProfiles.put(shopToDelete);
+
+    await adminService.deleteShop('shop_delete_test');
+    const checkShop = await db.shopProfiles.get('shop_delete_test');
+    expect(checkShop).toBeUndefined();
+  });
 });
+
 

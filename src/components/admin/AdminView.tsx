@@ -3,7 +3,8 @@ import {
   Store, Crown, Key, Lock, LogOut, Search, Plus, Copy, Check, Trash2,
   MessageCircle, ArrowLeft, Sparkles, Eye, EyeOff, RefreshCw,
   BarChart3, Smartphone, Download, Users,
-  MapPin, Send, CheckCircle2, Megaphone, Wallet, Database
+  MapPin, Send, CheckCircle2, Megaphone, Wallet, Database,
+  X, ChevronRight, Calendar, Phone, User, Building, FileText, Clock
 } from 'lucide-react';
 import { adminService, AdminStats, ShopAdminDetails } from '../../db/services/adminService';
 import { syncService } from '../../db/services/syncService';
@@ -39,6 +40,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
     }
     setActiveTabState(tab);
   };
+
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [analytics, setAnalytics] = useState<ExtendedAdminAnalytics | null>(null);
   const [shops, setShops] = useState<ShopAdminDetails[]>([]);
@@ -46,6 +48,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [broadcast, setBroadcast] = useState<AdminBroadcastMessage | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'trial' | 'expired'>('all');
+  const [selectedShop, setSelectedShop] = useState<ShopAdminDetails | null>(null);
+  const [shopActionFeedback, setShopActionFeedback] = useState<string>('');
+
   const [genPlan, setGenPlan] = useState<'monthly' | 'semi-annual' | 'annual'>('monthly');
   const [genCount, setGenCount] = useState<number>(1);
   const [genNotes, setGenNotes] = useState('');
@@ -190,6 +195,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         setDepositWave(dep.wave || '');
         setDepositMerchant(dep.merchantName || '');
       }
+      // Mettre à jour selectedShop si modal ouverte
+      if (selectedShop) {
+        const updatedSelected = sh.find(item => item.id === selectedShop.id);
+        if (updatedSelected) setSelectedShop(updatedSelected);
+      }
     } finally {
       setIsRefreshing(false);
     }
@@ -227,6 +237,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const handleExtendShop = async (shopId: string, months: number) => {
     try {
       await adminService.extendShopLicense(shopId, months);
+      setShopActionFeedback(`Abonnement prolongé de +${months} mois avec succès !`);
+      setTimeout(() => setShopActionFeedback(''), 3500);
       await loadData();
     } catch (err: any) {
       alert(err.message || 'Erreur lors de la prolongation.');
@@ -234,9 +246,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   };
 
   const handleDeleteShop = async (shopId: string, shopName: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer définitivement la boutique ' + shopName + ' ?')) {
-      await adminService.deleteShop(shopId);
-      await loadData();
+    if (confirm(`⚠️ ATTENTION ACTION IRRÉVERSIBLE ⚠️\n\nVoulez-vous vraiment supprimer définitivement le compte de la boutique "${shopName}" ?\n\nToutes les données (ventes, dettes, clients, profil) seront définitivement effacées.`)) {
+      try {
+        await adminService.deleteShop(shopId);
+        setSelectedShop(null);
+        await loadData();
+      } catch (err: any) {
+        alert(err.message || 'Erreur lors de la suppression de la boutique.');
+      }
     }
   };
 
@@ -347,6 +364,16 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
     return shop.statusType === filterStatus;
   });
 
+  const getShopBadgeStyle = (shop: ShopAdminDetails) => {
+    if (shop.statusType === 'active') {
+      return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
+    }
+    if (shop.statusType === 'trial') {
+      return 'bg-amber-500/15 text-amber-300 border-amber-500/30';
+    }
+    return 'bg-red-500/15 text-red-300 border-red-500/30';
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="fixed inset-0 z-50 bg-slate-950 text-white flex flex-col justify-center items-center p-4">
@@ -372,7 +399,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                   required
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  placeholder="Code d'accès admin (défaut: faso2026)"
+                  placeholder="Code d'accès admin"
                   className="w-full pl-3 pr-10 py-3 bg-slate-800 border border-slate-700 rounded-xl text-sm font-semibold text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 outline-none"
                 />
                 <button
@@ -393,7 +420,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
 
             <button
               type="submit"
-              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-lg shadow-emerald-600/30 active:scale-98 transition-all flex items-center justify-center space-x-2"
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-2xl shadow-lg shadow-emerald-600/30 active:scale-98 transition-all flex items-center justify-center space-x-2 cursor-pointer"
             >
               <Lock className="w-4 h-4" />
               <span>Accéder au Tableau de Bord</span>
@@ -403,7 +430,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2.5 text-xs font-bold text-slate-400 hover:text-slate-200 flex items-center justify-center space-x-1.5"
+            className="w-full py-2.5 text-xs font-bold text-slate-400 hover:text-slate-200 flex items-center justify-center space-x-1.5 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Retour à l'application</span>
@@ -415,8 +442,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950 text-slate-100 overflow-y-auto flex flex-col">
-      {/* Header Admin */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2">
+      {/* Header Admin Responsif */}
+      <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2">
         <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
           <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-inner shrink-0">
             <Crown className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -426,7 +453,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               FasoCarnet Admin Master
             </h1>
             <span className="text-[9px] sm:text-[11px] text-emerald-400 font-bold tracking-wider uppercase font-display block truncate">
-              Super-Administrateur • Contrôle Total
+              Super-Administrateur • Contrôle Réseau
             </span>
           </div>
         </div>
@@ -454,7 +481,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         </div>
       </header>
 
-      {/* Navigation tabs */}
+      {/* Navigation tabs responsives */}
       <div className="max-w-6xl w-full mx-auto p-3 sm:p-5 md:p-6 space-y-4 flex-1 pb-16">
         <div className="grid grid-cols-3 md:grid-cols-6 gap-1 sm:gap-2 bg-slate-900/90 backdrop-blur p-1 sm:p-1.5 rounded-2xl border border-slate-800 shadow-lg">
           <button
@@ -536,27 +563,27 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
           </button>
         </div>
 
-        {/* TAB 1 : BOUTIQUES & CRM */}
+        {/* TAB 1 : BOUTIQUES (AFFICHAGE MINIMALISTE + MODALE DÉTAILS) */}
         {activeTab === 'shops' && (
           <div className="space-y-4 animate-in fade-in duration-150">
             {stats && (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-                <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
+                <div className="bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-800 space-y-1 shadow-sm">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider font-display">Total Boutiques</span>
                   <div className="text-xl sm:text-2xl font-black text-white font-display">{stats.totalShops}</div>
                 </div>
 
-                <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
+                <div className="bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-800 space-y-1 shadow-sm">
                   <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider font-display">Abonnements Actifs</span>
                   <div className="text-xl sm:text-2xl font-black text-emerald-400 font-display">{stats.activeShops}</div>
                 </div>
 
-                <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
+                <div className="bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-800 space-y-1 shadow-sm">
                   <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider font-display">En Essai (10j)</span>
                   <div className="text-xl sm:text-2xl font-black text-amber-400 font-display">{stats.trialShops}</div>
                 </div>
 
-                <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
+                <div className="bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-800 space-y-1 shadow-sm">
                   <span className="text-[10px] font-black text-red-400 uppercase tracking-wider font-display">Expirées / Relances</span>
                   <div className="text-xl sm:text-2xl font-black text-red-400 font-display">{stats.expiredShops}</div>
                 </div>
@@ -594,7 +621,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               </div>
             </div>
 
-            {/* Liste des boutiques */}
+            {/* Liste épurée des boutiques (Nom, Date de création, Forfait en cours) */}
             {filteredShops.length === 0 ? (
               <div className="bg-slate-900 p-8 rounded-3xl text-center space-y-2 border border-slate-800">
                 <Store className="w-10 h-10 text-slate-600 mx-auto" />
@@ -602,102 +629,40 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                 <p className="text-xs text-slate-500">Aucun profil ne correspond à vos critères de recherche.</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {filteredShops.map((shop) => {
-                  const waReminderUrl = adminService.getWhatsAppReminderUrl(shop);
+                  const createdDate = shop.createdAt ? new Date(shop.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue';
+                  const badgeStyle = getShopBadgeStyle(shop);
 
                   return (
                     <div
                       key={shop.id}
-                      className={`bg-slate-900 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all space-y-3 ${
-                        shop.statusType === 'active'
-                          ? 'border-slate-800 hover:border-emerald-500/50'
-                          : shop.statusType === 'trial'
-                          ? 'border-slate-800 hover:border-amber-500/50'
-                          : 'border-red-900/60 bg-red-950/10'
-                      }`}
+                      onClick={() => setSelectedShop(shop)}
+                      className="cursor-pointer bg-slate-900/90 hover:bg-slate-800/80 active:scale-[0.99] p-3 sm:p-4 rounded-2xl border border-slate-800 hover:border-emerald-500/50 transition-all flex items-center justify-between gap-3 group shadow-sm"
                     >
-                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-black text-white text-sm sm:text-base tracking-tight font-display truncate">{shop.name}</h3>
-                            <span
-                              className={`px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider font-display shrink-0 ${
-                                shop.statusType === 'active'
-                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                                  : shop.statusType === 'trial'
-                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                                  : 'bg-red-500/20 text-red-300 border border-red-500/40'
-                              }`}
-                            >
-                              {shop.statusLabel}
-                            </span>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mt-1">
-                            <span>📞 {shop.phone}</span>
-                            {shop.ownerName && <span>👤 Patron : <strong className="text-slate-200">{shop.ownerName}</strong></span>}
-                            {shop.city && <span>📍 <strong className="text-slate-300">{shop.city}</strong></span>}
-                            <span>⏳ Expire : <strong className="text-slate-200">{shop.formattedExpiresAt}</strong> ({shop.daysRemaining}j)</span>
-                          </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="font-black text-white text-sm sm:text-base group-hover:text-emerald-300 transition-colors truncate">
+                            {shop.name}
+                          </h4>
                         </div>
-
-                        <div className="text-left lg:text-right bg-slate-800/60 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border border-slate-700/60 shrink-0 flex lg:block justify-between items-center">
-                          <div>
-                            <span className="text-[10px] text-slate-400 uppercase font-black block font-display">Chiffre d'Affaires</span>
-                            <span className="text-sm sm:text-base font-black text-emerald-400 font-display">{formatCurrency(shop.totalSalesVolume)}</span>
-                          </div>
-                          <span className="text-[10px] text-slate-400 block lg:mt-0.5">{shop.salesCount} vente(s) • {shop.customersCount} client(s)</span>
-                        </div>
+                        <p className="text-[11px] text-slate-400 flex items-center space-x-1.5 mt-0.5">
+                          <Calendar className="w-3 h-3 text-slate-500 shrink-0" />
+                          <span>Créée le {createdDate}</span>
+                          {shop.city && (
+                            <>
+                              <span className="text-slate-600">•</span>
+                              <span className="text-slate-400">{shop.city}</span>
+                            </>
+                          )}
+                        </p>
                       </div>
 
-                      {/* Actions Rapides */}
-                      <div className="pt-2.5 border-t border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-2.5 text-xs">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase mr-1 shrink-0">Prolonger :</span>
-                          <button
-                            type="button"
-                            onClick={() => handleExtendShop(shop.id, 1)}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white text-[10px] font-bold rounded-lg border border-slate-700 transition-all font-display cursor-pointer"
-                          >
-                            +1 Mois
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleExtendShop(shop.id, 6)}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white text-[10px] font-bold rounded-lg border border-slate-700 transition-all font-display cursor-pointer"
-                          >
-                            +6 Mois
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleExtendShop(shop.id, 12)}
-                            className="px-2.5 py-1 bg-slate-800 hover:bg-emerald-600 text-slate-200 hover:text-white text-[10px] font-bold rounded-lg border border-slate-700 transition-all font-display cursor-pointer"
-                          >
-                            +1 An
-                          </button>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-1.5 sm:space-x-2 w-full md:w-auto justify-between md:justify-end">
-                          <a
-                            href={waReminderUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded-lg flex items-center space-x-1 shadow-sm transition-all cursor-pointer"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            <span>Relancer WhatsApp</span>
-                          </a>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteShop(shop.id, shop.name)}
-                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-all cursor-pointer"
-                            title="Supprimer la boutique"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                      <div className="flex items-center space-x-2 shrink-0">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider border ${badgeStyle}`}>
+                          {shop.statusLabel}
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
                       </div>
                     </div>
                   );
@@ -707,14 +672,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
           </div>
         )}
 
-        {/* TAB 2 : ANALYTICS & TÉLÉMÉTRIE */}
+        {/* TAB 2 : ANALYTICS & TÉLÉMÉTRIE (SIMPLIFIÉ : APPAREILS, RATIO PAYANTS/ESSAI, PROVENANCE) */}
         {activeTab === 'analytics' && analytics && (
           <div className="space-y-4 animate-in fade-in duration-150">
             {/* Header Analytics avec Export CSV */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 shadow-sm">
               <div>
                 <h3 className="text-sm sm:text-base font-black text-white font-display">Télémétrie Globale & Démographie</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Données d'utilisation en temps réel des boutiques connectées</p>
+                <p className="text-xs text-slate-400 mt-0.5">Suivi en temps réel des installations et de l'adoption</p>
               </div>
               <button
                 type="button"
@@ -726,7 +691,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               </button>
             </div>
 
-            {/* Cartes KPIs Réseau */}
+            {/* 1. Métriques Clés : Installations & Abonnements */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
               <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider font-display">Appareils / Installs</span>
@@ -735,15 +700,23 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               </div>
 
               <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
-                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider font-display">Volume Total Réseau</span>
-                <div className="text-base sm:text-xl font-black text-emerald-400 font-display truncate">{formatCurrency(analytics.totalNetworkSalesVolume)}</div>
-                <span className="text-[10px] text-slate-400 block">{analytics.totalNetworkSalesCount} transaction(s)</span>
+                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider font-display">Abonnés Payants</span>
+                <div className="text-xl sm:text-2xl font-black text-emerald-400 font-display">
+                  {paidShops.length}
+                </div>
+                <span className="text-[10px] text-slate-400 block">
+                  {analytics.totalInstalls > 0 ? Math.round((paidShops.length / analytics.totalInstalls) * 100) : 0}% du réseau
+                </span>
               </div>
 
               <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
-                <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider font-display">Dettes en Circulation</span>
-                <div className="text-base sm:text-xl font-black text-amber-400 font-display truncate">{formatCurrency(analytics.totalNetworkDebtsVolume)}</div>
-                <span className="text-[10px] text-slate-400 block">{analytics.totalNetworkCustomersCount} client(s) au total</span>
+                <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider font-display">Versions d'Essai</span>
+                <div className="text-xl sm:text-2xl font-black text-amber-400 font-display">
+                  {trialShops.filter(s => s.statusType === 'trial').length}
+                </div>
+                <span className="text-[10px] text-slate-400 block">
+                  {analytics.totalInstalls > 0 ? Math.round((trialShops.filter(s => s.statusType === 'trial').length / analytics.totalInstalls) * 100) : 0}% du réseau
+                </span>
               </div>
 
               <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-1 shadow-sm">
@@ -753,7 +726,46 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               </div>
             </div>
 
-            {/* Villes & Provenance Démographique */}
+            {/* 2. Répartition Abonnements Payants vs Versions d'Essai (Visual Bar) */}
+            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-3 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center space-x-2 text-white">
+                  <Users className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <div>
+                    <h4 className="font-bold text-xs sm:text-sm font-display">Répartition des Abonnements</h4>
+                    <p className="text-[11px] text-slate-400">Ratio abonnés actifs payants vs commerçants en essai</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-emerald-400 flex items-center space-x-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    <span>Payants : {paidShops.length} ({shops.length > 0 ? Math.round((paidShops.length / shops.length) * 100) : 0}%)</span>
+                  </span>
+                  <span className="text-amber-400 flex items-center space-x-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                    <span>Essai / Expirés : {trialShops.length} ({shops.length > 0 ? Math.round((trialShops.length / shops.length) * 100) : 0}%)</span>
+                  </span>
+                </div>
+
+                <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden flex">
+                  <div
+                    className="bg-emerald-500 h-full transition-all duration-500"
+                    style={{ width: `${shops.length > 0 ? (paidShops.length / shops.length) * 100 : 0}%` }}
+                    title={`Payants: ${paidShops.length}`}
+                  />
+                  <div
+                    className="bg-amber-500 h-full transition-all duration-500"
+                    style={{ width: `${shops.length > 0 ? (trialShops.length / shops.length) * 100 : 0}%` }}
+                    title={`Essai: ${trialShops.length}`}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Provenance Géographique des Commerçants */}
             <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center space-x-2 text-white">
@@ -1075,7 +1087,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         {/* TAB 5 : RELANCES & DIFFUSION GROUPÉE WHATSAPP */}
         {activeTab === 'whatsapp' && (
           <div className="space-y-4 animate-in fade-in duration-150">
-            {/* Header Relances Groupées */}
             <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-2 shadow-sm">
               <div className="flex items-center space-x-2.5 text-emerald-400">
                 <div className="p-2 rounded-xl bg-emerald-950/60 border border-emerald-800/60 shrink-0">
@@ -1115,7 +1126,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                 </div>
               </div>
 
-              {/* Message de Relance */}
               <div className="space-y-1.5">
                 <label className="block text-[11px] font-black text-slate-300 uppercase tracking-wider font-display">
                   Message de relance (Version d'Essai)
@@ -1129,7 +1139,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                 />
               </div>
 
-              {/* Actions Groupées en 1 Clic */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
                 <button
                   type="button"
@@ -1193,7 +1202,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                 </div>
               </div>
 
-              {/* Message pour Abonnés Payants */}
               <div className="space-y-1.5">
                 <label className="block text-[11px] font-black text-slate-300 uppercase tracking-wider font-display">
                   Message pour les Abonnés Payants
@@ -1207,7 +1215,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                 />
               </div>
 
-              {/* Actions Groupées en 1 Clic */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
                 <button
                   type="button"
@@ -1382,7 +1389,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               </form>
             </div>
 
-            {/* ÉTAT DU CLOUD & SAUVEGARDE GLOBALE (LECTURE SEULE & SÉCURISÉ) */}
+            {/* ÉTAT DU CLOUD & SAUVEGARDE GLOBALE */}
             <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 shadow-sm space-y-3.5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                 <div className="flex items-center space-x-2.5 text-emerald-400">
@@ -1462,6 +1469,197 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
           </div>
         )}
       </div>
+
+      {/* MODALE DE DÉTAILS COMPLETS DE LA BOUTIQUE */}
+      {selectedShop && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-4 sm:p-6 space-y-5 animate-in zoom-in-95 duration-150">
+            {/* Header Modale */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-4">
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-black text-white font-display truncate">
+                    {selectedShop.name}
+                  </h3>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${getShopBadgeStyle(selectedShop)}`}>
+                    {selectedShop.statusLabel}
+                  </span>
+                </div>
+                {selectedShop.description && (
+                  <p className="text-xs text-emerald-400 italic">
+                    « {selectedShop.description} »
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedShop(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all shrink-0 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Notification de feedback d'action */}
+            {shopActionFeedback && (
+              <div className="p-3 bg-emerald-950/60 border border-emerald-800 rounded-2xl flex items-center space-x-2 text-xs font-bold text-emerald-300 animate-in fade-in duration-150">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{shopActionFeedback}</span>
+              </div>
+            )}
+
+            {/* Grille d'informations complètes */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50 space-y-1">
+                <span className="text-[10px] font-black uppercase text-slate-400 flex items-center space-x-1">
+                  <Phone className="w-3 h-3 text-emerald-400" />
+                  <span>Téléphone Boutique</span>
+                </span>
+                <span className="text-sm font-bold text-white block">{selectedShop.phone}</span>
+              </div>
+
+              <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50 space-y-1">
+                <span className="text-[10px] font-black uppercase text-slate-400 flex items-center space-x-1">
+                  <User className="w-3 h-3 text-emerald-400" />
+                  <span>Gérant / Propriétaire</span>
+                </span>
+                <span className="text-sm font-bold text-white block">{selectedShop.ownerName || 'Non renseigné'}</span>
+              </div>
+
+              <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50 space-y-1">
+                <span className="text-[10px] font-black uppercase text-slate-400 flex items-center space-x-1">
+                  <MessageCircle className="w-3 h-3 text-emerald-400" />
+                  <span>WhatsApp Gérant</span>
+                </span>
+                <span className="text-sm font-bold text-white block">{selectedShop.ownerPhone || 'Identique'}</span>
+              </div>
+
+              <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50 space-y-1">
+                <span className="text-[10px] font-black uppercase text-slate-400 flex items-center space-x-1">
+                  <MapPin className="w-3 h-3 text-amber-400" />
+                  <span>Ville & Localité</span>
+                </span>
+                <span className="text-sm font-bold text-white block">{selectedShop.city || 'Non renseigné'}</span>
+              </div>
+
+              <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50 space-y-1">
+                <span className="text-[10px] font-black uppercase text-slate-400 flex items-center space-x-1">
+                  <Building className="w-3 h-3 text-sky-400" />
+                  <span>Numéro IFU</span>
+                </span>
+                <span className="text-xs font-mono font-bold text-slate-200 block">{selectedShop.ifu || 'Non renseigné'}</span>
+              </div>
+
+              <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50 space-y-1">
+                <span className="text-[10px] font-black uppercase text-slate-400 flex items-center space-x-1">
+                  <FileText className="w-3 h-3 text-sky-400" />
+                  <span>Registre RCCM</span>
+                </span>
+                <span className="text-xs font-mono font-bold text-slate-200 block">{selectedShop.rccm || 'Non renseigné'}</span>
+              </div>
+
+              <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50 space-y-1">
+                <span className="text-[10px] font-black uppercase text-slate-400 flex items-center space-x-1">
+                  <Clock className="w-3 h-3 text-amber-400" />
+                  <span>Échéance de l'Abonnement</span>
+                </span>
+                <span className="text-xs font-bold text-amber-300 block">
+                  {selectedShop.formattedExpiresAt} ({selectedShop.daysRemaining} jour(s) restants)
+                </span>
+              </div>
+
+              <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50 space-y-1">
+                <span className="text-[10px] font-black uppercase text-slate-400 flex items-center space-x-1">
+                  <Calendar className="w-3 h-3 text-slate-400" />
+                  <span>Date de Création</span>
+                </span>
+                <span className="text-xs font-bold text-slate-200 block">
+                  {selectedShop.createdAt ? new Date(selectedShop.createdAt).toLocaleDateString('fr-FR') : 'Inconnue'}
+                </span>
+              </div>
+            </div>
+
+            {/* Statistiques d'activité */}
+            <div className="bg-slate-950 p-3.5 sm:p-4 rounded-2xl border border-slate-800 space-y-2">
+              <span className="text-[10px] font-black uppercase text-slate-400 block font-display">
+                Activité Commerciale Enregistrée
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block font-bold">Ventes</span>
+                  <span className="text-sm font-black text-white font-mono">{selectedShop.salesCount}</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-emerald-400 block font-bold">Chiffre d'Affaires</span>
+                  <span className="text-xs sm:text-sm font-black text-emerald-400 font-mono truncate">{formatCurrency(selectedShop.totalSalesVolume)}</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block font-bold">Clients</span>
+                  <span className="text-sm font-black text-white font-mono">{selectedShop.customersCount}</span>
+                </div>
+                <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-amber-400 block font-bold">Dettes en cours</span>
+                  <span className="text-xs sm:text-sm font-black text-amber-400 font-mono truncate">{formatCurrency(selectedShop.totalDebtsAmount)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions Super-Admin sur la boutique */}
+            <div className="space-y-3 pt-2 border-t border-slate-800">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                <div className="flex items-center space-x-1.5 flex-1">
+                  <span className="text-[11px] font-black uppercase text-slate-400 shrink-0 font-display">Prolonger :</span>
+                  <button
+                    type="button"
+                    onClick={() => handleExtendShop(selectedShop.id, 1)}
+                    className="flex-1 py-2 px-2 bg-slate-800 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl border border-slate-700 transition-all font-display cursor-pointer text-center"
+                  >
+                    +1 Mois
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleExtendShop(selectedShop.id, 6)}
+                    className="flex-1 py-2 px-2 bg-slate-800 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl border border-slate-700 transition-all font-display cursor-pointer text-center"
+                  >
+                    +6 Mois
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleExtendShop(selectedShop.id, 12)}
+                    className="flex-1 py-2 px-2 bg-slate-800 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl border border-slate-700 transition-all font-display cursor-pointer text-center"
+                  >
+                    +1 An
+                  </button>
+                </div>
+
+                <a
+                  href={adminService.getWhatsAppReminderUrl(selectedShop)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1.5 shadow-md transition-all cursor-pointer font-display shrink-0"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Contacter WhatsApp</span>
+                </a>
+              </div>
+
+              {/* Bouton de Suppression Définitive */}
+              <div className="pt-2 border-t border-slate-800/60 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleDeleteShop(selectedShop.id, selectedShop.name)}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-red-950/40 hover:bg-red-900/80 text-red-300 hover:text-red-100 text-xs font-bold rounded-xl border border-red-800/60 flex items-center justify-center space-x-2 transition-all cursor-pointer font-display"
+                >
+                  <Trash2 className="w-4 h-4 text-red-400" />
+                  <span>Supprimer définitivement ce compte</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

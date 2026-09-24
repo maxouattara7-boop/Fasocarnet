@@ -1,9 +1,9 @@
 {
-  "version": "1.2.17",
-  "versionCode": 20,
+  "version": "1.2.18",
+  "versionCode": 21,
   "releaseDate": "2026-09-24",
-  "title": "Mise à Jour Automatique & Reçu Centré avec Slogan",
-  "releaseNotes": "1. Mise à jour automatique : Détection et installation transparente dès l'ouverture de l'application avec affichage des nouveautés.\n2. Bouton unique 'OK, J'ai compris' pour fermer et activer les nouveautés en 1 clic.\n3. En-tête de reçu 100% centré avec logo, slogan/activité du commerce, téléphones et mentions fiscales.\n4. Filigrane de sécurité subtil FasoCarnet sur toute la longueur du ticket.\n5. Persistance absolue des données et suppression des menus superflus.",
+  "title": "Administration Simplifiée & Télémétrie Épurée",
+  "releaseNotes": "1. Interface Super-Admin responsif optimisée pour mobile et tablette.\n2. Liste des boutiques épurée (Nom, Date de création, Badge du forfait) avec modale de détails complets au clic.\n3. Possibilité pour l'administrateur de supprimer définitivement un compte boutique.\n4. Télémétrie et Analytics simplifiées : total des appareils installés, ratio abonnés payants vs essai, et provenance par ville.\n5. Persistance renforcée des ajouts et suppressions d'articles et dettes.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false

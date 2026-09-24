@@ -201,6 +201,25 @@ export const supabaseClient = {
   },
 
   /**
+   * Supprime une boutique de Supabase (Super-Admin)
+   */
+  async deleteShop(shopId: string): Promise<boolean> {
+    const client = this.getClient();
+    if (!client) return false;
+
+    try {
+      const { error } = await client
+        .from('shops')
+        .delete()
+        .eq('id', shopId);
+
+      return !error;
+    } catch {
+      return false;
+    }
+  },
+
+  /**
    * Récupère les données d'une boutique depuis Supabase
    */
   async fetchShop(shopId: string): Promise<CloudShopData | null> {

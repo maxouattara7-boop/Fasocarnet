@@ -2,6 +2,7 @@ import { db } from '../db';
 import { ShopProfile, LicenseKey, ExtendedAdminAnalytics, AdminBroadcastMessage, DeviceTelemetry, AdminDepositNumbers } from '../../types';
 import { subscriptionService, SUBSCRIPTION_PLANS, DEFAULT_DEPOSIT_NUMBERS } from './subscriptionService';
 import { syncService } from './syncService';
+import { supabaseClient } from '../supabaseClient';
 import { detectBurkinaOperator, detectPlatform } from '../../utils/telemetry';
 import { verifyHash, hashPassword, isHashed, generateSignedLicenseKey } from '../../utils/crypto';
 
@@ -231,6 +232,31 @@ export const adminService = {
    */
   async deleteShop(shopId: string): Promise<void> {
     await db.shopProfiles.delete(shopId);
+
+    // Supprimer également les données locales liées si présentes
+    const [sales, customers, products, debts] = await Promise.all([
+      db.sales.toArray(),
+      db.customers.toArray(),
+      db.products.toArray(),
+      db.debts.toArray()
+    ]);
+
+    const salesToDelete = sales.filter((s: any) => s.shopId === shopId).map(s => s.id);
+    const customersToDelete = customers.filter((c: any) => c.shopId === shopId).map(c => c.id);
+    const productsToDelete = products.filter((p: any) => p.shopId === shopId).map(p => p.id);
+    const debtsToDelete = debts.filter((d: any) => d.shopId === shopId).map(d => d.id);
+
+    if (salesToDelete.length) await db.sales.bulkDelete(salesToDelete);
+    if (customersToDelete.length) await db.customers.bulkDelete(customersToDelete);
+    if (productsToDelete.length) await db.products.bulkDelete(productsToDelete);
+    if (debtsToDelete.length) await db.debts.bulkDelete(debtsToDelete);
+
+    // Supprimer de Supabase si configuré
+    if (supabaseClient.isConfigured()) {
+      await supabaseClient.deleteShop(shopId).catch(() => {});
+    }
+
+    // Supprimer de la base Cloud / cache
     const cloudDb = await syncService.fetchRemoteDatabase();
     if (cloudDb[shopId]) {
       delete cloudDb[shopId];
