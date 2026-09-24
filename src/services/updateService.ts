@@ -12,8 +12,8 @@ export interface AppUpdateInfo {
   mandatory?: boolean;
 }
 
-export const CURRENT_APP_VERSION = '1.2.19';
-export const CURRENT_VERSION_CODE = 22;
+export const CURRENT_APP_VERSION = '1.2.20';
+export const CURRENT_VERSION_CODE = 23;
 
 // Réseau multi-CDN redondant (GitHub Raw en direct + CDN jsDelivr + Render)
 const UPDATE_SERVERS = [

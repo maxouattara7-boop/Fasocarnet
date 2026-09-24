@@ -37,7 +37,8 @@ import {
   Search,
   X,
   Package,
-  BellRing
+  BellRing,
+  ArrowRight
 } from 'lucide-react';
 import { soundEffects } from '../../utils/soundEffects';
 import { hashPin } from '../../utils/crypto';
@@ -278,6 +279,7 @@ export const SettingsView: React.FC = () => {
   };
 
   const subInfo = subscriptionService.getSubscriptionInfo(shopProfile);
+  const isPremium = subscriptionService.isPremiumActive(shopProfile);
 
   const handleActivateLicense = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -926,22 +928,84 @@ export const SettingsView: React.FC = () => {
       {/* RUBRIQUE 2 : CATALOGUE D'ARTICLES & GESTION DE STOCK     */}
       {/* ======================================================== */}
       {activeSubTab === 'catalog' && (
-        <div className="space-y-3.5 animate-in fade-in duration-150">
-          {/* CARTE BILAN RAPIDE */}
-          <div className="bg-gradient-to-br from-emerald-800 to-teal-950 text-white p-4 rounded-2xl shadow-md border border-emerald-700/50 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center text-emerald-200 shadow-inner shrink-0">
-                <Package className="w-5 h-5" />
+        !isPremium ? (
+          <div className="space-y-3.5 animate-in fade-in duration-150">
+            <div className="bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white p-5 sm:p-6 rounded-3xl border border-emerald-500/30 shadow-xl text-center relative overflow-hidden">
+              {/* Subtle decoration */}
+              <div className="absolute top-0 right-0 -mt-6 -mr-6 w-28 h-28 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 -mb-6 -ml-6 w-28 h-28 bg-amber-500/15 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-amber-500 to-emerald-400 p-0.5 shadow-lg mb-3 flex items-center justify-center">
+                <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+                  <Crown className="w-7 h-7 text-amber-400" />
+                </div>
               </div>
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300 block font-display">
-                  Catalogue Produits
-                </span>
-                <h3 className="text-base font-black text-white font-display">
-                  {products.length} article{products.length > 1 ? 's' : ''} enregistré{products.length > 1 ? 's' : ''}
-                </h3>
+
+              <span className="inline-flex items-center space-x-1 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-300/30 text-amber-300 text-[10px] font-black uppercase tracking-wider mb-2">
+                <Sparkles className="w-3 h-3 text-amber-400" />
+                <span>Fonctionnalité FasoCarnet Pro</span>
+              </span>
+
+              <h2 className="text-lg font-black font-display text-white mb-1.5">
+                Catalogue d'Articles & Stock
+              </h2>
+
+              <p className="text-xs text-slate-300 leading-relaxed max-w-xs mx-auto mb-4">
+                Enregistrez vos articles avec leurs prix fixes, suivez vos stocks et scannez les codes-barres.
+              </p>
+
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 text-left space-y-2 border border-white/10 mb-4">
+                <div className="flex items-center space-x-2.5 text-xs text-slate-200">
+                  <div className="w-4 h-4 rounded bg-emerald-500/30 flex items-center justify-center text-emerald-400 text-[10px] font-black shrink-0">✓</div>
+                  <span className="font-semibold text-[11px]">Enregistrement illimité d'articles & prix fixes</span>
+                </div>
+                <div className="flex items-center space-x-2.5 text-xs text-slate-200">
+                  <div className="w-4 h-4 rounded bg-emerald-500/30 flex items-center justify-center text-emerald-400 text-[10px] font-black shrink-0">✓</div>
+                  <span className="font-semibold text-[11px]">Scanner de codes-barres par caméra</span>
+                </div>
+                <div className="flex items-center space-x-2.5 text-xs text-slate-200">
+                  <div className="w-4 h-4 rounded bg-emerald-500/30 flex items-center justify-center text-emerald-400 text-[10px] font-black shrink-0">✓</div>
+                  <span className="font-semibold text-[11px]">Suivi des stocks et alertes de réapprovisionnement</span>
+                </div>
+                <div className="flex items-center space-x-2.5 text-xs text-slate-200">
+                  <div className="w-4 h-4 rounded bg-emerald-500/30 flex items-center justify-center text-emerald-400 text-[10px] font-black shrink-0">✓</div>
+                  <span className="font-semibold text-[11px]">Vente rapide en 1 clic depuis la caisse</span>
+                </div>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('subscription')}
+                className="w-full py-2.5 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-900/40 flex items-center justify-center space-x-2 active:scale-98 transition-all cursor-pointer"
+              >
+                <span>Activer FasoCarnet Pro</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-center">
+              <p className="text-[11px] text-slate-600 font-medium">
+                💡 <strong className="font-bold text-slate-800">Caisse gratuite :</strong> La saisie des ventes en Caisse, les tickets et le carnet de dettes restent 100% utilisables.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3.5 animate-in fade-in duration-150">
+            {/* CARTE BILAN RAPIDE */}
+            <div className="bg-gradient-to-br from-emerald-800 to-teal-950 text-white p-4 rounded-2xl shadow-md border border-emerald-700/50 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center text-emerald-200 shadow-inner shrink-0">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300 block font-display">
+                    Catalogue Produits
+                  </span>
+                  <h3 className="text-base font-black text-white font-display">
+                    {products.length} article{products.length > 1 ? 's' : ''} enregistré{products.length > 1 ? 's' : ''}
+                  </h3>
+                </div>
+              </div>
 
             <div className="text-right">
               {lowStockCount > 0 ? (
@@ -1246,6 +1310,7 @@ export const SettingsView: React.FC = () => {
             )}
           </div>
         </div>
+        )
       )}
 
       {/* ======================================================== */}

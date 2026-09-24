@@ -1,9 +1,9 @@
 {
-  "version": "1.2.19",
-  "versionCode": 22,
+  "version": "1.2.20",
+  "versionCode": 23,
   "releaseDate": "2026-09-24",
-  "title": "Affichage Intégral des Boutiques & Badges Forfaits Simplifiés",
-  "releaseNotes": "1. Affichage intégral du nom des boutiques sans troncature dans la liste Super-Admin.\n2. Badges de statut simplifiés et directs : 'Gratuit' pour les versions d'essai et 'Payant' pour les abonnements actifs.\n3. Expérience utilisateur et navigation mobile optimisées.",
+  "title": "Modèle d'Accès Gratuit & Version Pro FasoCarnet",
+  "releaseNotes": "1. Accès Caisse Gratuit : La saisie des ventes, les reçus et le carnet de dettes restent 100% utilisables sans abonnement.\n2. Version Pro : Fonctionnalités Bilan comptable et Catalogue d'articles réservées aux abonnements actifs et périodes d'essai.\n3. Navigation directe vers l'activation de licence depuis les écrans de présentation Pro.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false

@@ -108,4 +108,69 @@ describe('subscriptionService', () => {
     expect(resB.success).toBe(false);
     expect(resB.message).toContain('déjà été utilisée');
   });
+
+  it('correctly determines isPremiumActive and canAccessFeature for free vs active vs expired shops', () => {
+    // 1. Boutique en période d'essai valide (10 jours)
+    const trialShop: ShopProfile = {
+      id: 'shop_trial',
+      name: 'Boutique Essai',
+      phone: '70000010',
+      currency: 'FCFA',
+      isConfigured: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    expect(subscriptionService.isPremiumActive(trialShop)).toBe(true);
+    expect(subscriptionService.canAccessFeature('pos', trialShop)).toBe(true);
+    expect(subscriptionService.canAccessFeature('debts', trialShop)).toBe(true);
+    expect(subscriptionService.canAccessFeature('shop', trialShop)).toBe(true);
+    expect(subscriptionService.canAccessFeature('subscription', trialShop)).toBe(true);
+    expect(subscriptionService.canAccessFeature('payments', trialShop)).toBe(true);
+    expect(subscriptionService.canAccessFeature('reports', trialShop)).toBe(true);
+    expect(subscriptionService.canAccessFeature('catalog', trialShop)).toBe(true);
+
+    // 2. Boutique avec période d'essai ou licence expirée
+    const expiredDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+    const expiredShop: ShopProfile = {
+      id: 'shop_expired',
+      name: 'Boutique Expirée',
+      phone: '70000020',
+      currency: 'FCFA',
+      isConfigured: true,
+      subscriptionExpiresAt: expiredDate,
+      createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    expect(subscriptionService.isPremiumActive(expiredShop)).toBe(false);
+    // Services gratuits toujours accessibles :
+    expect(subscriptionService.canAccessFeature('pos', expiredShop)).toBe(true);
+    expect(subscriptionService.canAccessFeature('debts', expiredShop)).toBe(true);
+    expect(subscriptionService.canAccessFeature('shop', expiredShop)).toBe(true);
+    expect(subscriptionService.canAccessFeature('subscription', expiredShop)).toBe(true);
+    expect(subscriptionService.canAccessFeature('payments', expiredShop)).toBe(true);
+    // Fonctionnalités Pro restreintes :
+    expect(subscriptionService.canAccessFeature('reports', expiredShop)).toBe(false);
+    expect(subscriptionService.canAccessFeature('catalog', expiredShop)).toBe(false);
+
+    // 3. Boutique avec abonnement actif
+    const futureDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const activeShop: ShopProfile = {
+      id: 'shop_active',
+      name: 'Boutique Active',
+      phone: '70000030',
+      currency: 'FCFA',
+      isConfigured: true,
+      subscriptionPlan: 'monthly',
+      subscriptionStatus: 'active',
+      subscriptionExpiresAt: futureDate,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    expect(subscriptionService.isPremiumActive(activeShop)).toBe(true);
+    expect(subscriptionService.canAccessFeature('reports', activeShop)).toBe(true);
+    expect(subscriptionService.canAccessFeature('catalog', activeShop)).toBe(true);
+  });
 });

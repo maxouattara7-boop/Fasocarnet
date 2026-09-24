@@ -19,14 +19,19 @@ import {
   Copy,
   Share2,
   X,
-  Loader2
+  Loader2,
+  Crown,
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { exportMonthlyReportToExcel } from '../../utils/excelExporter';
 import { useAppStore } from '../../store/appStore';
 import { db } from '../../db/db';
+import { subscriptionService } from '../../db/services/subscriptionService';
 
 export const DailyReportView: React.FC = () => {
-  const { shopProfile } = useAppStore();
+  const { shopProfile, setActiveTab } = useAppStore();
+  const isPremium = subscriptionService.isPremiumActive(shopProfile);
   const [reportPeriod, setReportPeriod] = useState<'day' | 'month'>('day');
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [salesList, setSalesList] = useState<Sale[]>([]);
@@ -164,6 +169,76 @@ export const DailyReportView: React.FC = () => {
     (summary?.orangeMoneySales || 0) + 
     (summary?.moovMoneySales || 0) + 
     (summary?.waveSales || 0);
+
+  if (!isPremium) {
+    return (
+      <div className="max-w-md mx-auto p-4 space-y-4 pb-28 animate-in fade-in duration-200">
+        <div className="bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white p-5 sm:p-6 rounded-3xl border border-emerald-500/30 shadow-xl text-center relative overflow-hidden">
+          {/* Subtle decoration */}
+          <div className="absolute top-0 right-0 -mt-6 -mr-6 w-28 h-28 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 -mb-6 -ml-6 w-28 h-28 bg-amber-500/15 rounded-full blur-2xl pointer-events-none" />
+
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-amber-500 to-emerald-400 p-0.5 shadow-lg mb-3 flex items-center justify-center">
+            <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+              <Crown className="w-7 h-7 text-amber-400" />
+            </div>
+          </div>
+
+          <span className="inline-flex items-center space-x-1 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-300/30 text-amber-300 text-[10px] font-black uppercase tracking-wider mb-2">
+            <Sparkles className="w-3 h-3 text-amber-400" />
+            <span>Fonctionnalité FasoCarnet Pro</span>
+          </span>
+
+          <h2 className="text-lg font-black font-display text-white mb-1.5">
+            Bilan & Comptabilité Avancée
+          </h2>
+
+          <p className="text-xs text-slate-300 leading-relaxed max-w-xs mx-auto mb-4">
+            Analysez votre chiffre d'affaires, suivez vos bénéfices et exportez vos données en Excel (.csv).
+          </p>
+
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 text-left space-y-2 border border-white/10 mb-4">
+            <div className="flex items-center space-x-2.5 text-xs text-slate-200">
+              <div className="w-4 h-4 rounded bg-emerald-500/30 flex items-center justify-center text-emerald-400 text-[10px] font-black shrink-0">✓</div>
+              <span className="font-semibold text-[11px]">Chiffre d'affaires & bénéfice calculés</span>
+            </div>
+            <div className="flex items-center space-x-2.5 text-xs text-slate-200">
+              <div className="w-4 h-4 rounded bg-emerald-500/30 flex items-center justify-center text-emerald-400 text-[10px] font-black shrink-0">✓</div>
+              <span className="font-semibold text-[11px]">Détail Cash, Orange Money, Moov & Wave</span>
+            </div>
+            <div className="flex items-center space-x-2.5 text-xs text-slate-200">
+              <div className="w-4 h-4 rounded bg-emerald-500/30 flex items-center justify-center text-emerald-400 text-[10px] font-black shrink-0">✓</div>
+              <span className="font-semibold text-[11px]">Export du Bilan mensuel en Excel (.csv)</span>
+            </div>
+            <div className="flex items-center space-x-2.5 text-xs text-slate-200">
+              <div className="w-4 h-4 rounded bg-emerald-500/30 flex items-center justify-center text-emerald-400 text-[10px] font-black shrink-0">✓</div>
+              <span className="font-semibold text-[11px]">Historique complet de toutes vos ventes</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('fasocarnet_settings_tab', 'subscription');
+              }
+              setActiveTab('settings');
+            }}
+            className="w-full py-2.5 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-900/40 flex items-center justify-center space-x-2 active:scale-98 transition-all cursor-pointer"
+          >
+            <span>Activer un Abonnement Pro</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 text-center">
+          <p className="text-[11px] text-slate-600 font-medium">
+            💡 <strong className="font-bold text-slate-800">Caisse gratuite :</strong> La saisie des ventes, les tickets de caisse et le carnet de dettes restent disponibles pour votre commerce.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto p-3.5 sm:p-4 space-y-3 pb-28">

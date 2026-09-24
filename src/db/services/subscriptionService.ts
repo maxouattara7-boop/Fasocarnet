@@ -189,6 +189,28 @@ export const subscriptionService = {
     };
   },
 
+  isPremiumActive(profile?: ShopProfile | null): boolean {
+    if (!profile) return false;
+    const info = this.getSubscriptionInfo(profile);
+    return (info.status === 'active' || info.status === 'trial') && info.daysRemaining > 0;
+  },
+
+  canAccessFeature(
+    feature: 'pos' | 'debts' | 'reports' | 'catalog' | 'subscription' | 'payments' | 'shop',
+    profile?: ShopProfile | null
+  ): boolean {
+    if (
+      feature === 'pos' ||
+      feature === 'debts' ||
+      feature === 'subscription' ||
+      feature === 'payments' ||
+      feature === 'shop'
+    ) {
+      return true;
+    }
+    return this.isPremiumActive(profile);
+  },
+
   getWhatsAppPaymentConfirmationUrl(plan: SubscriptionPlan, shopName?: string, shopPhone?: string): string {
     const text = `🌟 *Paiement Abonnement FasoCarnet* 🌟\n\n` +
       `Bonjour FasoCarnet ! 🇧🇫\n` +
