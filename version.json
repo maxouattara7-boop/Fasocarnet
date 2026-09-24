@@ -1,9 +1,9 @@
 {
-  "version": "1.2.18",
-  "versionCode": 21,
+  "version": "1.2.19",
+  "versionCode": 22,
   "releaseDate": "2026-09-24",
-  "title": "Administration Simplifiée & Télémétrie Épurée",
-  "releaseNotes": "1. Interface Super-Admin responsif optimisée pour mobile et tablette.\n2. Liste des boutiques épurée (Nom, Date de création, Badge du forfait) avec modale de détails complets au clic.\n3. Possibilité pour l'administrateur de supprimer définitivement un compte boutique.\n4. Télémétrie et Analytics simplifiées : total des appareils installés, ratio abonnés payants vs essai, et provenance par ville.\n5. Persistance renforcée des ajouts et suppressions d'articles et dettes.",
+  "title": "Affichage Intégral des Boutiques & Badges Forfaits Simplifiés",
+  "releaseNotes": "1. Affichage intégral du nom des boutiques sans troncature dans la liste Super-Admin.\n2. Badges de statut simplifiés et directs : 'Gratuit' pour les versions d'essai et 'Payant' pour les abonnements actifs.\n3. Expérience utilisateur et navigation mobile optimisées.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false

@@ -364,14 +364,23 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
     return shop.statusType === filterStatus;
   });
 
-  const getShopBadgeStyle = (shop: ShopAdminDetails) => {
+  const getShopBadge = (shop: ShopAdminDetails) => {
     if (shop.statusType === 'active') {
-      return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
+      return {
+        style: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+        label: 'Payant'
+      };
     }
     if (shop.statusType === 'trial') {
-      return 'bg-amber-500/15 text-amber-300 border-amber-500/30';
+      return {
+        style: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+        label: 'Gratuit'
+      };
     }
-    return 'bg-red-500/15 text-red-300 border-red-500/30';
+    return {
+      style: 'bg-red-500/15 text-red-300 border-red-500/30',
+      label: 'Expiré'
+    };
   };
 
   if (!isAuthenticated) {
@@ -632,7 +641,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               <div className="space-y-2">
                 {filteredShops.map((shop) => {
                   const createdDate = shop.createdAt ? new Date(shop.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue';
-                  const badgeStyle = getShopBadgeStyle(shop);
+                  const badge = getShopBadge(shop);
 
                   return (
                     <div
@@ -642,7 +651,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center space-x-2">
-                          <h4 className="font-black text-white text-sm sm:text-base group-hover:text-emerald-300 transition-colors truncate">
+                          <h4 className="font-black text-white text-sm sm:text-base group-hover:text-emerald-300 transition-colors break-words">
                             {shop.name}
                           </h4>
                         </div>
@@ -659,10 +668,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                       </div>
 
                       <div className="flex items-center space-x-2 shrink-0">
-                        <span className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider border ${badgeStyle}`}>
-                          {shop.statusLabel}
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider border ${badge.style}`}>
+                          {badge.label}
                         </span>
-                        <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+                        <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
                       </div>
                     </div>
                   );
@@ -1478,11 +1487,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
             <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-4">
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-base sm:text-lg font-black text-white font-display truncate">
+                  <h3 className="text-base sm:text-lg font-black text-white font-display break-words">
                     {selectedShop.name}
                   </h3>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${getShopBadgeStyle(selectedShop)}`}>
-                    {selectedShop.statusLabel}
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${getShopBadge(selectedShop).style}`}>
+                    {getShopBadge(selectedShop).label}
                   </span>
                 </div>
                 {selectedShop.description && (
