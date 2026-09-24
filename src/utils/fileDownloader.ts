@@ -4,7 +4,6 @@ import { Share } from '@capacitor/share';
 
 /**
  * Convertit un DataURL (base64) en Blob de manière synchrone et ultra-rapide
- * (évite les délais asynchrones de fetch() qui révoquent l'activation utilisateur pour le Web Share API)
  */
 export function dataUrlToBlob(dataUrl: string): Blob {
   const parts = dataUrl.split(',');
@@ -46,21 +45,24 @@ export async function downloadOrShareTextFile(params: {
   const { fileName, content, mimeType = 'text/csv;charset=utf-8;', title = 'Bilan Comptable' } = params;
 
   // 1. Tenter l'utilisation des plugins natifs Capacitor si disponibles dans le binaire APK
-  if (Capacitor.isPluginAvailable('Filesystem') && Capacitor.isPluginAvailable('Share')) {
+  if (Capacitor.isPluginAvailable('Filesystem')) {
     try {
       const base64Data = btoa(unescape(encodeURIComponent(content)));
       const writeResult = await Filesystem.writeFile({
         path: fileName,
         data: base64Data,
-        directory: Directory.Cache
+        directory: Directory.Documents,
+        recursive: true
       });
 
-      await Share.share({
-        title,
-        text: `Fichier : ${fileName}`,
-        url: writeResult.uri,
-        dialogTitle: `Ouvrir / Sauvegarder ${fileName}`
-      });
+      if (Capacitor.isPluginAvailable('Share')) {
+        await Share.share({
+          title,
+          text: `Fichier : ${fileName}`,
+          url: writeResult.uri,
+          dialogTitle: `Ouvrir / Sauvegarder ${fileName}`
+        });
+      }
 
       return { success: true, method: 'native' };
     } catch (err: any) {
@@ -71,7 +73,7 @@ export async function downloadOrShareTextFile(params: {
     }
   }
 
-  // 2. Web Share API avec fichier réel (Fonctionne directement dans les WebViews modernes et navigateurs mobiles)
+  // 2. Web Share API avec fichier réel
   if (typeof navigator !== 'undefined' && navigator.share) {
     try {
       const blob = new Blob([content], { type: mimeType });
@@ -93,7 +95,7 @@ export async function downloadOrShareTextFile(params: {
     }
   }
 
-  // 3. Téléchargement standard via élément <a> (Navigateur web / PC)
+  // 3. Téléchargement standard via élément <a>
   try {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
@@ -112,7 +114,7 @@ export async function downloadOrShareTextFile(params: {
 }
 
 /**
- * Sauvegarde une image (reçu PNG) dans la mémoire / galerie et/ou partage
+ * Sauvegarde la photo du reçu dans le stockage / Galerie de l'appareil
  */
 export async function downloadOrShareImage(params: {
   fileName: string;
@@ -123,22 +125,34 @@ export async function downloadOrShareImage(params: {
 }): Promise<FileActionResult> {
   const { fileName, dataUrl, title = 'Reçu de caisse', text = 'Votre reçu de caisse', directShare = false } = params;
 
-  // 1. Tenter les plugins natifs Capacitor si présents dans l'APK
-  if (Capacitor.isPluginAvailable('Filesystem') && Capacitor.isPluginAvailable('Share')) {
+  // 1. Tenter les plugins natifs Capacitor pour écrire dans Documents / Galerie
+  if (Capacitor.isPluginAvailable('Filesystem')) {
     try {
       const base64 = dataUrlToBase64(dataUrl);
+
+      // Écriture dans Documents (accessible dans la mémoire de l'appareil)
       const writeResult = await Filesystem.writeFile({
+        path: fileName,
+        data: base64,
+        directory: Directory.Documents,
+        recursive: true
+      });
+
+      // Également dans Cache pour partage immédiat si besoin
+      await Filesystem.writeFile({
         path: fileName,
         data: base64,
         directory: Directory.Cache
       });
 
-      await Share.share({
-        title,
-        text,
-        url: writeResult.uri,
-        dialogTitle: directShare ? 'Partager le reçu (WhatsApp / Galerie)' : 'Enregistrer le reçu'
-      });
+      if (Capacitor.isPluginAvailable('Share')) {
+        await Share.share({
+          title,
+          text,
+          url: writeResult.uri,
+          dialogTitle: directShare ? 'Envoyer la photo sur WhatsApp / Galerie' : 'Enregistrer dans la Galerie / Photos'
+        });
+      }
 
       return { success: true, method: 'native' };
     } catch (err: any) {
@@ -149,7 +163,7 @@ export async function downloadOrShareImage(params: {
     }
   }
 
-  // 2. Web Share API avec fichier Image PNG (Permet l'envoi direct de l'image sur WhatsApp / Enregistrement dans les fichiers)
+  // 2. Web Share API avec fichier réel Image PNG
   if (typeof navigator !== 'undefined' && navigator.share) {
     try {
       const blob = dataUrlToBlob(dataUrl);
@@ -171,7 +185,7 @@ export async function downloadOrShareImage(params: {
     }
   }
 
-  // 3. Téléchargement navigateur classique (PC / Web standard)
+  // 3. Téléchargement navigateur classique (PC / Navigateur standard)
   try {
     const blob = dataUrlToBlob(dataUrl);
     const url = URL.createObjectURL(blob);
@@ -181,7 +195,7 @@ export async function downloadOrShareImage(params: {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
     return { success: true, method: 'download' };
   } catch (err: any) {
     console.error('[Downloader] Échec téléchargement image web:', err);
