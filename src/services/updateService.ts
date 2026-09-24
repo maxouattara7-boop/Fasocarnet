@@ -12,8 +12,8 @@ export interface AppUpdateInfo {
   mandatory?: boolean;
 }
 
-export const CURRENT_APP_VERSION = '1.2.15';
-export const CURRENT_VERSION_CODE = 18;
+export const CURRENT_APP_VERSION = '1.2.16';
+export const CURRENT_VERSION_CODE = 19;
 
 // Réseau multi-CDN redondant pour une disponibilité 100% sans coupure
 const UPDATE_SERVERS = [

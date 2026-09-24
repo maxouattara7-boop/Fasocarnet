@@ -1,9 +1,9 @@
 {
-  "version": "1.2.15",
-  "versionCode": 18,
+  "version": "1.2.16",
+  "versionCode": 19,
   "releaseDate": "2026-09-24",
-  "title": "Téléchargement Direct Reçu Galerie & Mise à Jour Multi-CDN",
-  "releaseNotes": "1. Téléchargement Direct Reçu : Enregistrement immédiat de la photo HD du ticket dans votre galerie photo et vos documents.\n2. Bouton 'Ouvrir WhatsApp' direct pour joindre la photo du reçu en 1 clic.\n3. Réseau Multi-CDN haute disponibilité (jsDelivr + Fastly + GitHub) pour une détection instantanée de chaque mise à jour.\n4. Modale de mise à jour stable : reste affichée pour lecture et redémarre uniquement au clic sur 'Compris / C'est noté'.",
+  "title": "En-tête Centré du Reçu, Slogan Boutique & Filigrane FasoCarnet",
+  "releaseNotes": "1. En-tête Reçu 100% Centré : Logo, Nom de la boutique, Slogan/Activité, Contact et IFU/RCCM parfaitement alignés et centrés.\n2. Champ Slogan / Activité : Personnalisez la description de votre commerce (ex: 'Impression sur tous les supports') affichée sous le nom de votre boutique sur les reçus.\n3. Filigrane de Sécurité FasoCarnet : Filigrane professionnel et subtil en arrière-plan sur tout le long du reçu.\n4. Persistance garantie : Tous les paramètres (slogan, logo, IFU, RCCM, téléphones) restent intacts après chaque mise à jour.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false

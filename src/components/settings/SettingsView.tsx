@@ -79,6 +79,7 @@ export const SettingsView: React.FC = () => {
 
   // Profil boutique
   const [name, setName] = useState(shopProfile?.name || '');
+  const [description, setDescription] = useState(shopProfile?.description || '');
   const [ownerName, setOwnerName] = useState(shopProfile?.ownerName || '');
   const [ownerPhone, setOwnerPhone] = useState(shopProfile?.ownerPhone || '');
   const [phone, setPhone] = useState(shopProfile?.phone || '');
@@ -93,6 +94,25 @@ export const SettingsView: React.FC = () => {
   const [pin, setNewPin] = useState(shopProfile?.pinCode || '');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  useEffect(() => {
+    if (shopProfile) {
+      setName(shopProfile.name || '');
+      setDescription(shopProfile.description || '');
+      setOwnerName(shopProfile.ownerName || '');
+      setOwnerPhone(shopProfile.ownerPhone || '');
+      setPhone(shopProfile.phone || '');
+      setOmNumber(shopProfile.orangeMoneyNumber || '');
+      setMoovNumber(shopProfile.moovMoneyNumber || '');
+      setWaveNumber(shopProfile.waveNumber || '');
+      setIfu(shopProfile.ifu || '');
+      setRccm(shopProfile.rccm || '');
+      setLogo(shopProfile.logo || null);
+      setDebtAlarmEnabled(shopProfile.debtAlarmEnabled !== false);
+      setDebtAlarmDay(shopProfile.debtAlarmDay ?? 1);
+      setNewPin(shopProfile.pinCode || '');
+    }
+  }, [shopProfile]);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -388,6 +408,7 @@ export const SettingsView: React.FC = () => {
 
     await updateShopProfile({
       name: name.trim() || 'Ma Boutique',
+      description: description.trim() || undefined,
       ownerName: ownerName.trim(),
       ownerPhone: ownerPhone.trim() || undefined,
       phone: phone.trim(),
@@ -512,6 +533,19 @@ export const SettingsView: React.FC = () => {
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
                 placeholder="Ex: Boutique La Grâce"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[9px] font-bold uppercase text-slate-600 tracking-wider mb-0.5">
+                Slogan / Activité du Commerce (Reçus)
+              </label>
+              <input
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
+                placeholder="Ex: Impression sur tous les supports, Prêt-à-porter..."
               />
             </div>
 

@@ -101,6 +101,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
    */
   const buildReceiptHtml = () => {
     const shopName = shopProfile?.name || 'FASOCARNET';
+    const description = shopProfile?.description || '';
     const phone = shopProfile?.phone || '';
     const city = shopProfile?.city || '';
     const ifu = shopProfile?.ifu || '';
@@ -144,6 +145,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             .right { text-align: right; }
             .bold { font-weight: 900; }
             .shop-title { font-size: 16px; font-weight: 900; margin-bottom: 2px; }
+            .shop-desc { font-size: 11px; font-style: italic; color: #333; margin-bottom: 3px; }
             .divider { border-top: 1px dashed #000; margin: 6px 0; }
             .double-divider { border-top: 2px solid #000; margin: 6px 0; }
             .row { display: flex; justify-content: space-between; margin: 3px 0; }
@@ -154,6 +156,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
         <body>
           <div class="center">
             <div class="shop-title">${shopName.toUpperCase()}</div>
+            ${description ? `<div class="shop-desc">${description}</div>` : ''}
             ${phone ? `<div>Tél : ${phone}</div>` : ''}
             ${city ? `<div>${city}</div>` : ''}
             ${ifu ? `<div style="font-size: 11px;">IFU : ${ifu}</div>` : ''}

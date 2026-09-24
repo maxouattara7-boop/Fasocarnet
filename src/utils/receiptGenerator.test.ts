@@ -45,4 +45,18 @@ describe('receiptGenerator', () => {
     expect(canvas.width).toBe(640 * 2);
     expect(canvas.height).toBeGreaterThanOrEqual(800 * 2);
   });
+
+  it('generates canvas properly with slogan description, tax info and logo', async () => {
+    const richShop: ShopProfile = {
+      ...mockShop,
+      description: 'Impression sur tous les supports & Sérigraphie',
+      ifu: '00123456A',
+      rccm: 'BF-OUA-2024-B-001',
+      logo: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+    };
+    const canvas = await generateReceiptCanvas(mockSale, richShop);
+    expect(canvas).toBeDefined();
+    expect(canvas.width).toBe(640 * 2);
+    expect(canvas.height).toBeGreaterThanOrEqual(800 * 2);
+  });
 });

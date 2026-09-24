@@ -62,6 +62,7 @@ export const OnboardingView: React.FC = () => {
 
   // Champs Création d'espace
   const [shopName, setShopName] = useState('');
+  const [shopDescription, setShopDescription] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [city, setCity] = useState('Ouagadougou');
@@ -161,6 +162,7 @@ export const OnboardingView: React.FC = () => {
     try {
       await createShop({
         name: shopName.trim(),
+        description: shopDescription.trim() || undefined,
         phone: phone.trim(),
         email: email.trim() || undefined,
         city: selectedCity,
@@ -439,6 +441,20 @@ export const OnboardingView: React.FC = () => {
                 placeholder="Nom du commerce (Ex: Alimentation La Grâce) *"
                 value={shopName}
                 onChange={(e) => setShopName(e.target.value)}
+                className="w-full pl-12 pr-4 py-2.5 sm:py-3 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
+              />
+            </div>
+
+            {/* Slogan / Activité (Optionnel) */}
+            <div className="relative flex items-center">
+              <div className="absolute left-3.5 flex items-center pointer-events-none text-emerald-600">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <input
+                type="text"
+                placeholder="Slogan / Activité (Ex: Impression tout support, Prêt-à-porter...)"
+                value={shopDescription}
+                onChange={(e) => setShopDescription(e.target.value)}
                 className="w-full pl-12 pr-4 py-2.5 sm:py-3 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
               />
             </div>

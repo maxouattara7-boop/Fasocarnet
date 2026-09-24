@@ -59,11 +59,29 @@ export function extractReceiptItems(sale: Sale): ParsedReceiptItem[] {
 const loadLogoImage = (dataUrl?: string): Promise<HTMLImageElement | null> => {
   if (!dataUrl) return Promise.resolve(null);
   return new Promise((resolve) => {
+    let resolved = false;
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
+    img.onload = () => {
+      if (!resolved) {
+        resolved = true;
+        resolve(img);
+      }
+    };
+    img.onerror = () => {
+      if (!resolved) {
+        resolved = true;
+        resolve(null);
+      }
+    };
     img.src = dataUrl;
+    // Sécurité timeout en environnement sans rendu natif (JSDOM / réseau lent)
+    setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve(null);
+      }
+    }, 250);
   });
 };
 
@@ -79,9 +97,23 @@ export async function generateReceiptCanvas(
   const itemsCount = Math.max(1, items.length);
   const logoImg = await loadLogoImage(shop?.logo);
   const hasTaxInfo = Boolean(shop?.ifu || shop?.rccm);
+  const hasDescription = Boolean(shop?.description && shop.description.trim());
 
-  // Hauteur d'en-tête vert compacte et calibrée (105px - 120px au lieu de 195px)
-  const headerHeight = hasTaxInfo ? (logoImg ? 120 : 108) : (logoImg ? 104 : 92);
+  // Hauteur d'en-tête vert calculée harmonieusement pour tout centrer
+  const logoSize = 64;
+  let headerHeight = 20; // Top padding
+  if (logoImg) {
+    headerHeight += logoSize + 14;
+  }
+  headerHeight += 28; // Shop name
+  if (hasDescription) {
+    headerHeight += 20; // Slogan / Description
+  }
+  headerHeight += 20; // Contact info
+  if (hasTaxInfo) {
+    headerHeight += 20; // IFU / RCCM
+  }
+  headerHeight += 16; // Bottom padding
 
   const width = 640;
   // Calcul dynamique de la hauteur pour garantir des proportions parfaites
@@ -124,7 +156,30 @@ export async function generateReceiptCanvas(
   ctx.fill();
   ctx.shadowColor = 'transparent'; // Reset ombre
 
-  // 3. En-tête vert émeraude compact & raffiné
+  // 3. Filigrane de sécurité discret 'FASOCARNET' en arrière-plan sur le corps du reçu
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(cardX, cardY + headerHeight, cardW, cardH - headerHeight, [0, 0, radius, radius]);
+  ctx.clip();
+
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.035)'; // Filigrane très discret, lisible en fond sans gêner la lecture
+  ctx.font = '900 24px sans-serif';
+  ctx.textAlign = 'center';
+
+  const stepX = 220;
+  const stepY = 130;
+  for (let y = cardY + headerHeight - 60; y < height + 100; y += stepY) {
+    for (let x = -80; x < width + 120; x += stepX) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(-25 * (Math.PI / 180));
+      ctx.fillText('FASOCARNET', 0, 0);
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+
+  // 4. En-tête vert émeraude compact & raffiné
   const headerGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + headerHeight);
   headerGrad.addColorStop(0, '#047857');
   headerGrad.addColorStop(1, '#064e3b');
@@ -133,12 +188,13 @@ export async function generateReceiptCanvas(
   ctx.roundRect(cardX, cardY, cardW, headerHeight, [radius, radius, 0, 0]);
   ctx.fill();
 
-  const logoSize = 68; // Logo optimisé, parfaitement proportionné
+  const centerX = width / 2;
+  let currY = cardY + 20;
 
   if (logoImg) {
     try {
-      const logoX = cardX + 16;
-      const logoY = cardY + (headerHeight - logoSize) / 2;
+      const logoX = centerX - (logoSize / 2);
+      const logoY = currY;
 
       // Badge blanc arrondi avec ombre douce
       ctx.save();
@@ -159,74 +215,49 @@ export async function generateReceiptCanvas(
       ctx.drawImage(logoImg, logoX + 3, logoY + 3, logoSize - 6, logoSize - 6);
       ctx.restore();
 
-      // Textes alignés à gauche de façon fluide à côté du logo
-      const textX = logoX + logoSize + 16;
-      ctx.textAlign = 'left';
-
-      // Nom de la boutique
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 21px sans-serif';
-      const shopName = shop?.name || 'FASOCARNET';
-      const truncatedShop = shopName.length > 22 ? shopName.slice(0, 21) + '…' : shopName;
-      ctx.fillText(truncatedShop.toUpperCase(), textX, cardY + (hasTaxInfo ? 30 : 36));
-
-      // Téléphone & Ville
-      ctx.fillStyle = '#a7f3d0';
-      ctx.font = '12px sans-serif';
-      const contactText = shop?.phone ? `Tél : ${shop.phone}${shop?.city ? ` • ${shop.city}` : ''}` : 'Reçu de Caisse Numérique';
-      ctx.fillText(contactText, textX, cardY + (hasTaxInfo ? 52 : 60));
-
-      // Mentions fiscales IFU / RCCM
-      if (hasTaxInfo) {
-        const taxParts: string[] = [];
-        if (shop?.ifu) taxParts.push(`IFU: ${shop.ifu}`);
-        if (shop?.rccm) taxParts.push(`RCCM: ${shop.rccm}`);
-        ctx.fillStyle = '#fde68a';
-        ctx.font = 'bold 11px sans-serif';
-        ctx.fillText(taxParts.join('  |  '), textX, cardY + 74);
-
-        ctx.fillStyle = '#6ee7b7';
-        ctx.font = '10px sans-serif';
-        ctx.fillText('★ FASOCARNET GESTION COMMERCIALE ★', textX, cardY + 94);
-      } else {
-        ctx.fillStyle = '#6ee7b7';
-        ctx.font = '10px sans-serif';
-        ctx.fillText('★ FASOCARNET GESTION COMMERCIALE ★', textX, cardY + 80);
-      }
+      currY += logoSize + 22;
     } catch {
-      // Fallback
+      currY += 10;
     }
   } else {
-    // Sans logo : Textes centrés élégamment
-    ctx.textAlign = 'center';
-    const centerX = width / 2;
+    currY += 10;
+  }
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 22px sans-serif';
-    const shopName = shop?.name || 'FASOCARNET';
-    ctx.fillText(shopName.toUpperCase(), centerX, cardY + (hasTaxInfo ? 30 : 36));
+  // Textes centrés harmonieusement ensemble
+  ctx.textAlign = 'center';
 
+  // Nom de la boutique
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 22px sans-serif';
+  const shopName = shop?.name || 'FASOCARNET';
+  const truncatedShop = shopName.length > 28 ? shopName.slice(0, 27) + '…' : shopName;
+  ctx.fillText(truncatedShop.toUpperCase(), centerX, currY);
+
+  // Slogan / Description de l'activité
+  if (hasDescription && shop?.description) {
+    currY += 20;
     ctx.fillStyle = '#a7f3d0';
-    ctx.font = '12px sans-serif';
-    const contactText = shop?.phone ? `Tél : ${shop.phone}${shop?.city ? ` • ${shop.city}` : ''}` : 'Reçu de Caisse Numérique';
-    ctx.fillText(contactText, centerX, cardY + (hasTaxInfo ? 52 : 60));
+    ctx.font = 'italic 12px sans-serif';
+    const truncatedDesc = shop.description.length > 45 ? shop.description.slice(0, 44) + '…' : shop.description;
+    ctx.fillText(truncatedDesc, centerX, currY);
+  }
 
-    if (hasTaxInfo) {
-      const taxParts: string[] = [];
-      if (shop?.ifu) taxParts.push(`IFU: ${shop.ifu}`);
-      if (shop?.rccm) taxParts.push(`RCCM: ${shop.rccm}`);
-      ctx.fillStyle = '#fde68a';
-      ctx.font = 'bold 11px sans-serif';
-      ctx.fillText(taxParts.join('  |  '), centerX, cardY + 74);
+  // Téléphone & Ville
+  currY += 20;
+  ctx.fillStyle = '#e2e8f0';
+  ctx.font = '12px sans-serif';
+  const contactText = shop?.phone ? `Tél : ${shop.phone}${shop?.city ? ` • ${shop.city}` : ''}` : 'Reçu de Caisse Numérique';
+  ctx.fillText(contactText, centerX, currY);
 
-      ctx.fillStyle = '#6ee7b7';
-      ctx.font = '10px sans-serif';
-      ctx.fillText('★ FASOCARNET GESTION COMMERCIALE ★', centerX, cardY + 94);
-    } else {
-      ctx.fillStyle = '#6ee7b7';
-      ctx.font = '10px sans-serif';
-      ctx.fillText('★ FASOCARNET GESTION COMMERCIALE ★', centerX, cardY + 80);
-    }
+  // Mentions fiscales IFU / RCCM
+  if (hasTaxInfo) {
+    currY += 20;
+    const taxParts: string[] = [];
+    if (shop?.ifu) taxParts.push(`IFU: ${shop.ifu}`);
+    if (shop?.rccm) taxParts.push(`RCCM: ${shop.rccm}`);
+    ctx.fillStyle = '#fde68a';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(taxParts.join('  •  '), centerX, currY);
   }
 
   // 4. Métadonnées (Date, Réf sur la même ligne pour compacité et élégance)

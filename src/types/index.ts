@@ -3,6 +3,7 @@ export type PaymentMethod = 'CASH' | 'ORANGE_MONEY' | 'MOOV_MONEY' | 'WAVE' | 'C
 export interface ShopProfile {
   id: string;
   name: string;
+  description?: string; // Slogan / Activité / Description du commerce (ex: Impression sur tous supports)
   ownerName?: string;
   ownerPhone?: string; // Numéro WhatsApp du propriétaire/patron pour les rapports du soir
   phone: string;
