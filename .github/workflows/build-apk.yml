@@ -65,7 +65,7 @@ jobs:
             exit 1
           fi
           echo "✅ APK trouvé: $APK_FILE"
-          cp "$APK_FILE" release_assets/FasoCarnet-v1.2.6-Android.apk
+          cp "$APK_FILE" release_assets/FasoCarnet-v1.2.7-Android.apk
           cp "$APK_FILE" release_assets/fasocarnet-release.apk
           cp dist.zip release_assets/dist.zip || true
           ls -lh release_assets/
@@ -73,23 +73,24 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FasoCarnet-v1.2.6-Android-APK
-          path: release_assets/FasoCarnet-v1.2.6-Android.apk
+          name: FasoCarnet-v1.2.7-Android-APK
+          path: release_assets/FasoCarnet-v1.2.7-Android.apk
           if-no-files-found: error
 
       - name: Publish Direct APK to GitHub Release
         uses: softprops/action-gh-release@v2
         continue-on-error: true
         with:
-          tag_name: v1.2.6
-          name: "FasoCarnet v1.2.6 - Version Officielle Android"
+          tag_name: v1.2.7
+          name: "FasoCarnet v1.2.7 - Version Officielle Android"
           body: |
-            ### 🇧🇫 FasoCarnet v1.2.6 - Application Android Officielle
+            ### 🇧🇫 FasoCarnet v1.2.7 - Application Android Officielle
 
+            - ✅ **Sélecteur de quantité rapide en caisse** : Choisissez le nombre d'unités d'un article avant ajout au panier.
+            - ✅ **Reçus de caisse restructurés** : Tableau complet 4 colonnes (Article, Quantité, Prix Unitaire, Total).
             - ✅ **Calculatrice tactile TPV Grand Format (64-72px)** : Ergonomie mobile optimisée pour saisir les montants rapidement.
             - ✅ **Dettes & Débiteurs** : Disparition automatique des dettes soldées et suppression sécurisée.
             - ✅ **Bilan Mensuel & Journalier** : Vue mensuelle complète et affichage précis des ventes du jour sélectionné.
-            - ✅ **Mises à jour OTA instantanées** : CDN haute vitesse pour une application fluide des nouveautés.
           files: release_assets/*
           make_latest: true
         env:

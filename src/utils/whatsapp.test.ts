@@ -58,6 +58,28 @@ describe('whatsapp utility', () => {
     expect(url).toContain(encodeURIComponent('Espèces (Cash)'));
   });
 
+  it('generates itemized details with quantity, unit price and total', () => {
+    const mockSaleWithItems: Sale = {
+      id: 'sale_2',
+      totalAmount: 300,
+      paymentMethod: 'CASH',
+      isCredit: false,
+      items: [
+        {
+          id: 'item_1',
+          productId: 'prod_1',
+          description: 'Bic Bleu',
+          quantity: 3,
+          unitPrice: 100
+        }
+      ],
+      createdAt: new Date().toISOString()
+    };
+
+    const url = generateWhatsAppReceiptUrl(mockSaleWithItems, mockShop, '75112233');
+    expect(url).toContain(encodeURIComponent('Bic Bleu : 3 x 100 FCFA = *300 FCFA*'));
+  });
+
   it('generates a valid WhatsApp payment receipt url', () => {
     const url = generateWhatsAppDebtPaymentReceiptUrl('Moussa', '70123456', 5000, 7500, mockShop);
     expect(url).toContain('https://wa.me/22670123456?text=');

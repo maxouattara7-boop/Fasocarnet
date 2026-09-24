@@ -112,9 +112,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
     const items = extractReceiptItems(sale);
 
     const itemsHtml = items.map(it => `
-      <div class="row">
-        <span class="bold">${it.description}</span>
-        <span>${it.total.toLocaleString('fr-FR')} F</span>
+      <div style="margin: 4px 0; border-bottom: 1px dotted #ccc; padding-bottom: 3px;">
+        <div class="row bold">
+          <span>${it.description}</span>
+          <span>${it.total.toLocaleString('fr-FR')} F</span>
+        </div>
+        <div style="font-size: 11px; color: #444; display: flex; justify-content: space-between;">
+          <span>Qté: ${it.quantity} x ${it.unitPrice.toLocaleString('fr-FR')} F</span>
+        </div>
       </div>
     `).join('');
 
@@ -174,9 +179,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
           </div>` : ''}
 
           <div class="divider"></div>
-          <div class="row bold">
-            <span>ARTICLES</span>
-            <span>PRIX</span>
+          <div class="row bold" style="font-size: 11px;">
+            <span>ARTICLE (QTÉ x P.U.)</span>
+            <span>TOTAL</span>
           </div>
           <div class="divider"></div>
 

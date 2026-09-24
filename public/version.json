@@ -1,9 +1,9 @@
 {
-  "version": "1.2.6",
-  "versionCode": 9,
-  "releaseDate": "2026-09-23",
-  "title": "Calculatrice Grand Format TPV, Dettes & Bilan Mensuel",
-  "releaseNotes": "1. Clavier de caisse agrandi Grand Format TPV (64-72px) pour une frappe ultra-rapide.\n2. Nettoyage automatique des dettes soldées et bouton de suppression.\n3. Bilan mensuel complet et affichage filtré des ventes par date.",
+  "version": "1.2.7",
+  "versionCode": 10,
+  "releaseDate": "2026-09-24",
+  "title": "Sélecteur de Quantité en Caisse & Reçus Restructurés",
+  "releaseNotes": "1. Sélecteur de quantité rapide lors du choix d'un article en caisse.\n2. Reçus de caisse restructurés en tableau complet (Article, Qté, Prix Unitaire, Total).\n3. Clavier de caisse agrandi Grand Format TPV (64-72px).\n4. Nettoyage automatique des dettes soldées et bilans mensuels.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false

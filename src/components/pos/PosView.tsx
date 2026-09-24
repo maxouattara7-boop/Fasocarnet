@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Keypad } from './Keypad';
 import { PaymentModal } from './PaymentModal';
 import { ReceiptModal } from './ReceiptModal';
+import { QuantityModal } from './QuantityModal';
 import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
 import { salesService } from '../../db/services/salesService';
 import { productsService } from '../../db/services/productsService';
@@ -31,6 +32,7 @@ export const PosView: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedItems, setSelectedItems] = useState<SaleItem[]>([]);
   const [isArticlePickerOpen, setIsArticlePickerOpen] = useState(false);
+  const [productForQuantity, setProductForQuantity] = useState<Product | null>(null);
   const [articleSearch, setArticleSearch] = useState('');
 
   // Scanner Code-Barres
@@ -96,11 +98,19 @@ export const PosView: React.FC = () => {
     triggerHaptic(35);
     const product = products.find((p) => p.id === productId);
     if (!product) return;
+    setProductForQuantity(product);
+  };
+
+  const handleConfirmQuantity = (product: Product, quantity: number) => {
+    const itemTotal = product.price * quantity;
 
     // Signalement d'alerte si le stock est critique
     if (typeof product.stockQuantity === 'number') {
       if (product.stockQuantity <= 0) {
         setScanToast(`⚠️ Rupture : "${product.name}" est épuisé (0 en stock) !`);
+        setTimeout(() => setScanToast(null), 3500);
+      } else if (product.stockQuantity < quantity) {
+        setScanToast(`⚠️ Stock insuffisant : "${product.name}" (${product.stockQuantity} restant${product.stockQuantity > 1 ? 's' : ''})`);
         setTimeout(() => setScanToast(null), 3500);
       } else if (product.stockQuantity <= (product.minStockAlert ?? 5)) {
         setScanToast(`⚠️ Stock faible : "${product.name}" (${product.stockQuantity} restant${product.stockQuantity > 1 ? 's' : ''})`);
@@ -112,7 +122,9 @@ export const PosView: React.FC = () => {
       const existing = prev.find((it) => it.id === product.id || it.productId === product.id);
       if (existing) {
         return prev.map((it) =>
-          (it.id === product.id || it.productId === product.id) ? { ...it, quantity: it.quantity + 1 } : it
+          (it.id === product.id || it.productId === product.id)
+            ? { ...it, quantity: it.quantity + quantity }
+            : it
         );
       }
       return [
@@ -121,7 +133,7 @@ export const PosView: React.FC = () => {
           id: product.id,
           productId: product.id,
           description: product.name,
-          quantity: 1,
+          quantity: quantity,
           unitPrice: product.price
         }
       ];
@@ -129,13 +141,19 @@ export const PosView: React.FC = () => {
 
     setAmountStr((prev) => {
       if (prev === '0') {
-        return product.price.toString();
+        return itemTotal.toString();
       } else if (prev.trim().endsWith('+')) {
-        return prev + product.price.toString();
+        return prev + itemTotal.toString();
       } else {
-        return prev + ' + ' + product.price.toString();
+        return prev + ' + ' + itemTotal.toString();
       }
     });
+
+    setScanToast(`✓ ${quantity}x ${product.name} ajouté(s) (+${formatCurrency(itemTotal)})`);
+    setTimeout(() => setScanToast(null), 3000);
+
+    setProductForQuantity(null);
+    setIsArticlePickerOpen(false);
   };
 
   /**
@@ -377,6 +395,14 @@ export const PosView: React.FC = () => {
         isOpen={isReceiptModalOpen}
         sale={lastSale}
         onClose={() => setIsReceiptModalOpen(false)}
+      />
+
+      {/* Modal de Choix de Quantité d'un Article */}
+      <QuantityModal
+        isOpen={!!productForQuantity}
+        product={productForQuantity}
+        onClose={() => setProductForQuantity(null)}
+        onConfirm={handleConfirmQuantity}
       />
 
       {/* Modal de Sélection Rapide d'Articles du Catalogue */}

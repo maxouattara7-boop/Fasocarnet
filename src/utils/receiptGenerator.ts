@@ -154,23 +154,47 @@ export async function generateReceiptCanvas(
   ctx.stroke();
   ctx.setLineDash([]); // Reset
 
-  // 6. Liste des Articles (Chaque article sur sa ligne avec son prix)
-  let currentY = sepY + 32;
+  // 6. En-tête des Articles (Tableau structuré)
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#64748b';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText('ARTICLE', cardX + 30, sepY + 22);
+  ctx.textAlign = 'center';
+  ctx.fillText('QTÉ', cardX + cardW - 210, sepY + 22);
+  ctx.textAlign = 'right';
+  ctx.fillText('P.U.', cardX + cardW - 125, sepY + 22);
+  ctx.fillText('TOTAL', cardX + cardW - 30, sepY + 22);
+
+  let currentY = sepY + 46;
 
   for (const it of items) {
     // Nom de l'article à gauche
     ctx.textAlign = 'left';
     ctx.fillStyle = '#0f172a';
-    ctx.font = 'bold 15px sans-serif';
-    ctx.fillText(it.description, cardX + 30, currentY);
+    ctx.font = 'bold 14px sans-serif';
+    // Tronquer proprement si trop long
+    const desc = it.description.length > 20 ? it.description.slice(0, 19) + '…' : it.description;
+    ctx.fillText(desc, cardX + 30, currentY);
 
-    // Prix de l'article à droite
+    // Quantité au centre
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#334155';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText(`${it.quantity}`, cardX + cardW - 210, currentY);
+
+    // Prix unitaire
     ctx.textAlign = 'right';
-    ctx.font = 'bold 15px sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(formatCurrency(it.unitPrice).replace(' FCFA', ''), cardX + cardW - 125, currentY);
+
+    // Prix total à droite
+    ctx.textAlign = 'right';
+    ctx.font = 'bold 14px sans-serif';
     ctx.fillStyle = '#047857';
     ctx.fillText(formatCurrency(it.total), cardX + cardW - 30, currentY);
 
-    currentY += 26;
+    currentY += 28;
 
     // Ligne pointillée fine entre les articles
     ctx.strokeStyle = '#f1f5f9';

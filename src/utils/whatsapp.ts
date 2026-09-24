@@ -59,7 +59,7 @@ export function generateWhatsAppReceiptUrl(
   let itemsText = '';
   if (sale.items && sale.items.length > 0) {
     itemsText = '\n*Détail des articles :*\n' +
-      sale.items.map(i => `• ${i.description} (x${i.quantity}) : ${formatCurrency(i.quantity * i.unitPrice)}`).join('\n') + '\n';
+      sale.items.map(i => `• ${i.description} : ${i.quantity} x ${formatCurrency(i.unitPrice)} = *${formatCurrency(i.quantity * i.unitPrice)}*`).join('\n') + '\n';
   }
 
   const message = `🧾 *REÇU DE PAIEMENT - ${shopName.toUpperCase()}*\n` +
