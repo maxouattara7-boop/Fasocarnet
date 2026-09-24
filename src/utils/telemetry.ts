@@ -1,9 +1,10 @@
-﻿import { DeviceTelemetry } from '../types';
+import { DeviceTelemetry } from '../types';
+import { CURRENT_APP_VERSION } from '../services/updateService';
 
 const DEVICE_ID_KEY = 'fasocarnet_device_id_v1';
 const INSTALL_DATE_KEY = 'fasocarnet_install_date_v1';
 
-export const APP_VERSION = '1.2.0';
+export const APP_VERSION = CURRENT_APP_VERSION;
 
 /**
  * Détecte l'opérateur mobile à partir d'un numéro de téléphone burkinabè (8 chiffres)
