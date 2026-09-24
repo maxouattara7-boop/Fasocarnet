@@ -1,9 +1,9 @@
 {
-  "version": "1.2.8",
-  "versionCode": 11,
+  "version": "1.2.9",
+  "versionCode": 12,
   "releaseDate": "2026-09-24",
-  "title": "Optimisation Visuelle Caisse & Déblocage des Règlements Dettes",
-  "releaseNotes": "1. Présentation optimisée et épurée des articles en caisse avec thème Vert Émeraude.\n2. Déblocage du règlement des acomptes successifs sur les dettes.\n3. Sélecteur de quantité rapide et reçus 4 colonnes détaillés.\n4. Connectivité réseau et vérification de mise à jour renforcée.",
+  "title": "Historique Dettes, Alarme Patron, Export Excel & Logo/IFU/RCCM",
+  "releaseNotes": "1. Historique détaillé des dates de dettes et des règlements successifs.\n2. Alarme automatique du patron (relance hebdomadaire des créances).\n3. Exportation comptable du bilan mensuel au format Excel (.xlsx / .csv).\n4. Mentions légales N° IFU, RCCM et intégration du Logo d'entreprise sur les reçus.\n5. Optimisation et affichage épuré des interfaces.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false
