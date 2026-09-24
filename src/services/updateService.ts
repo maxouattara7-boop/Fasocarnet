@@ -12,12 +12,42 @@ export interface AppUpdateInfo {
   mandatory?: boolean;
 }
 
-export const CURRENT_APP_VERSION = '1.2.7';
-export const CURRENT_VERSION_CODE = 10;
+export const CURRENT_APP_VERSION = '1.2.8';
+export const CURRENT_VERSION_CODE = 11;
 
 const PRIMARY_VERSION_URL = 'https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/version.json';
 const BACKUP_VERSION_URL = 'https://fasocarnet.onrender.com/version.json';
 const DISMISSED_UPDATE_KEY = 'fasocarnet_dismissed_update';
+
+/**
+ * Récupère le JSON via XMLHttpRequest en tant que fallback WebView
+ */
+const fetchWithXhr = (url: string, timeoutMs: number): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.timeout = timeoutMs;
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            resolve(data);
+          } catch (e) {
+            reject(new Error('Format JSON invalide'));
+          }
+        } else {
+          reject(new Error(`HTTP ${xhr.status}`));
+        }
+      };
+      xhr.onerror = () => reject(new Error('Erreur réseau XHR'));
+      xhr.ontimeout = () => reject(new Error('Délai dépassé XHR'));
+      xhr.send();
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
 
 class UpdateService {
   /**
@@ -50,18 +80,16 @@ class UpdateService {
     for (const url of endpoints) {
       try {
         let timeoutId: any;
-        const fetchPromise = fetch(url, {
-          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
-        });
+        const fetchPromise = fetch(url);
         const timeoutPromise = new Promise<Response>((_, reject) => {
-          timeoutId = setTimeout(() => reject(new Error('Délai dépassé')), 6000);
+          timeoutId = setTimeout(() => reject(new Error('Délai dépassé')), 5000);
         });
 
         const response = await Promise.race([fetchPromise, timeoutPromise]);
         clearTimeout(timeoutId);
 
-        if (response && response.ok) {
-          const data: AppUpdateInfo = await response.json();
+        if (response && (response as Response).ok) {
+          const data: AppUpdateInfo = await (response as Response).json();
           if (data && (typeof data.versionCode === 'number' || typeof data.version === 'string')) {
             const hasUpdate = (typeof data.versionCode === 'number' && data.versionCode > CURRENT_VERSION_CODE) ||
                               (typeof data.version === 'string' && data.version !== CURRENT_APP_VERSION);
@@ -73,7 +101,21 @@ class UpdateService {
         }
       } catch (err: any) {
         lastError = err;
-        console.warn(`[UpdateService] Échec sur ${url}:`, err);
+        console.warn(`[UpdateService] Échec fetch sur ${url}, tentative XHR...`, err);
+        // Fallback XMLHttpRequest
+        try {
+          const data: AppUpdateInfo = await fetchWithXhr(url, 5000);
+          if (data && (typeof data.versionCode === 'number' || typeof data.version === 'string')) {
+            const hasUpdate = (typeof data.versionCode === 'number' && data.versionCode > CURRENT_VERSION_CODE) ||
+                              (typeof data.version === 'string' && data.version !== CURRENT_APP_VERSION);
+            return {
+              hasUpdate,
+              updateInfo: hasUpdate ? data : undefined
+            };
+          }
+        } catch (xhrErr) {
+          console.warn(`[UpdateService] Échec XHR sur ${url}:`, xhrErr);
+        }
       }
     }
 

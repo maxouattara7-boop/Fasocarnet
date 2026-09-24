@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Customer, PaymentMethod } from '../../types';
 import { debtsService } from '../../db/services/debtsService';
 import { formatCurrency } from '../../utils/formatters';
@@ -28,6 +28,21 @@ export const DebtPaymentModal: React.FC<DebtPaymentModalProps> = ({
     amountPaid: number;
     newRemaining: number;
   } | null>(null);
+
+  useEffect(() => {
+    if (isOpen && customer) {
+      setAmountStr('');
+      setPaymentMethod('CASH');
+      setIsSubmitting(false);
+      setSuccessReceipt(null);
+    }
+  }, [isOpen, customer?.id]);
+
+  const handleClose = () => {
+    setSuccessReceipt(null);
+    setAmountStr('');
+    onClose();
+  };
 
   if (!isOpen || !customer) return null;
 
@@ -100,7 +115,7 @@ export const DebtPaymentModal: React.FC<DebtPaymentModalProps> = ({
                 <h3 className="font-extrabold text-slate-900 text-base tracking-tight font-display">Encaisser un Versement</h3>
                 <p className="text-[11px] text-slate-500 font-medium">Client : <span className="font-bold text-slate-800">{customer.name}</span></p>
               </div>
-              <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-all">
+              <button onClick={handleClose} className="p-1.5 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-all">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -157,7 +172,7 @@ export const DebtPaymentModal: React.FC<DebtPaymentModalProps> = ({
             <div className="pt-1 flex space-x-2">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="w-1/3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all active:scale-98"
               >
                 Annuler
@@ -201,8 +216,8 @@ export const DebtPaymentModal: React.FC<DebtPaymentModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={onClose}
-                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all"
+                onClick={handleClose}
+                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
               >
                 Fermer
               </button>

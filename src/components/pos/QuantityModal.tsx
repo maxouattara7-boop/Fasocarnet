@@ -153,7 +153,7 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
                 key={step}
                 type="button"
                 onClick={() => handleIncrement(step)}
-                className="py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                className="py-2 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-800 border border-emerald-200/80 rounded-xl text-xs font-black transition-all active:scale-95 cursor-pointer shadow-2xs font-display"
               >
                 +{step}
               </button>

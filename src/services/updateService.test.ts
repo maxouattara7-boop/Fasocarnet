@@ -47,10 +47,19 @@ describe('updateService', () => {
 
   it('handles network failure gracefully without throwing', async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+    const oldXHR = global.XMLHttpRequest;
+    global.XMLHttpRequest = vi.fn().mockImplementation(() => ({
+      open: vi.fn(),
+      send: vi.fn(function(this: any) {
+        if (this.onerror) this.onerror(new Error('Network error'));
+      })
+    })) as any;
 
     const result = await updateService.checkForUpdate();
     expect(result.hasUpdate).toBe(false);
     expect(result.updateInfo).toBeUndefined();
+
+    global.XMLHttpRequest = oldXHR;
   });
 
   it('tracks dismissed updates by version and date', () => {
