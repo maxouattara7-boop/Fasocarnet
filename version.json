@@ -1,9 +1,9 @@
 {
-  "version": "1.2.20",
-  "versionCode": 23,
+  "version": "1.2.21",
+  "versionCode": 24,
   "releaseDate": "2026-09-24",
-  "title": "Modèle d'Accès Gratuit & Version Pro FasoCarnet",
-  "releaseNotes": "1. Accès Caisse Gratuit : La saisie des ventes, les reçus et le carnet de dettes restent 100% utilisables sans abonnement.\n2. Version Pro : Fonctionnalités Bilan comptable et Catalogue d'articles réservées aux abonnements actifs et périodes d'essai.\n3. Navigation directe vers l'activation de licence depuis les écrans de présentation Pro.",
+  "title": "Mise à Jour Instantanée & Notification Universelle",
+  "releaseNotes": "1. Affichage garanti de la boîte de dialogue de mise à jour dès l'ouverture de l'application.\n2. Connexion directe en temps réel à l'API GitHub sans délai de mise en cache.\n3. Application automatique des améliorations en un clic sur 'OK, J'ai compris'.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false

@@ -12,15 +12,16 @@ export interface AppUpdateInfo {
   mandatory?: boolean;
 }
 
-export const CURRENT_APP_VERSION = '1.2.20';
-export const CURRENT_VERSION_CODE = 23;
+export const CURRENT_APP_VERSION = '1.2.21';
+export const CURRENT_VERSION_CODE = 24;
 
-// Réseau multi-CDN redondant (GitHub Raw en direct + CDN jsDelivr + Render)
+// Réseau multi-CDN redondant (GitHub API direct + GitHub Raw + Render + CDN jsDelivr)
 const UPDATE_SERVERS = [
   'https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/version.json',
+  'https://api.github.com/repos/maxouattara7-boop/Fasocarnet/contents/version.json',
+  'https://fasocarnet.onrender.com/version.json',
   'https://cdn.jsdelivr.net/gh/maxouattara7-boop/Fasocarnet@main/version.json',
-  'https://fastly.jsdelivr.net/gh/maxouattara7-boop/Fasocarnet@main/version.json',
-  'https://fasocarnet.onrender.com/version.json'
+  'https://fastly.jsdelivr.net/gh/maxouattara7-boop/Fasocarnet@main/version.json'
 ];
 
 const DISMISSED_UPDATE_KEY = 'fasocarnet_dismissed_update';
@@ -28,7 +29,7 @@ const DISMISSED_UPDATE_KEY = 'fasocarnet_dismissed_update';
 /**
  * Récupère le JSON via XMLHttpRequest en tant que fallback WebView
  */
-const fetchWithXhr = (url: string, timeoutMs: number): Promise<any> => {
+const fetchWithXhr = (url: string, timeoutMs: number, headers?: Record<string, string>): Promise<any> => {
   return new Promise((resolve, reject) => {
     try {
       const xhr = new XMLHttpRequest();
@@ -38,6 +39,9 @@ const fetchWithXhr = (url: string, timeoutMs: number): Promise<any> => {
         try {
           xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
           xhr.setRequestHeader('Pragma', 'no-cache');
+          if (headers) {
+            Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+          }
         } catch {
           // Ignore
         }
@@ -107,13 +111,22 @@ class UpdateService {
     let lastError: any = null;
 
     for (const baseUrl of UPDATE_SERVERS) {
+      const isGithubApi = baseUrl.includes('api.github.com');
       const url = `${baseUrl}?_t=${timestamp}`;
+      const headers: Record<string, string> = {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      };
+      if (isGithubApi) {
+        headers['Accept'] = 'application/vnd.github.raw+json';
+      }
+
       try {
-        let data: AppUpdateInfo | null = null;
+        let data: any = null;
         try {
           const res = await fetch(url, {
             cache: 'no-store',
-            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+            headers
           });
           if (res.ok) {
             data = await res.json();
@@ -123,7 +136,17 @@ class UpdateService {
         }
 
         if (!data) {
-          data = await fetchWithXhr(url, 5000);
+          data = await fetchWithXhr(url, 4000, headers);
+        }
+
+        // Si l'API GitHub a retourné le format wrapper Base64
+        if (data && data.content && data.encoding === 'base64') {
+          try {
+            const rawDecoded = atob(data.content.replace(/\s/g, ''));
+            data = JSON.parse(rawDecoded);
+          } catch (decodeErr) {
+            console.warn('[UpdateService] Décodage Base64 GitHub échoué:', decodeErr);
+          }
         }
 
         if (data && data.version) {
