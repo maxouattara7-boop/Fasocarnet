@@ -12,11 +12,17 @@ export interface AppUpdateInfo {
   mandatory?: boolean;
 }
 
-export const CURRENT_APP_VERSION = '1.2.14';
-export const CURRENT_VERSION_CODE = 17;
+export const CURRENT_APP_VERSION = '1.2.15';
+export const CURRENT_VERSION_CODE = 18;
 
-const PRIMARY_VERSION_URL = 'https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/version.json';
-const BACKUP_VERSION_URL = 'https://fasocarnet.onrender.com/version.json';
+// Réseau multi-CDN redondant pour une disponibilité 100% sans coupure
+const UPDATE_SERVERS = [
+  'https://cdn.jsdelivr.net/gh/maxouattara7-boop/Fasocarnet@main/version.json',
+  'https://fastly.jsdelivr.net/gh/maxouattara7-boop/Fasocarnet@main/version.json',
+  'https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/version.json',
+  'https://fasocarnet.onrender.com/version.json'
+];
+
 const DISMISSED_UPDATE_KEY = 'fasocarnet_dismissed_update';
 
 /**
@@ -28,12 +34,10 @@ const fetchWithXhr = (url: string, timeoutMs: number): Promise<any> => {
       const xhr = new XMLHttpRequest();
       xhr.open('GET', url, true);
       xhr.timeout = timeoutMs;
-      xhr.responseType = 'json';
       if (typeof xhr.setRequestHeader === 'function') {
         try {
           xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
           xhr.setRequestHeader('Pragma', 'no-cache');
-          xhr.setRequestHeader('Expires', '0');
         } catch {
           // Ignore
         }
@@ -41,8 +45,12 @@ const fetchWithXhr = (url: string, timeoutMs: number): Promise<any> => {
 
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          const data = typeof xhr.response === 'string' ? JSON.parse(xhr.response) : xhr.response;
-          resolve(data);
+          try {
+            const data = typeof xhr.response === 'string' ? JSON.parse(xhr.response) : xhr.response || JSON.parse(xhr.responseText);
+            resolve(data);
+          } catch (jsonErr) {
+            reject(jsonErr);
+          }
         } else {
           reject(new Error(`HTTP ${xhr.status}`));
         }
@@ -58,7 +66,7 @@ const fetchWithXhr = (url: string, timeoutMs: number): Promise<any> => {
 };
 
 /**
- * Compare deux chaînes de versions sémantiques (ex: '1.2.13' vs '1.2.12')
+ * Compare deux chaînes de versions sémantiques (ex: '1.2.14' vs '1.2.13')
  * @returns true si remoteVersion > localVersion
  */
 export function isNewerVersion(remoteVersion: string, localVersion: string = CURRENT_APP_VERSION): boolean {
@@ -92,17 +100,14 @@ class UpdateService {
   }
 
   /**
-   * Vérifie la disponibilité d'une nouvelle version sur GitHub / Render
+   * Vérifie la disponibilité d'une nouvelle version sur GitHub / jsDelivr / Render
    */
   async checkForUpdate(): Promise<{ hasUpdate: boolean; updateInfo?: AppUpdateInfo; error?: string }> {
-    const urls = [
-      `${PRIMARY_VERSION_URL}?_t=${Date.now()}`,
-      `${BACKUP_VERSION_URL}?_t=${Date.now()}`
-    ];
-
+    const timestamp = Date.now();
     let lastError: any = null;
 
-    for (const url of urls) {
+    for (const baseUrl of UPDATE_SERVERS) {
+      const url = `${baseUrl}?_t=${timestamp}`;
       try {
         let data: AppUpdateInfo | null = null;
         try {
@@ -114,16 +119,16 @@ class UpdateService {
             data = await res.json();
           }
         } catch (fetchErr) {
-          console.warn(`[UpdateService] Échec fetch sur ${url}, tentative XHR...`, fetchErr);
+          console.warn(`[UpdateService] Échec fetch sur ${baseUrl}, tentative XHR...`);
         }
 
         if (!data) {
-          data = await fetchWithXhr(url, 4000);
+          data = await fetchWithXhr(url, 5000);
         }
 
         if (data && data.version) {
           const isNewer = isNewerVersion(data.version, CURRENT_APP_VERSION);
-          const hasHigherCode = data.versionCode > CURRENT_VERSION_CODE;
+          const hasHigherCode = (data.versionCode || 0) > CURRENT_VERSION_CODE;
           const hasUpdate = isNewer || hasHigherCode;
 
           if (hasUpdate) {
@@ -134,7 +139,7 @@ class UpdateService {
         }
       } catch (err: any) {
         lastError = err;
-        console.warn(`[UpdateService] Erreur vérification sur ${url}:`, err);
+        console.warn(`[UpdateService] Erreur vérification sur ${baseUrl}:`, err);
       }
     }
 
@@ -153,23 +158,36 @@ class UpdateService {
       return { success: false, message: 'Les mises à jour à chaud sont réservées à l\'application installée.' };
     }
 
-    try {
-      console.log(`[UpdateService] Téléchargement Live Update v${version} depuis ${bundleUrl}...`);
-      const bundle = await CapacitorUpdater.download({
-        url: bundleUrl,
-        version: version
-      });
+    // Essayer l'URL principale puis le CDN jsDelivr comme secours
+    const downloadCandidates = [
+      bundleUrl,
+      'https://cdn.jsdelivr.net/gh/maxouattara7-boop/Fasocarnet@main/dist.zip',
+      'https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip'
+    ];
 
-      console.log(`[UpdateService] Application du bundle v${version}...`);
-      await CapacitorUpdater.set(bundle);
-      return { success: true };
-    } catch (err: any) {
-      console.error('[UpdateService] Erreur downloadLiveUpdate:', err);
-      return {
-        success: false,
-        message: err.message || 'Impossible de télécharger la mise à jour à chaud.'
-      };
+    let lastErr: any = null;
+
+    for (const url of downloadCandidates) {
+      try {
+        console.log(`[UpdateService] Téléchargement Live Update v${version} depuis ${url}...`);
+        const bundle = await CapacitorUpdater.download({
+          url: `${url}?_t=${Date.now()}`,
+          version: version
+        });
+
+        console.log(`[UpdateService] Application du bundle v${version}...`);
+        await CapacitorUpdater.set(bundle);
+        return { success: true };
+      } catch (err: any) {
+        lastErr = err;
+        console.warn(`[UpdateService] Échec téléchargement bundle depuis ${url}:`, err);
+      }
     }
+
+    return {
+      success: false,
+      message: lastErr?.message || 'Impossible de télécharger la mise à jour à chaud.'
+    };
   }
 
   /**
