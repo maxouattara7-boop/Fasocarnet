@@ -43,6 +43,6 @@ describe('receiptGenerator', () => {
     const canvas = await generateReceiptCanvas(mockSale, mockShop);
     expect(canvas).toBeDefined();
     expect(canvas.width).toBe(640 * 2);
-    expect(canvas.height).toBeGreaterThanOrEqual(940 * 2);
+    expect(canvas.height).toBeGreaterThanOrEqual(800 * 2);
   });
 });

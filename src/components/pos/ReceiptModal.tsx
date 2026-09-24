@@ -51,7 +51,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
   if (!isOpen || !sale) return null;
 
-  const handleShareReceiptImage = async () => {
+  const handleShareWhatsApp = async () => {
     if (!receiptImageUrl) {
       if (isGenerating) {
         setPrintStatus('⏳ Génération du reçu en cours...');
@@ -61,32 +61,32 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
     }
 
     setIsSharing(true);
-    setPrintStatus('📤 Ouverture du partage...');
+    setPrintStatus('📲 Ouverture de WhatsApp...');
 
     const safeShop = (shopProfile?.name || 'fasocarnet').toLowerCase().replace(/[^a-z0-9]/g, '_');
     const fileName = `recu_${safeShop}_${sale.id.slice(-6)}.png`;
 
     try {
+      // 1. Tenter le partage direct de l'image (via intent système / Web Share avec fichier)
       const result = await downloadOrShareImage({
         fileName,
         dataUrl: receiptImageUrl,
         title: `Reçu de caisse - ${shopProfile?.name || 'FasoCarnet'}`,
-        text: `Voici votre reçu de paiement pour vos achats chez ${shopProfile?.name || 'FasoCarnet'}.`,
+        text: `Voici votre reçu de paiement #${sale.id.slice(-6).toUpperCase()} chez ${shopProfile?.name || 'FasoCarnet'}.`,
         directShare: true
       });
 
-      if (result.success) {
-        setPrintStatus('✓ Reçu partagé avec succès !');
-        setTimeout(() => setPrintStatus(null), 3500);
-      } else {
-        // Fallback WhatsApp Web/URL
-        setPrintStatus('✓ Ouverture de WhatsApp...');
+      if (result.method === 'failed' || result.method === 'download') {
+        // 2. Si le partage de fichier image n'est pas permis par la WebView, ouvrir directement WhatsApp
         const waUrl = generateWhatsAppReceiptUrl(sale, shopProfile || undefined, sale.customerPhone);
         window.open(waUrl, '_blank');
-        setTimeout(() => setPrintStatus(null), 3500);
+        setPrintStatus('✓ WhatsApp ouvert avec le reçu !');
+      } else {
+        setPrintStatus('✓ Choisissez WhatsApp pour envoyer le reçu');
       }
+      setTimeout(() => setPrintStatus(null), 3500);
     } catch (err) {
-      console.error('Erreur partage:', err);
+      console.warn('Fallback ouverture WhatsApp:', err);
       const waUrl = generateWhatsAppReceiptUrl(sale, shopProfile || undefined, sale.customerPhone);
       window.open(waUrl, '_blank');
     } finally {
@@ -104,7 +104,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
     }
 
     setIsDownloading(true);
-    setPrintStatus('💾 Enregistrement du reçu...');
+    setPrintStatus('💾 Enregistrement dans votre appareil...');
 
     const safeShop = (shopProfile?.name || 'fasocarnet').toLowerCase().replace(/[^a-z0-9]/g, '_');
     const fileName = `recu_${safeShop}_${sale.id.slice(-6)}.png`;
@@ -119,7 +119,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
       });
 
       if (result.success) {
-        setPrintStatus('✓ Reçu téléchargé avec succès !');
+        setPrintStatus('✓ Reçu téléchargé dans votre galerie / fichiers !');
       } else {
         setIsFullscreenImageOpen(true);
         setPrintStatus('💡 Maintenez le doigt sur l\'image pour l\'enregistrer');
@@ -315,7 +315,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             </span>
           </div>
 
-          {/* APERÇU DU REÇU IMAGE STYLISÉ AVEC TAMPON */}
+          {/* APERÇU DU REÇU IMAGE COMPACT AVEC LOGO & TAMPON */}
           <div 
             onClick={() => receiptImageUrl && setIsFullscreenImageOpen(true)}
             className="relative group bg-slate-50 rounded-2xl p-1.5 border border-slate-200/80 overflow-hidden max-h-48 sm:max-h-56 flex items-center justify-center shadow-inner cursor-pointer"
@@ -343,7 +343,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             ) : null}
           </div>
 
-          {/* STATUT IMPRESSION & TELECHARGEMENT */}
+          {/* STATUT ACTIONS & NOTIFICATIONS */}
           {printStatus && (
             <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs p-2 rounded-xl flex items-center justify-center space-x-2 animate-in fade-in">
               {isPrinting || isSharing || isDownloading ? (
@@ -357,11 +357,11 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
           {/* BOUTONS D'ACTION */}
           <div className="space-y-2 pt-0.5">
-            {/* 1. Bouton Principal : Partager le Reçu IMAGE PNG */}
+            {/* 1. Bouton Principal : Partager sur WhatsApp */}
             <button
               type="button"
               disabled={isSharing || isGenerating}
-              onClick={handleShareReceiptImage}
+              onClick={handleShareWhatsApp}
               className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl shadow-md shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center space-x-2 text-xs cursor-pointer disabled:opacity-60"
             >
               {isSharing ? (
@@ -369,12 +369,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
               ) : (
                 <Share2 className="w-4 h-4" />
               )}
-              <span>{isSharing ? 'Partage en cours...' : 'Partager le Reçu (Photo WhatsApp)'}</span>
+              <span>{isSharing ? 'Ouverture de WhatsApp...' : 'Partager sur WhatsApp (Photo / Reçu)'}</span>
             </button>
 
-            {/* 2. Grille 2 boutons : Imprimer & Télécharger */}
+            {/* 2. Grille 2 boutons : Imprimer & Télécharger dans Galerie */}
             <div className="grid grid-cols-2 gap-2">
-              {/* Bouton Imprimer (Bluetooth / ESC-POS / Système) */}
+              {/* Bouton Imprimer */}
               <button
                 type="button"
                 disabled={isPrinting || isGenerating}
@@ -390,20 +390,20 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
                 <span>{isPrinting ? 'Impression...' : 'Imprimer Ticket'}</span>
               </button>
 
-              {/* Bouton Télécharger l'image */}
+              {/* Bouton Télécharger dans Galerie */}
               <button
                 type="button"
                 disabled={isDownloading || isGenerating}
                 onClick={handleDownloadImage}
                 className="py-2.5 px-2 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer border border-slate-200/80 active:scale-98 disabled:opacity-50"
-                title="Enregistrer l'image du reçu sur votre appareil"
+                title="Enregistrer la photo du reçu dans votre galerie"
               >
                 {isDownloading ? (
                   <Loader2 className="w-4 h-4 text-slate-600 animate-spin" />
                 ) : (
                   <Download className="w-4 h-4 text-slate-600" />
                 )}
-                <span>{isDownloading ? 'Enregistrement...' : 'Télécharger'}</span>
+                <span>{isDownloading ? 'Enregistrement...' : 'Enregistrer Photo'}</span>
               </button>
             </div>
 
@@ -444,16 +444,16 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
           <div className="w-full max-w-sm space-y-2 pt-2 text-center">
             <p className="text-[11px] text-slate-300 font-medium">
-              💡 <strong>Astuce :</strong> Maintenez votre doigt sur l'image pour l'enregistrer dans votre galerie photos.
+              💡 <strong>Astuce Galerie :</strong> Maintenez votre doigt sur l'image pour l'enregistrer dans votre galerie de photos.
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={handleShareReceiptImage}
+                onClick={handleShareWhatsApp}
                 className="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5"
               >
                 <Share2 className="w-4 h-4" />
-                <span>Partager</span>
+                <span>Partager WhatsApp</span>
               </button>
               <button
                 type="button"
