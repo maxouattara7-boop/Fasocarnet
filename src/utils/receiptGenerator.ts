@@ -80,11 +80,11 @@ export async function generateReceiptCanvas(
   const itemsCount = Math.max(1, items.length);
   const logoImg = await loadLogoImage(shop?.logo);
   const hasTaxInfo = Boolean(shop?.ifu || shop?.rccm);
-  const headerHeight = hasTaxInfo ? 165 : 140;
+  const headerHeight = hasTaxInfo ? (logoImg ? 195 : 170) : (logoImg ? 175 : 145);
 
   const width = 640;
   // Calcul de la hauteur dynamique pour éviter tout débordement
-  const dynamicHeight = Math.max(940, 480 + (itemsCount * 44) + 240 + (hasTaxInfo ? 30 : 0));
+  const dynamicHeight = Math.max(960, 480 + (itemsCount * 44) + 240 + (hasTaxInfo ? 45 : 20));
   const height = dynamicHeight;
   const scale = 2; // Rétina 2x pour une netteté parfaite
 
@@ -129,22 +129,37 @@ export async function generateReceiptCanvas(
   ctx.roundRect(cardX, cardY, cardW, headerHeight, [radius, radius, 0, 0]);
   ctx.fill();
 
-  // Dessin du logo si présent
+  // Dessin du logo si présent (Agrandissement et mise en valeur professionnelle)
+  const logoSize = 84;
+  let textCenterX = width / 2;
+
   if (logoImg) {
     try {
-      ctx.save();
-      const logoSize = 64;
-      const logoX = cardX + 25;
+      const logoX = cardX + 22;
       const logoY = cardY + (headerHeight - logoSize) / 2;
+      
+      // Badge blanc arrondi pour faire ressortir le logo sur fond vert
+      ctx.save();
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 4;
       ctx.beginPath();
-      ctx.roundRect(logoX, logoY, logoSize, logoSize, 14);
+      ctx.roundRect(logoX, logoY, logoSize, logoSize, 18);
       ctx.fillStyle = '#ffffff';
       ctx.fill();
-      ctx.clip();
-      ctx.drawImage(logoImg, logoX + 2, logoY + 2, logoSize - 4, logoSize - 4);
       ctx.restore();
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(logoX, logoY, logoSize, logoSize, 18);
+      ctx.clip();
+      ctx.drawImage(logoImg, logoX + 4, logoY + 4, logoSize - 8, logoSize - 8);
+      ctx.restore();
+
+      // Centre du texte légèrement décalé pour un équilibre visuel parfait
+      textCenterX = (cardX + logoSize + 30 + (cardX + cardW - 10)) / 2;
     } catch {
-      // Ignorer si échec de dessin logo
+      // Fallback
     }
   }
 
@@ -153,13 +168,13 @@ export async function generateReceiptCanvas(
   ctx.font = 'bold 26px sans-serif';
   ctx.textAlign = 'center';
   const shopName = shop?.name || 'FASOCARNET';
-  ctx.fillText(shopName.toUpperCase(), width / 2, cardY + 50);
+  ctx.fillText(shopName.toUpperCase(), textCenterX, cardY + (logoImg ? 48 : 50));
 
   // Sous-titre & Contact
   ctx.fillStyle = '#a7f3d0';
   ctx.font = '14px sans-serif';
   const contactText = shop?.phone ? `Tél : ${shop.phone}${shop?.city ? ` • ${shop.city}` : ''}` : 'Reçu de Caisse Numérique';
-  ctx.fillText(contactText, width / 2, cardY + 76);
+  ctx.fillText(contactText, textCenterX, cardY + (logoImg ? 76 : 76));
 
   if (hasTaxInfo) {
     const taxParts: string[] = [];
@@ -167,13 +182,13 @@ export async function generateReceiptCanvas(
     if (shop?.rccm) taxParts.push(`RCCM : ${shop.rccm}`);
     ctx.fillStyle = '#fde68a'; // Ambre clair très lisible
     ctx.font = 'bold 12px sans-serif';
-    ctx.fillText(taxParts.join('  |  '), width / 2, cardY + 102);
+    ctx.fillText(taxParts.join('  |  '), textCenterX, cardY + (logoImg ? 104 : 102));
 
     ctx.fillStyle = '#a7f3d0';
     ctx.font = '11px sans-serif';
-    ctx.fillText('★ FASOCARNET • GESTION DIGITALE ★', width / 2, cardY + 128);
+    ctx.fillText('★ FASOCARNET • GESTION DIGITALE ★', textCenterX, cardY + (logoImg ? 130 : 128));
   } else {
-    ctx.fillText('★ FASOCARNET • GESTION DIGITALE ★', width / 2, cardY + 108);
+    ctx.fillText('★ FASOCARNET • GESTION DIGITALE ★', textCenterX, cardY + (logoImg ? 104 : 108));
   }
 
   // 4. Métadonnées (Date, Réf, Client)

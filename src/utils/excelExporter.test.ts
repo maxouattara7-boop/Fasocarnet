@@ -3,7 +3,7 @@ import { exportMonthlyReportToExcel } from './excelExporter';
 import { DailySummary, Sale, DebtPayment, ShopProfile } from '../types';
 
 describe('excelExporter', () => {
-  it('generates csv file and triggers download successfully', () => {
+  it('generates csv file and triggers download successfully', async () => {
     const summary: DailySummary = {
       date: '2026-09',
       totalSales: 150000,
@@ -56,15 +56,15 @@ describe('excelExporter', () => {
     (global as any).URL.createObjectURL = createObjectURLMock;
     (global as any).URL.revokeObjectURL = revokeObjectURLMock;
 
-    expect(() => {
+    await expect(
       exportMonthlyReportToExcel({
         monthString: '2026-09',
         summary,
         sales,
         debtPayments,
         shopProfile
-      });
-    }).not.toThrow();
+      })
+    ).resolves.not.toThrow();
 
     expect(createObjectURLMock).toHaveBeenCalled();
   });

@@ -1,9 +1,9 @@
 {
-  "version": "1.2.9",
-  "versionCode": 12,
+  "version": "1.2.10",
+  "versionCode": 13,
   "releaseDate": "2026-09-24",
-  "title": "Historique Dettes, Alarme Patron, Export Excel & Logo/IFU/RCCM",
-  "releaseNotes": "1. Historique détaillé des dates de dettes et des règlements successifs.\n2. Alarme automatique du patron (relance hebdomadaire des créances).\n3. Exportation comptable du bilan mensuel au format Excel (.xlsx / .csv).\n4. Mentions légales N° IFU, RCCM et intégration du Logo d'entreprise sur les reçus.\n5. Optimisation et affichage épuré des interfaces.",
+  "title": "Téléchargement Universel Bilan Excel & Partage Reçu Image WhatsApp",
+  "releaseNotes": "1. Téléchargement et partage direct du Bilan Mensuel Excel (.xlsx / .csv) sur Android et Web.\n2. Partage instantané du reçu sous forme d'image photo PNG sur WhatsApp (avec Logo & Mentions IFU/RCCM).\n3. Enregistrement direct des tickets de caisse dans les documents/galerie du téléphone.\n4. Maintien et fiabilisation continue du système de mise à jour à chaud.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false

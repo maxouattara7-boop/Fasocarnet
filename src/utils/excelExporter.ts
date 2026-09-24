@@ -1,17 +1,18 @@
 import { DailySummary, Sale, DebtPayment, ShopProfile } from '../types';
 import { formatDateTime } from './formatters';
+import { downloadOrShareTextFile } from './fileDownloader';
 
 /**
  * Exporte le bilan mensuel au format Excel / CSV universel avec encodage UTF-8 BOM
  * 100% hors-ligne, compatible Microsoft Excel, LibreOffice et visionneuses mobiles.
  */
-export function exportMonthlyReportToExcel(params: {
+export async function exportMonthlyReportToExcel(params: {
   monthString: string; // Ex: "2026-09"
   summary: DailySummary | null;
   sales: Sale[];
   debtPayments: DebtPayment[];
   shopProfile?: ShopProfile | null;
-}): void {
+}): Promise<void> {
   const { monthString, summary, sales, debtPayments, shopProfile } = params;
 
   // Formatage du mois en texte français lisible (ex: Septembre 2026)
@@ -174,17 +175,13 @@ export function exportMonthlyReportToExcel(params: {
   // 5. GÉNÉRATION DU FICHIER ET DÉCLENCHEMENT DU TÉLÉCHARGEMENT
   // =========================================================================
   const csvContent = '\uFEFF' + rows.join('\r\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-
   const safeShopName = (shopProfile?.name || 'commerce').toLowerCase().replace(/[^a-z0-9]/g, '_');
   const fileName = `bilan_mensuel_${safeShopName}_${monthString}.csv`;
 
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  await downloadOrShareTextFile({
+    fileName,
+    content: csvContent,
+    mimeType: 'text/csv;charset=utf-8;',
+    title: `Bilan Mensuel ${monthLabel} - ${shopProfile?.name || 'FasoCarnet'}`
+  });
 }

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Sale } from '../../types';
 import { useAppStore } from '../../store/appStore';
-import { generateReceiptDataUrl, generateReceiptFile, extractReceiptItems } from '../../utils/receiptGenerator';
+import { generateReceiptDataUrl, extractReceiptItems } from '../../utils/receiptGenerator';
 import { printViaBluetooth, printViaRawBt, printViaHiddenIframe, isBluetoothSupported } from '../../utils/bluetoothPrinter';
 import { generateWhatsAppReceiptUrl } from '../../utils/whatsapp';
 import { formatDateTime } from '../../utils/formatters';
 import { CheckCircle2, ArrowRight, Download, Share2, Printer, Loader2 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
+
+import { downloadOrShareImage } from '../../utils/fileDownloader';
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -47,28 +49,28 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
   if (!isOpen || !sale) return null;
 
   const handleShareReceiptImage = async () => {
-    try {
-      // 1. Essayer le partage natif de l'image (si supporté par le système)
-      if (navigator.share) {
-        try {
-          const file = await generateReceiptFile(sale, shopProfile || undefined);
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              files: [file],
-              title: `Reçu de caisse - ${shopProfile?.name || 'FasoCarnet'}`,
-              text: `Voici votre reçu de paiement pour vos achats chez ${shopProfile?.name || 'FasoCarnet'}.`
-            });
-            return;
-          }
-        } catch (shareErr: any) {
-          if (shareErr.name === 'AbortError') return; // Utilisateur a simplement annulé
-          console.warn('Partage fichier direct non supporté:', shareErr);
-        }
-      }
+    if (!receiptImageUrl) {
+      alert('Génération du reçu en cours, veuillez patienter...');
+      return;
+    }
 
-      // 2. Partage WhatsApp direct (100% universel et instantané sur Android & Web)
-      const waUrl = generateWhatsAppReceiptUrl(sale, shopProfile || undefined, sale.customerPhone);
-      window.open(waUrl, '_blank');
+    const safeShop = (shopProfile?.name || 'fasocarnet').toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const fileName = `recu_${safeShop}_${sale.id.slice(-6)}.png`;
+
+    try {
+      const success = await downloadOrShareImage({
+        fileName,
+        dataUrl: receiptImageUrl,
+        title: `Reçu de caisse - ${shopProfile?.name || 'FasoCarnet'}`,
+        text: `Voici votre reçu de paiement pour vos achats chez ${shopProfile?.name || 'FasoCarnet'}.`,
+        directShare: true
+      });
+
+      if (!success) {
+        // Fallback WhatsApp Web/URL
+        const waUrl = generateWhatsAppReceiptUrl(sale, shopProfile || undefined, sale.customerPhone);
+        window.open(waUrl, '_blank');
+      }
     } catch (err) {
       console.error('Erreur partage:', err);
       const waUrl = generateWhatsAppReceiptUrl(sale, shopProfile || undefined, sale.customerPhone);
@@ -77,27 +79,26 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
   };
 
   const handleDownloadImage = async () => {
+    if (!receiptImageUrl) {
+      alert('Génération du reçu en cours, veuillez patienter...');
+      return;
+    }
+
+    const safeShop = (shopProfile?.name || 'fasocarnet').toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const fileName = `recu_${safeShop}_${sale.id.slice(-6)}.png`;
+
     try {
-      const file = await generateReceiptFile(sale, shopProfile || undefined);
-      const blobUrl = URL.createObjectURL(file);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      const safeShop = (shopProfile?.name || 'fasocarnet').toLowerCase().replace(/[^a-z0-9]/g, '_');
-      a.download = `recu_${safeShop}_${sale.id.slice(-6)}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+      await downloadOrShareImage({
+        fileName,
+        dataUrl: receiptImageUrl,
+        title: `Reçu de caisse - ${shopProfile?.name || 'FasoCarnet'}`,
+        text: `Reçu de paiement #${sale.id.slice(-6).toUpperCase()}`,
+        directShare: false
+      });
       setPrintStatus('✓ Reçu téléchargé sur votre appareil !');
-      setTimeout(() => setPrintStatus(null), 2500);
+      setTimeout(() => setPrintStatus(null), 3000);
     } catch (err) {
-      console.error('Erreur téléchargement blob:', err);
-      if (receiptImageUrl) {
-        const a = document.createElement('a');
-        a.href = receiptImageUrl;
-        a.download = `recu-${sale.id.slice(-6)}.png`;
-        a.click();
-      }
+      console.error('Erreur téléchargement image:', err);
     }
   };
 
