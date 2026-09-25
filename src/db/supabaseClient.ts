@@ -241,6 +241,30 @@ export const supabaseClient = {
   },
 
   /**
+   * Recherche si une boutique existe déjà par numéro de téléphone dans Supabase
+   */
+  async findShopByPhone(phone: string): Promise<CloudShopData | null> {
+    const client = this.getClient();
+    if (!client) return null;
+
+    const clean = phone.replace(/\D/g, '').slice(-8);
+    if (!clean || clean.length < 8) return null;
+
+    try {
+      const { data, error } = await client
+        .from('shops')
+        .select('data')
+        .or(`phone.ilike.%${clean}%,owner_phone.ilike.%${clean}%`)
+        .limit(1);
+
+      if (error || !data || data.length === 0) return null;
+      return (data[0].data as CloudShopData) || null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
    * Récupère toutes les boutiques depuis Supabase (Super-Admin)
    */
   async fetchAllShops(): Promise<Record<string, CloudShopData> | null> {

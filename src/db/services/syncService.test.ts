@@ -113,6 +113,39 @@ describe('syncService (Cloud Sync & Single Account per device)', () => {
     expect(products[0].name).toBe('Sucre St Louis');
   });
 
+  it('detects already registered phone number and prevents creating a 2nd account', async () => {
+    // 1. Première inscription réussie
+    await syncService.registerShop({
+      name: 'Boutique Maman Tina',
+      phone: '70 12 34 56',
+      city: 'Ouagadougou',
+      pinCode: '1111',
+      currency: 'FCFA'
+    });
+
+    // 2. Vérification avec checkPhoneRegistered
+    const checkTaken = await syncService.checkPhoneRegistered('70123456');
+    expect(checkTaken.exists).toBe(true);
+    expect(checkTaken.shopName).toBe('Boutique Maman Tina');
+
+    const checkWithPrefix = await syncService.checkPhoneRegistered('+226 70 12 34 56');
+    expect(checkWithPrefix.exists).toBe(true);
+
+    const checkFree = await syncService.checkPhoneRegistered('75998877');
+    expect(checkFree.exists).toBe(false);
+
+    // 3. Tentative de création d'un 2ème compte avec le même numéro -> doit échouer
+    await expect(
+      syncService.registerShop({
+        name: 'Deuxieme Boutique Tentative',
+        phone: '+226 70 12 34 56',
+        city: 'Bobo-Dioulasso',
+        pinCode: '2222',
+        currency: 'FCFA'
+      })
+    ).rejects.toThrow(/déjà associé/i);
+  });
+
   it('manages custom server URL configuration', () => {
     expect(syncService.getServerUrl()).toBe('http://localhost:5000');
     syncService.setServerUrl('https://api.fasocarnet.com/');

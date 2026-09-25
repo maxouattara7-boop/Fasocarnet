@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { BurkinaFlag } from '../common/BurkinaFlag';
+import { syncService } from '../../db/services/syncService';
 
 export const OnboardingView: React.FC = () => {
   const { loginWithPhoneAndPin, createShop, isSyncing } = useAppStore();
@@ -74,6 +75,8 @@ export const OnboardingView: React.FC = () => {
   const [logo, setLogo] = useState<string | null>(null);
   const [showBusinessInfo, setShowBusinessInfo] = useState(false);
   const [registerError, setRegisterError] = useState('');
+  const [duplicateAccountDetected, setDuplicateAccountDetected] = useState<{ exists: boolean; shopName?: string; phone?: string } | null>(null);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -138,9 +141,32 @@ export const OnboardingView: React.FC = () => {
     }
   };
 
+  const handlePhoneBlur = async () => {
+    const clean = phone.trim().replace(/\D/g, '');
+    if (clean.length < 8) {
+      setDuplicateAccountDetected(null);
+      return;
+    }
+    setIsCheckingPhone(true);
+    try {
+      const check = await syncService.checkPhoneRegistered(phone.trim());
+      if (check.exists) {
+        setDuplicateAccountDetected(check);
+        setRegisterError('');
+      } else {
+        setDuplicateAccountDetected(null);
+      }
+    } catch {
+      // Ignorer
+    } finally {
+      setIsCheckingPhone(false);
+    }
+  };
+
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegisterError('');
+    setDuplicateAccountDetected(null);
 
     if (!shopName.trim()) {
       setRegisterError('Veuillez renseigner le nom de votre commerce.');
@@ -150,6 +176,17 @@ export const OnboardingView: React.FC = () => {
     if (!phone.trim()) {
       setRegisterError('Veuillez renseigner votre numéro WhatsApp.');
       return;
+    }
+
+    // 1. Vérification d'unicité : un numéro ne peut pas créer un deuxième compte
+    try {
+      const phoneCheck = await syncService.checkPhoneRegistered(phone.trim());
+      if (phoneCheck.exists) {
+        setDuplicateAccountDetected(phoneCheck);
+        return;
+      }
+    } catch (err) {
+      console.warn('Vérification unicité numéro:', err);
     }
 
     if (!pinCode.trim() || pinCode.trim().length < 4) {
@@ -175,7 +212,11 @@ export const OnboardingView: React.FC = () => {
       });
     } catch (err: any) {
       console.error(err);
-      setRegisterError(err.message || "Erreur lors de la création de l'espace.");
+      if (err.message && err.message.includes('déjà associé')) {
+        setDuplicateAccountDetected({ exists: true, shopName: shopName.trim(), phone: phone.trim() });
+      } else {
+        setRegisterError(err.message || "Erreur lors de la création de l'espace.");
+      }
     }
   };
 
@@ -314,6 +355,7 @@ export const OnboardingView: React.FC = () => {
               onClick={() => {
                 setAuthMode('login');
                 setLoginError('');
+                setDuplicateAccountDetected(null);
               }}
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
                 authMode === 'login'
@@ -331,6 +373,7 @@ export const OnboardingView: React.FC = () => {
               onClick={() => {
                 setAuthMode('register');
                 setRegisterError('');
+                setDuplicateAccountDetected(null);
               }}
               className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer ${
                 authMode === 'register'
@@ -423,12 +466,39 @@ export const OnboardingView: React.FC = () => {
         {/* ======================================================== */}
         {authMode === 'register' && (
           <form onSubmit={handleRegisterSubmit} className="bg-white text-slate-900 p-4 sm:p-5 rounded-3xl shadow-2xl border border-emerald-100 my-auto space-y-3 sm:space-y-3.5 animate-in fade-in duration-200">
-            {registerError && (
+            {duplicateAccountDetected ? (
+              <div className="p-3 bg-amber-50 border-2 border-amber-300 rounded-2xl space-y-2 text-xs text-amber-900 animate-in fade-in shadow-sm">
+                <div className="flex items-start space-x-2.5">
+                  <div className="w-6 h-6 rounded-full bg-amber-200 flex items-center justify-center shrink-0 text-amber-800 font-black text-xs">
+                    !
+                  </div>
+                  <div>
+                    <p className="font-bold text-amber-950 text-xs">Ce numéro possède déjà un compte !</p>
+                    <p className="text-[11px] text-amber-800 leading-snug mt-0.5">
+                      Le commerce <strong className="text-amber-950">« {duplicateAccountDetected.shopName || 'existant'} »</strong> est déjà enregistré avec ce numéro. Un même numéro ne peut pas créer plusieurs comptes.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginPhone(duplicateAccountDetected.phone || phone);
+                    setAuthMode('login');
+                    setDuplicateAccountDetected(null);
+                    setRegisterError('');
+                  }}
+                  className="w-full py-2.5 px-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-black rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer shadow-sm active:scale-98"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>SE CONNECTER AVEC MON CODE PIN</span>
+                </button>
+              </div>
+            ) : registerError ? (
               <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl flex items-start space-x-2 text-xs font-semibold text-red-700 animate-in shake">
                 <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                 <span>{registerError}</span>
               </div>
-            )}
+            ) : null}
 
             {/* 1. Nom du commerce */}
             <div className="relative flex items-center">
@@ -469,9 +539,20 @@ export const OnboardingView: React.FC = () => {
                 required
                 placeholder="Numéro WhatsApp (Ex: 70 12 34 56) *"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full pl-12 pr-4 py-2.5 sm:py-3 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal"
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  if (duplicateAccountDetected) setDuplicateAccountDetected(null);
+                }}
+                onBlur={handlePhoneBlur}
+                className={`w-full pl-12 pr-10 py-2.5 sm:py-3 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal ${
+                  duplicateAccountDetected ? 'border-amber-400 ring-2 ring-amber-300/30' : 'border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20'
+                }`}
               />
+              {isCheckingPhone && (
+                <div className="absolute right-3.5">
+                  <RefreshCw className="w-4 h-4 animate-spin text-emerald-600" />
+                </div>
+              )}
             </div>
 
             {/* 3. Ville */}

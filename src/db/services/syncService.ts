@@ -371,9 +371,74 @@ export const syncService = {
   },
 
   /**
+   * Vérifie si un numéro de téléphone est déjà utilisé par un compte existant
+   */
+  async checkPhoneRegistered(phoneInput: string): Promise<{ exists: boolean; shopName?: string; phone?: string }> {
+    const cleanInput = this.normalizePhone(phoneInput);
+    if (!cleanInput || cleanInput.length < 8) {
+      return { exists: false };
+    }
+
+    // 1. Vérification dans le Cloud (Supabase / REST / Local cache)
+    const cloudDb = await this.fetchRemoteDatabase();
+    for (const shopId of Object.keys(cloudDb)) {
+      const shopData = cloudDb[shopId];
+      if (shopData && shopData.profile) {
+        const p1 = this.normalizePhone(shopData.profile.phone);
+        const p2 = shopData.profile.ownerPhone ? this.normalizePhone(shopData.profile.ownerPhone) : '';
+        if (p1 === cleanInput || p2 === cleanInput) {
+          return { exists: true, shopName: shopData.profile.name, phone: shopData.profile.phone };
+        }
+      }
+    }
+
+    // 2. Vérification directe Supabase si configuré
+    if (supabaseClient.isConfigured()) {
+      try {
+        const supaShop = await supabaseClient.findShopByPhone(cleanInput);
+        if (supaShop && supaShop.profile) {
+          return { exists: true, shopName: supaShop.profile.name, phone: supaShop.profile.phone };
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    // 3. Vérification dans la base IndexedDB locale
+    try {
+      const localShops = await db.shopProfiles.toArray();
+      const localMatch = localShops.find(s => {
+        const p1 = this.normalizePhone(s.phone);
+        const p2 = s.ownerPhone ? this.normalizePhone(s.ownerPhone) : '';
+        return p1 === cleanInput || p2 === cleanInput;
+      });
+      if (localMatch) {
+        return { exists: true, shopName: localMatch.name, phone: localMatch.phone };
+      }
+    } catch {
+      // Ignorer si IndexedDB indisponible
+    }
+
+    return { exists: false };
+  },
+
+  /**
    * Crée un nouveau commerce sur le Cloud et initialise l'appareil
    */
   async registerShop(data: Omit<ShopProfile, 'id' | 'createdAt' | 'updatedAt' | 'isConfigured'>): Promise<ShopProfile> {
+    // 1. Vérification stricte : Un numéro ne peut pas créer un deuxième compte
+    const phoneCheck = await this.checkPhoneRegistered(data.phone);
+    if (phoneCheck.exists) {
+      throw new Error(`Ce numéro de téléphone est déjà associé au compte "${phoneCheck.shopName || 'Commerce existant'}". Un numéro ne peut pas créer un 2ème compte. Veuillez vous connecter avec votre code PIN.`);
+    }
+
+    if (data.ownerPhone) {
+      const ownerPhoneCheck = await this.checkPhoneRegistered(data.ownerPhone);
+      if (ownerPhoneCheck.exists) {
+        throw new Error(`Le numéro de propriétaire est déjà associé au compte "${ownerPhoneCheck.shopName || 'Commerce existant'}". Veuillez vous connecter avec votre code PIN.`);
+      }
+    }
+
     const telemetry = collectCurrentTelemetry(data.phone, data.city);
     const hashedPin = data.pinCode?.trim()
       ? (isHashed(data.pinCode) ? data.pinCode.trim() : hashPin(data.pinCode.trim()))
