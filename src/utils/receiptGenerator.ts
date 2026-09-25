@@ -362,21 +362,31 @@ export async function generateReceiptCanvas(
   ctx.textAlign = 'left';
   ctx.fillStyle = '#475569';
   ctx.font = 'bold 12px sans-serif';
-  ctx.fillText('TOTAL À PAYER :', cardX + 38, totalBoxY + 34);
+  ctx.fillText('TOTAL DE LA VENTE :', cardX + 38, totalBoxY + 30);
 
   let modeText = 'Espèces (Cash)';
   if (sale.paymentMethod === 'ORANGE_MONEY') modeText = 'Orange Money';
   if (sale.paymentMethod === 'MOOV_MONEY') modeText = 'Moov Money';
   if (sale.paymentMethod === 'WAVE') modeText = 'Wave';
   if (sale.paymentMethod === 'CREDIT') modeText = 'À Crédit';
+  if (sale.isPartialCredit) {
+    const downMethod = sale.downPaymentMethod || sale.paymentMethod;
+    const methodLabel = downMethod === 'ORANGE_MONEY' ? 'OM' : downMethod === 'MOOV_MONEY' ? 'Moov' : downMethod === 'WAVE' ? 'Wave' : 'Cash';
+    modeText = `Acompte: ${formatCurrency(sale.paidAmount || 0)} (${methodLabel}) | Dette: ${formatCurrency(sale.creditAmount || 0)}`;
+  }
+
+  if (sale.transactionRef) {
+    modeText += ` (Réf: ${sale.transactionRef})`;
+  }
+
   ctx.font = '11px sans-serif';
   ctx.fillStyle = '#64748b';
-  ctx.fillText(`Règlement : ${modeText}`, cardX + 38, totalBoxY + 60);
+  ctx.fillText(`Règlement : ${modeText}`, cardX + 38, totalBoxY + 58);
 
   ctx.textAlign = 'right';
   ctx.fillStyle = '#047857';
-  ctx.font = 'bold 25px sans-serif';
-  ctx.fillText(formatCurrency(sale.totalAmount), cardX + cardW - 38, totalBoxY + 52);
+  ctx.font = 'bold 24px sans-serif';
+  ctx.fillText(formatCurrency(sale.totalAmount), cardX + cardW - 38, totalBoxY + 48);
 
   // 8. Le Grand Tampon Officiel Stylisé
   const stampX = width / 2;
@@ -400,6 +410,20 @@ export async function generateReceiptCanvas(
     ctx.textAlign = 'center';
     ctx.font = 'bold 18px sans-serif';
     ctx.fillText('ACCORDÉ À CRÉDIT', 0, 6);
+  } else if (sale.isPartialCredit) {
+    // Tampon Ambre : ACOMPTE PAYÉ • RESTE DÛ
+    ctx.strokeStyle = '#d97706';
+    ctx.fillStyle = 'rgba(217, 119, 6, 0.08)';
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.roundRect(-155, -28, 310, 56, 10);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#d97706';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillText('ACOMPTE PAYÉ • RESTE EN DETTE', 0, 6);
   } else {
     // Tampon Vert : PAYÉ ENTIÈREMENT
     ctx.strokeStyle = '#059669';

@@ -70,12 +70,17 @@ export interface Sale {
   totalAmount: number;
   paymentMethod: PaymentMethod;
   isCredit: boolean;
+  isPartialCredit?: boolean; // Vente mixte avec acompte et reste en dette
+  paidAmount?: number; // Montant encaissé immédiatement
+  creditAmount?: number; // Montant restant mis en dette
+  downPaymentMethod?: PaymentMethod; // Mode de paiement de l'acompte
   customerId?: string;
   customerName?: string;
   customerPhone?: string;
   items?: SaleItem[];
   receivedAmount?: number;
   changeAmount?: number;
+  transactionRef?: string; // Référence / ID de transaction Mobile Money (OM, Moov, Wave)
   notes?: string;
   createdAt: string;
 }
@@ -106,6 +111,27 @@ export interface DebtPayment {
   createdAt: string;
 }
 
+export type ExpenseCategory = 
+  | 'STOCK' // Achat marchandises / réassort
+  | 'TRANSPORT' // Transport / Déplacement
+  | 'UTILITIES' // Factures (SONABEL, ONEA, Loyer, Internet)
+  | 'FOOD' // Restauration / Pause
+  | 'SALARY' // Salaire employé
+  | 'OWNER_DRAW' // Retrait patron / Dépense personnelle
+  | 'OTHER'; // Autre dépense
+
+export interface Expense {
+  id: string;
+  shopId?: string;
+  title: string;
+  amount: number;
+  category: ExpenseCategory;
+  paymentMethod: 'CASH' | 'ORANGE_MONEY' | 'MOOV_MONEY' | 'WAVE';
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface DailySummary {
   date: string; // YYYY-MM-DD
   totalSales: number;
@@ -116,6 +142,16 @@ export interface DailySummary {
   creditSales: number;
   salesCount: number;
   totalRecoveredDebts: number;
+  // Trésorerie & Dépenses
+  totalExpenses?: number;
+  cashExpenses?: number;
+  orangeMoneyExpenses?: number;
+  moovMoneyExpenses?: number;
+  waveExpenses?: number;
+  netCashFlow?: number; // Solde net (Total Encaissé - Dépenses)
+  // Encours global de dettes
+  totalOutstandingDebt?: number;
+  debtorsCount?: number;
 }
 
 export interface LicenseKey {

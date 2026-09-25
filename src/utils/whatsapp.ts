@@ -55,6 +55,11 @@ export function generateWhatsAppReceiptUrl(
   if (sale.paymentMethod === 'MOOV_MONEY') modePaiementLabel = 'Moov Money';
   if (sale.paymentMethod === 'WAVE') modePaiementLabel = 'Wave';
   if (sale.paymentMethod === 'CREDIT') modePaiementLabel = 'À Crédit';
+  if (sale.isPartialCredit) {
+    const downMethod = sale.downPaymentMethod || sale.paymentMethod;
+    const methodLabel = downMethod === 'ORANGE_MONEY' ? 'Orange Money' : downMethod === 'MOOV_MONEY' ? 'Moov Money' : downMethod === 'WAVE' ? 'Wave' : 'Espèces';
+    modePaiementLabel = `Acompte partiel (${methodLabel})`;
+  }
 
   let itemsText = '';
   if (sale.items && sale.items.length > 0) {
@@ -62,13 +67,22 @@ export function generateWhatsAppReceiptUrl(
       sale.items.map(i => `• ${i.description} : ${i.quantity} x ${formatCurrency(i.unitPrice)} = *${formatCurrency(i.quantity * i.unitPrice)}*`).join('\n') + '\n';
   }
 
-  const message = `🧾 *REÇU DE PAIEMENT - ${shopName.toUpperCase()}*\n` +
+  let partialDetailsText = '';
+  if (sale.isPartialCredit) {
+    partialDetailsText = `💵 *Acompte versé :* ${formatCurrency(sale.paidAmount || 0)}\n` +
+      `⚠️ *Reliquat restant en dette :* ${formatCurrency(sale.creditAmount || 0)}\n` +
+      (sale.customerName ? `👤 *Client bénéficiaire :* ${sale.customerName}\n` : '');
+  }
+
+  const message = `🧾 *REÇU DE VENTE - ${shopName.toUpperCase()}*\n` +
     `📅 Date : ${dateStr}\n` +
     `--------------------------\n` +
     itemsText +
     `💰 *TOTAL : ${formatCurrency(sale.totalAmount)}*\n` +
     `💳 Mode : ${modePaiementLabel}\n` +
-    (sale.receivedAmount && sale.changeAmount ? `💵 Reçu : ${formatCurrency(sale.receivedAmount)} | Monnaie : ${formatCurrency(sale.changeAmount)}\n` : '') +
+    (sale.transactionRef ? `🔖 *Réf. Transaction :* ${sale.transactionRef}\n` : '') +
+    partialDetailsText +
+    (!sale.isPartialCredit && sale.receivedAmount && sale.changeAmount ? `💵 Reçu : ${formatCurrency(sale.receivedAmount)} | Monnaie : ${formatCurrency(sale.changeAmount)}\n` : '') +
     `--------------------------\n` +
     `Merci de votre achat chez *${shopName}* ! À bientôt. ✨`;
 

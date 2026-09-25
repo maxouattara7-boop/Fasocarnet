@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import { Customer, DebtPayment, DebtRecord, Product, Sale, ShopProfile, LicenseKey } from '../types';
+import { Customer, DebtPayment, DebtRecord, Product, Sale, ShopProfile, LicenseKey, Expense } from '../types';
 
 export class FasoCarnetDB extends Dexie {
   shopProfiles!: Table<ShopProfile, string>;
@@ -9,6 +9,7 @@ export class FasoCarnetDB extends Dexie {
   debts!: Table<DebtRecord, string>;
   debtPayments!: Table<DebtPayment, string>;
   licenses!: Table<LicenseKey, string>;
+  expenses!: Table<Expense, string>;
 
   constructor() {
     super('FasoCarnetDB');
@@ -20,6 +21,17 @@ export class FasoCarnetDB extends Dexie {
       debts: 'id, customerId, status, createdAt',
       debtPayments: 'id, debtId, customerId, createdAt',
       licenses: 'id, code, plan, isUsed, createdAt'
+    });
+
+    this.version(5).stores({
+      shopProfiles: 'id',
+      customers: 'id, name, phone, totalDebt',
+      products: 'id, name, price, barcode, createdAt',
+      sales: 'id, paymentMethod, isCredit, customerId, createdAt',
+      debts: 'id, customerId, status, createdAt',
+      debtPayments: 'id, debtId, customerId, createdAt',
+      licenses: 'id, code, plan, isUsed, createdAt',
+      expenses: 'id, category, paymentMethod, createdAt'
     });
   }
 }

@@ -161,7 +161,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             ${city ? `<div>${city}</div>` : ''}
             ${ifu ? `<div style="font-size: 11px;">IFU : ${ifu}</div>` : ''}
             ${rccm ? `<div style="font-size: 11px;">RCCM : ${rccm}</div>` : ''}
-            <div style="font-size: 10px; margin-top: 2px; font-weight: 900;">REÇU DE CAISSE</div>
+            <div style="font-size: 11px; margin-top: 3px; font-weight: 900; letter-spacing: 0.5px;">
+              ${sale.isCredit ? 'FACTURE À CRÉDIT' : sale.isPartialCredit ? 'FACTURE AVEC ACOMPTE & RELIQUAT' : 'REÇU DE CAISSE'}
+            </div>
           </div>
 
           <div class="divider"></div>
@@ -177,7 +179,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
           ${sale.customerName ? `
           <div class="row">
             <span>Client :</span>
-            <span>${sale.customerName}</span>
+            <span>${sale.customerName}${sale.customerPhone ? ` (${sale.customerPhone})` : ''}</span>
           </div>` : ''}
 
           <div class="divider"></div>
@@ -198,10 +200,40 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
           <div class="row">
             <span>Mode :</span>
-            <span>${sale.isCredit ? 'À CRÉDIT' : sale.paymentMethod === 'ORANGE_MONEY' ? 'Orange Money' : sale.paymentMethod === 'WAVE' ? 'Wave' : sale.paymentMethod === 'MOOV_MONEY' ? 'Moov Money' : 'Espèces'}</span>
+            <span>${
+              sale.isPartialCredit 
+                ? 'ACOMPTE + DETTE'
+                : sale.isCredit 
+                ? 'À CRÉDIT (DETTE)' 
+                : sale.paymentMethod === 'ORANGE_MONEY' 
+                ? 'Orange Money' 
+                : sale.paymentMethod === 'WAVE' 
+                ? 'Wave' 
+                : sale.paymentMethod === 'MOOV_MONEY' 
+                ? 'Moov Money' 
+                : 'Espèces'
+            }</span>
           </div>
 
-          ${!sale.isCredit && sale.receivedAmount && sale.receivedAmount > sale.totalAmount ? `
+          ${sale.transactionRef ? `
+          <div class="row">
+            <span>Réf Trans. Mobile :</span>
+            <span class="bold">${sale.transactionRef}</span>
+          </div>
+          ` : ''}
+
+          ${sale.isPartialCredit ? `
+          <div class="row">
+            <span>Acompte versé :</span>
+            <span>${(sale.paidAmount || 0).toLocaleString('fr-FR')} F</span>
+          </div>
+          <div class="row bold" style="color: #000;">
+            <span>Reste en dette :</span>
+            <span>${(sale.creditAmount || 0).toLocaleString('fr-FR')} F</span>
+          </div>
+          ` : ''}
+
+          ${!sale.isCredit && !sale.isPartialCredit && sale.receivedAmount && sale.receivedAmount > sale.totalAmount ? `
           <div class="row">
             <span>Reçu :</span>
             <span>${sale.receivedAmount.toLocaleString('fr-FR')} F</span>
@@ -212,10 +244,16 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
           </div>
           ` : ''}
 
+          ${sale.isCredit || sale.isPartialCredit ? `
+          <div style="font-size: 10px; margin-top: 8px; border: 1px dashed #000; padding: 4px; text-align: center; font-style: italic;">
+            Engagement : Le client reconnaît devoir la somme de ${(sale.creditAmount || sale.totalAmount).toLocaleString('fr-FR')} FCFA à l'établissement ${shopName}.
+          </div>
+          ` : ''}
+
           <div class="divider"></div>
 
           <div class="footer">
-            <div>Merci pour votre achat !</div>
+            <div>${sale.isCredit ? 'Merci de respecter votre échéance !' : 'Merci pour votre achat !'}</div>
             <div style="font-size: 9px; margin-top: 3px;">FASOCARNET</div>
           </div>
         </body>

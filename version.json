@@ -1,9 +1,9 @@
 {
-  "version": "1.2.21",
-  "versionCode": 24,
-  "releaseDate": "2026-09-24",
-  "title": "Mise à Jour Instantanée & Notification Universelle",
-  "releaseNotes": "1. Affichage garanti de la boîte de dialogue de mise à jour dès l'ouverture de l'application.\n2. Connexion directe en temps réel à l'API GitHub sans délai de mise en cache.\n3. Application automatique des améliorations en un clic sur 'OK, J'ai compris'.",
+  "version": "1.3.0",
+  "versionCode": 25,
+  "releaseDate": "2026-09-25",
+  "title": "Mise à Jour v1.3.0 : Acomptes, Dépenses, Sécurité & Guide",
+  "releaseNotes": "1. Clavier de caisse rapide avec opérations directes (+, − rabais, × multiplication).\n2. Ventes avec acompte et reliquat automatique en dette client.\n3. Gestion des dépenses du magasin et calcul de la trésorerie nette réelle.\n4. Sécurisation anti-fraude Mobile Money avec saisie de la référence de transaction.\n5. Centre d'Aide, Guide d'utilisation et FAQ intégré.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false

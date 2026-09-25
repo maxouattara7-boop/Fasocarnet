@@ -11,16 +11,7 @@ import { formatCurrency } from '../../utils/formatters';
 import { triggerHaptic, triggerDoubleHaptic } from '../../utils/haptics';
 import { soundEffects } from '../../utils/soundEffects';
 import { ArrowRight, ShoppingCart, Package, Calculator, Search, X, ChevronDown, Barcode, Camera, Check, Sparkles } from 'lucide-react';
-
-const evaluateAddition = (expression: string): number => {
-  try {
-    const sanitized = expression.replace(/[^0-9+]/g, '');
-    const parts = sanitized.split('+').filter((p) => p.trim() !== '');
-    return parts.reduce((sum, part) => sum + (parseInt(part, 10) || 0), 0);
-  } catch {
-    return 0;
-  }
-};
+import { evaluatePosExpression, formatPosExpressionDisplay } from '../../utils/calculator';
 
 export const PosView: React.FC = () => {
   const [amountStr, setAmountStr] = useState<string>('0');
@@ -86,7 +77,7 @@ export const PosView: React.FC = () => {
     setProducts(list);
   };
 
-  const totalAmount = evaluateAddition(amountStr);
+  const totalAmount = evaluatePosExpression(amountStr);
 
   const handleClear = () => {
     setAmountStr('0');
@@ -235,7 +226,7 @@ export const PosView: React.FC = () => {
     await loadProducts();
   };
 
-  const hasCalculation = amountStr.includes('+');
+  const hasCalculation = /[+\-×*x]/.test(amountStr);
 
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(articleSearch.toLowerCase())
@@ -258,10 +249,10 @@ export const PosView: React.FC = () => {
         </div>
 
         <div className="text-right mt-1">
-          {/* Formule de calcul si addition en cours */}
+          {/* Formule de calcul si opération en cours */}
           {hasCalculation && (
             <div className="text-[11px] sm:text-xs font-semibold text-amber-300 bg-amber-950/40 px-2 py-0.5 rounded-md inline-block max-w-full truncate mb-0.5 border border-amber-500/30">
-              {amountStr} {amountStr.trim().endsWith('+') ? '...' : '='}
+              {formatPosExpressionDisplay(amountStr)} {/[+\-×*x]\s*$/.test(amountStr) ? '...' : '='}
             </div>
           )}
 

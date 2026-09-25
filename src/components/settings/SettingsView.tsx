@@ -38,15 +38,18 @@ import {
   X,
   Package,
   BellRing,
-  ArrowRight
+  ArrowRight,
+  BookOpen
 } from 'lucide-react';
 import { soundEffects } from '../../utils/soundEffects';
-import { hashPin } from '../../utils/crypto';
+import { hashPin, verifyHash } from '../../utils/crypto';
+import { cleanPhoneNumber, formatPhoneNumberDisplay, isValidPhoneNumber } from '../../utils/phoneValidation';
 import { isHapticsEnabled, setHapticsEnabled, triggerHaptic, triggerDoubleHaptic } from '../../utils/haptics';
 import { productsService } from '../../db/services/productsService';
 import { subscriptionService, SUBSCRIPTION_PLANS, SubscriptionPlan, getPaymentChannels } from '../../db/services/subscriptionService';
 import { syncService } from '../../db/services/syncService';
 import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
+import { HelpGuideModal } from '../common/HelpGuideModal';
 import { Product } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -91,6 +94,11 @@ export const SettingsView: React.FC = () => {
   const [pin, setNewPin] = useState(shopProfile?.pinCode || '');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [showPaymentConfirmModal, setShowPaymentConfirmModal] = useState(false);
+  const [confirmPinInput, setConfirmPinInput] = useState('');
+  const [confirmPinError, setConfirmPinError] = useState('');
+  const [isHelpGuideOpen, setIsHelpGuideOpen] = useState(false);
 
   useEffect(() => {
     if (shopProfile) {
@@ -370,8 +378,7 @@ export const SettingsView: React.FC = () => {
     }
   };
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeSaveProfile = async () => {
     const updatedPin = pin.trim().length === 4
       ? hashPin(pin.trim())
       : (pin.trim() === '' && shopProfile?.pinCode ? shopProfile.pinCode : undefined);
@@ -380,11 +387,11 @@ export const SettingsView: React.FC = () => {
       name: name.trim() || 'Ma Boutique',
       description: description.trim() || undefined,
       ownerName: ownerName.trim(),
-      ownerPhone: ownerPhone.trim() || undefined,
-      phone: phone.trim(),
-      orangeMoneyNumber: omNumber.trim() || undefined,
-      moovMoneyNumber: moovNumber.trim() || undefined,
-      waveNumber: waveNumber.trim() || undefined,
+      ownerPhone: cleanPhoneNumber(ownerPhone) || undefined,
+      phone: cleanPhoneNumber(phone),
+      orangeMoneyNumber: cleanPhoneNumber(omNumber) || undefined,
+      moovMoneyNumber: cleanPhoneNumber(moovNumber) || undefined,
+      waveNumber: cleanPhoneNumber(waveNumber) || undefined,
       ifu: ifu.trim() || undefined,
       rccm: rccm.trim() || undefined,
       logo: logo || undefined,
@@ -393,7 +400,83 @@ export const SettingsView: React.FC = () => {
       pinCode: updatedPin
     });
     setSavedSuccess(true);
+    setPhoneError(null);
+    setShowPaymentConfirmModal(false);
+    setConfirmPinInput('');
+    setConfirmPinError('');
     setTimeout(() => setSavedSuccess(false), 2500);
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPhoneError(null);
+
+    // Validation stricte des numéros
+    if (phone.trim()) {
+      const res = isValidPhoneNumber(phone);
+      if (!res.isValid) {
+        setPhoneError(`Téléphone Caisse : ${res.message}`);
+        return;
+      }
+    }
+    if (ownerPhone.trim()) {
+      const res = isValidPhoneNumber(ownerPhone);
+      if (!res.isValid) {
+        setPhoneError(`WhatsApp Propriétaire : ${res.message}`);
+        return;
+      }
+    }
+    if (omNumber.trim()) {
+      const res = isValidPhoneNumber(omNumber);
+      if (!res.isValid) {
+        setPhoneError(`Numéro Orange Money : ${res.message}`);
+        return;
+      }
+    }
+    if (moovNumber.trim()) {
+      const res = isValidPhoneNumber(moovNumber);
+      if (!res.isValid) {
+        setPhoneError(`Numéro Moov Money : ${res.message}`);
+        return;
+      }
+    }
+    if (waveNumber.trim()) {
+      const res = isValidPhoneNumber(waveNumber);
+      if (!res.isValid) {
+        setPhoneError(`Numéro Wave : ${res.message}`);
+        return;
+      }
+    }
+
+    // Sécurité : si modification des numéros marchands, demander confirmation
+    if (activeSubTab === 'payments') {
+      const hasChanged =
+        cleanPhoneNumber(omNumber) !== (shopProfile?.orangeMoneyNumber || '') ||
+        cleanPhoneNumber(moovNumber) !== (shopProfile?.moovMoneyNumber || '') ||
+        cleanPhoneNumber(waveNumber) !== (shopProfile?.waveNumber || '');
+
+      if (hasChanged) {
+        setShowPaymentConfirmModal(true);
+        return;
+      }
+    }
+
+    await executeSaveProfile();
+  };
+
+  const handleConfirmPaymentSave = async () => {
+    if (shopProfile?.pinCode) {
+      if (!confirmPinInput) {
+        setConfirmPinError('Veuillez saisir votre code PIN.');
+        return;
+      }
+      const isValid = verifyHash(confirmPinInput, shopProfile.pinCode);
+      if (!isValid) {
+        setConfirmPinError('Code PIN incorrect.');
+        return;
+      }
+    }
+    await executeSaveProfile();
   };
 
   const handleConfirmLogout = () => {
@@ -535,6 +618,13 @@ export const SettingsView: React.FC = () => {
               </div>
             </div>
 
+            {phoneError && (
+              <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl flex items-center space-x-2 text-red-700 text-xs font-semibold animate-in fade-in">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
+                <span>{phoneError}</span>
+              </div>
+            )}
+
             <div>
               <label className="block text-[9px] font-bold uppercase text-slate-600 tracking-wider mb-0.5">
                 WhatsApp du Propriétaire (Point du soir)
@@ -542,7 +632,10 @@ export const SettingsView: React.FC = () => {
               <input
                 type="tel"
                 value={ownerPhone}
-                onChange={(e) => setOwnerPhone(e.target.value)}
+                onChange={(e) => {
+                  setPhoneError(null);
+                  setOwnerPhone(cleanPhoneNumber(e.target.value));
+                }}
                 className="w-full px-2.5 py-1.5 bg-emerald-50/40 border border-emerald-200/80 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
                 placeholder="Ex: 70 12 34 56"
               />
@@ -556,7 +649,10 @@ export const SettingsView: React.FC = () => {
                 type="tel"
                 required
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  setPhoneError(null);
+                  setPhone(cleanPhoneNumber(e.target.value));
+                }}
                 className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
                 placeholder="Ex: 70 00 00 00"
               />
@@ -887,18 +983,25 @@ export const SettingsView: React.FC = () => {
               </div>
             </div>
 
-            <p className="text-[10px] text-emerald-50 leading-relaxed">
-              Une question, un problème technique ou besoin d'activer une nouvelle licence ? Notre équipe vous répond immédiatement.
-            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsHelpGuideOpen(true)}
+                className="w-full py-2 bg-emerald-950/60 hover:bg-emerald-950/80 text-emerald-100 border border-emerald-500/40 font-bold rounded-xl text-xs shadow-xs active:scale-98 transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Guide & FAQ</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={handleContactSupport}
-              className="w-full py-2 bg-white hover:bg-emerald-50 text-emerald-900 font-black rounded-xl text-xs shadow-xs active:scale-98 transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
-            >
-              <MessageCircle className="w-4 h-4 text-emerald-600" />
-              <span>Contacter le Support WhatsApp</span>
-            </button>
+              <button
+                type="button"
+                onClick={handleContactSupport}
+                className="w-full py-2 bg-white hover:bg-emerald-50 text-emerald-900 font-black rounded-xl text-xs shadow-xs active:scale-98 transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
+              >
+                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Support WhatsApp</span>
+              </button>
+            </div>
           </div>
 
           {/* Déconnexion */}
@@ -1645,29 +1748,42 @@ export const SettingsView: React.FC = () => {
               Ces numéros seront automatiquement insérés dans vos reçus et vos relances WhatsApp de dettes.
             </p>
 
+            {phoneError && (
+              <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl flex items-center space-x-2 text-red-700 text-xs font-semibold animate-in fade-in">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
+                <span>{phoneError}</span>
+              </div>
+            )}
+
             <div>
               <label className="block text-[9px] font-bold text-[#ff6600] uppercase tracking-wider mb-0.5">
-                Numéro Orange Money
+                Numéro Orange Money (Burkina Faso)
               </label>
               <input
                 type="tel"
                 value={omNumber}
-                onChange={(e) => setOmNumber(e.target.value)}
+                onChange={(e) => {
+                  setPhoneError(null);
+                  setOmNumber(cleanPhoneNumber(e.target.value));
+                }}
                 className="w-full px-2.5 py-1.5 bg-orange-50/40 border border-orange-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:ring-1 focus:ring-[#ff6600] outline-none transition-all placeholder:text-slate-400 focus:placeholder:opacity-0"
-                placeholder="Ex: 70 XX XX XX"
+                placeholder="Ex: 70 12 34 56"
               />
             </div>
 
             <div>
               <label className="block text-[9px] font-bold text-[#005baa] uppercase tracking-wider mb-0.5">
-                Numéro Moov Money
+                Numéro Moov Money (Burkina Faso)
               </label>
               <input
                 type="tel"
                 value={moovNumber}
-                onChange={(e) => setMoovNumber(e.target.value)}
+                onChange={(e) => {
+                  setPhoneError(null);
+                  setMoovNumber(cleanPhoneNumber(e.target.value));
+                }}
                 className="w-full px-2.5 py-1.5 bg-blue-50/40 border border-blue-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:ring-1 focus:ring-[#005baa] outline-none transition-all placeholder:text-slate-400 focus:placeholder:opacity-0"
-                placeholder="Ex: 60 XX XX XX"
+                placeholder="Ex: 60 12 34 56"
               />
             </div>
 
@@ -1678,9 +1794,12 @@ export const SettingsView: React.FC = () => {
               <input
                 type="tel"
                 value={waveNumber}
-                onChange={(e) => setWaveNumber(e.target.value)}
+                onChange={(e) => {
+                  setPhoneError(null);
+                  setWaveNumber(cleanPhoneNumber(e.target.value));
+                }}
                 className="w-full px-2.5 py-1.5 bg-sky-50/40 border border-sky-200 rounded-lg text-xs font-semibold text-slate-900 focus:bg-white focus:ring-1 focus:ring-[#1dc4fe] outline-none transition-all placeholder:text-slate-400 focus:placeholder:opacity-0"
-                placeholder="Ex: 70 XX XX XX"
+                placeholder="Ex: 70 12 34 56"
               />
             </div>
 
@@ -1693,6 +1812,87 @@ export const SettingsView: React.FC = () => {
             </button>
           </div>
         </form>
+      )}
+
+      {/* Modal de Sécurité pour Modification des Numéros Marchands */}
+      {showPaymentConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl p-4 sm:p-5 space-y-3.5 animate-in zoom-in-95 duration-150 border border-slate-100">
+            <div className="flex items-center space-x-2.5 text-amber-800">
+              <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-600 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-xs tracking-tight text-slate-900 font-display">Confirmation de Sécurité</h3>
+                <p className="text-[10px] text-slate-500 font-medium">Modification des numéros de paiement</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Vous êtes sur le point de modifier les numéros sur lesquels vos clients effectuent leurs paiements Mobile Money.
+            </p>
+
+            <div className="bg-slate-50 p-2.5 rounded-xl space-y-1.5 border border-slate-200 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-[#ff6600]">Orange Money :</span>
+                <span className="font-mono font-semibold">{formatPhoneNumberDisplay(omNumber) || '(Aucun)'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-[#005baa]">Moov Money :</span>
+                <span className="font-mono font-semibold">{formatPhoneNumberDisplay(moovNumber) || '(Aucun)'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-[#1dc4fe]">Wave :</span>
+                <span className="font-mono font-semibold">{formatPhoneNumberDisplay(waveNumber) || '(Aucun)'}</span>
+              </div>
+            </div>
+
+            {shopProfile?.pinCode && (
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase text-slate-700 tracking-wider">
+                  Saisissez votre code PIN (4 chiffres) :
+                </label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={confirmPinInput}
+                  onChange={(e) => {
+                    setConfirmPinError('');
+                    setConfirmPinInput(cleanPhoneNumber(e.target.value));
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-center text-lg font-mono font-black tracking-widest outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  placeholder="••••"
+                  autoFocus
+                />
+                {confirmPinError && (
+                  <p className="text-[10px] font-bold text-red-600 text-center">{confirmPinError}</p>
+                )}
+              </div>
+            )}
+
+            <div className="flex space-x-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPaymentConfirmModal(false);
+                  setConfirmPinInput('');
+                  setConfirmPinError('');
+                }}
+                className="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPaymentSave}
+                className="w-1/2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-600/20 active:scale-98 transition-all cursor-pointer flex items-center justify-center space-x-1"
+              >
+                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Confirmer</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal de Confirmation de Déconnexion */}
@@ -1827,6 +2027,9 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modal Centre d'Aide & Guide Rapide */}
+      <HelpGuideModal isOpen={isHelpGuideOpen} onClose={() => setIsHelpGuideOpen(false)} />
     </div>
   );
 };

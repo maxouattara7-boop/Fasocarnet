@@ -122,23 +122,45 @@ describe('Database Services (Offline-First)', () => {
     expect(monthSales.length).toBe(2);
   });
 
-  it('deletes customer and associated debt records completely', async () => {
+  it('records partial credit sale (down payment + remaining debt) correctly', async () => {
     const customer = await customersService.create({
-      name: 'Traore Moussa',
-      phone: '78998877',
-      initialDebt: 50000
+      name: 'Sawadogo Karim',
+      phone: '70223344'
     });
 
-    expect(customer.id).toBeDefined();
-    let found = await customersService.getById(customer.id);
-    expect(found?.totalDebt).toBe(50000);
+    const sale = await salesService.recordSale({
+      totalAmount: 20000,
+      paymentMethod: 'CASH',
+      isCredit: false,
+      isPartialCredit: true,
+      paidAmount: 8000,
+      creditAmount: 12000,
+      downPaymentMethod: 'CASH',
+      customerId: customer.id,
+      customerName: customer.name,
+      customerPhone: customer.phone,
+      receivedAmount: 8000,
+      changeAmount: 0
+    });
 
-    await customersService.delete(customer.id);
+    expect(sale.isPartialCredit).toBe(true);
+    expect(sale.paidAmount).toBe(8000);
+    expect(sale.creditAmount).toBe(12000);
 
-    found = await customersService.getById(customer.id);
-    expect(found).toBeUndefined();
+    // Vérifier la mise à jour de la dette client
+    const updatedCustomer = await customersService.getById(customer.id);
+    expect(updatedCustomer?.totalDebt).toBe(12000);
 
-    const debts = await db.debts.where('customerId').equals(customer.id).toArray();
-    expect(debts.length).toBe(0);
+    // Vérifier l'enregistrement de la dette
+    const debts = await debtsService.getByCustomerId(customer.id);
+    expect(debts.length).toBe(1);
+    expect(debts[0].initialAmount).toBe(12000);
+    expect(debts[0].remainingAmount).toBe(12000);
+
+    // Vérifier le Bilan journalier
+    const summary = await salesService.getDailySummary();
+    expect(summary.totalSales).toBe(8000); // Seul l'acompte encaissé compte en CA
+    expect(summary.cashSales).toBe(8000);
+    expect(summary.creditSales).toBe(12000); // Le reliquat est comptabilisé en crédit
   });
 });
