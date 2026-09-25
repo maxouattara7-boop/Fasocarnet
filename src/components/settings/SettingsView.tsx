@@ -39,7 +39,9 @@ import {
   Package,
   BellRing,
   ArrowRight,
-  BookOpen
+  BookOpen,
+  Zap,
+  RefreshCw
 } from 'lucide-react';
 import { soundEffects } from '../../utils/soundEffects';
 import { hashPin, verifyHash } from '../../utils/crypto';
@@ -48,8 +50,10 @@ import { isHapticsEnabled, setHapticsEnabled, triggerHaptic, triggerDoubleHaptic
 import { productsService } from '../../db/services/productsService';
 import { subscriptionService, SUBSCRIPTION_PLANS, SubscriptionPlan, getPaymentChannels } from '../../db/services/subscriptionService';
 import { syncService } from '../../db/services/syncService';
+import { updateService, CURRENT_APP_VERSION, AppUpdateInfo } from '../../services/updateService';
 import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
 import { HelpGuideModal } from '../common/HelpGuideModal';
+import { UpdateModal } from '../common/UpdateModal';
 import { Product } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -99,6 +103,31 @@ export const SettingsView: React.FC = () => {
   const [confirmPinInput, setConfirmPinInput] = useState('');
   const [confirmPinError, setConfirmPinError] = useState('');
   const [isHelpGuideOpen, setIsHelpGuideOpen] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [updateFeedback, setUpdateFeedback] = useState<string | null>(null);
+  const [manualUpdateInfo, setManualUpdateInfo] = useState<AppUpdateInfo | null>(null);
+  const [showManualUpdateModal, setShowManualUpdateModal] = useState(false);
+
+  const handleCheckUpdateManual = async () => {
+    setIsCheckingUpdate(true);
+    setUpdateFeedback('Connexion à GitHub et recherche de mise à jour...');
+    try {
+      const res = await updateService.checkForUpdate();
+      if (res.hasUpdate && res.updateInfo) {
+        setManualUpdateInfo(res.updateInfo);
+        setShowManualUpdateModal(true);
+        setUpdateFeedback(null);
+      } else {
+        setUpdateFeedback(`✓ Votre application est déjà sur la version la plus récente (v${CURRENT_APP_VERSION}).`);
+        setTimeout(() => setUpdateFeedback(null), 5000);
+      }
+    } catch {
+      setUpdateFeedback("Impossible de joindre le serveur de mise à jour. Vérifiez votre connexion Internet.");
+      setTimeout(() => setUpdateFeedback(null), 5000);
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
 
   useEffect(() => {
     if (shopProfile) {
@@ -969,6 +998,37 @@ export const SettingsView: React.FC = () => {
               onChange={handleImportBackup}
               className="hidden"
             />
+          </div>
+
+          {/* Mises à Jour de l'Application & Détection OTA */}
+          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-100 shadow-xs space-y-2.5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <div className="flex items-center space-x-2 text-emerald-900">
+                <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
+                  <Zap className="w-3.5 h-3.5 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-xs tracking-tight">Mise à Jour de l'Application</h3>
+                  <p className="text-[10px] text-slate-500">Version actuelle : <strong className="font-mono text-slate-800">v{CURRENT_APP_VERSION}</strong></p>
+                </div>
+              </div>
+            </div>
+
+            {updateFeedback && (
+              <div className="p-2 bg-emerald-50 text-emerald-800 text-xs font-semibold rounded-lg border border-emerald-200 animate-in fade-in">
+                {updateFeedback}
+              </div>
+            )}
+
+            <button
+              type="button"
+              disabled={isCheckingUpdate}
+              onClick={handleCheckUpdateManual}
+              className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-xs transition-all active:scale-98 cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
+              <span>{isCheckingUpdate ? 'Vérification sur GitHub...' : 'Vérifier les Mises à Jour'}</span>
+            </button>
           </div>
 
           {/* Assistance & Support Client WhatsApp */}
@@ -2030,6 +2090,15 @@ export const SettingsView: React.FC = () => {
 
       {/* Modal Centre d'Aide & Guide Rapide */}
       <HelpGuideModal isOpen={isHelpGuideOpen} onClose={() => setIsHelpGuideOpen(false)} />
+
+      {/* Modal de Mise à jour Manuelle */}
+      {manualUpdateInfo && (
+        <UpdateModal
+          updateInfo={manualUpdateInfo}
+          isOpen={showManualUpdateModal}
+          onClose={() => setShowManualUpdateModal(false)}
+        />
+      )}
     </div>
   );
 };
