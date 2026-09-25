@@ -48,6 +48,7 @@ export interface Product {
   shopId?: string;
   name: string;
   price: number;
+  costPrice?: number; // Prix d'achat unitaire (coût de revient)
   barcode?: string;
   category?: string;
   stockQuantity?: number; // Quantité en stock disponible (si indéfini, stock non géré / illimité)
@@ -56,18 +57,37 @@ export interface Product {
   updatedAt?: string;
 }
 
+export interface StockSupply {
+  id: string;
+  shopId?: string;
+  productId: string;
+  productName: string;
+  quantity: number; // Quantité approvisionnée
+  costPrice: number; // Prix d'achat unitaire pour cet arrivage
+  sellingPrice?: number; // Prix de vente unitaire fixé/conseillé
+  totalCost: number; // quantity * costPrice
+  supplierName?: string;
+  notes?: string;
+  createdAt: string;
+}
+
 export interface SaleItem {
   id: string;
   productId?: string;
   description: string;
   quantity: number;
   unitPrice: number;
+  costPrice?: number; // Prix d'achat unitaire au moment de la vente (pour calcul exact de la marge)
 }
 
 export interface Sale {
   id: string;
   shopId?: string;
   totalAmount: number;
+  subtotalAmount?: number; // Montant brut avant remise
+  discountAmount?: number; // Montant de la remise en FCFA
+  discountType?: 'PERCENT' | 'AMOUNT';
+  discountValue?: number; // Valeur saisie (ex: 10 pour 10% ou 500 pour 500 FCFA)
   paymentMethod: PaymentMethod;
   isCredit: boolean;
   isPartialCredit?: boolean; // Vente mixte avec acompte et reste en dette
@@ -149,6 +169,10 @@ export interface DailySummary {
   moovMoneyExpenses?: number;
   waveExpenses?: number;
   netCashFlow?: number; // Solde net (Total Encaissé - Dépenses)
+  // Rentabilité & Marges
+  totalCostOfGoodsSold?: number; // Coût d'achat total des articles vendus
+  grossProfit?: number; // Marge commerciale / Bénéfice brut (Ventes - Coût d'achat)
+  netProfit?: number; // Bénéfice net d'exploitation (Marge brute - Dépenses)
   // Encours global de dettes
   totalOutstandingDebt?: number;
   debtorsCount?: number;

@@ -85,11 +85,22 @@ export function generateWhatsAppReceiptUrl(
       `✍️ *Le Responsable :* ${shop?.ownerName || shop?.name || 'Le Gérant'}\n`;
   }
 
+  let discountText = '';
+  if (sale.discountAmount && sale.discountAmount > 0) {
+    const subtotal = sale.subtotalAmount || (sale.totalAmount + sale.discountAmount);
+    const discLabel = sale.discountType === 'PERCENT' && sale.discountValue ? ` (${sale.discountValue}%)` : '';
+    discountText = `📦 *Sous-Total Brut :* ${formatCurrency(subtotal)}\n` +
+      `🏷️ *Remise accordée :* -${formatCurrency(sale.discountAmount)}${discLabel}\n`;
+  }
+
+  const totalLabel = (sale.discountAmount && sale.discountAmount > 0) ? 'NET À PAYER' : 'TOTAL';
+
   const message = `${title}\n` +
     `📅 Date : ${dateStr}\n` +
     `--------------------------\n` +
     itemsText +
-    `💰 *TOTAL : ${formatCurrency(sale.totalAmount)}*\n` +
+    discountText +
+    `💰 *${totalLabel} : ${formatCurrency(sale.totalAmount)}*\n` +
     `💳 Mode : ${modePaiementLabel}\n` +
     (sale.transactionRef ? `🔖 *Réf. Transaction :* ${sale.transactionRef}\n` : '') +
     partialDetailsText +
@@ -150,6 +161,9 @@ export function generateDailyReportWhatsAppUrl(
     `• ⚠️ Nouveaux crédits accordés : ${formatCurrency(summary.creditSales)}\n` +
     `• 💰 Dettes clients récupérées  : ${formatCurrency(summary.totalRecoveredDebts)}\n` +
     `----------------------------------\n` +
+    (summary.totalExpenses !== undefined && summary.totalExpenses > 0 ? `💸 *Dépenses payées :* ${formatCurrency(summary.totalExpenses)}\n` : '') +
+    (summary.grossProfit !== undefined && summary.grossProfit > 0 ? `📈 *Marge Brute estimée :* ${formatCurrency(summary.grossProfit)}\n` : '') +
+    (summary.netProfit !== undefined ? `🏆 *Bénéfice Net estimé :* ${formatCurrency(summary.netProfit)}\n----------------------------------\n` : '') +
     `✅ *Point de journée certifié FasoCarnet.*`;
 
   const targetPhone = shop?.ownerPhone ? cleanPhoneNumber(shop.ownerPhone) : '';

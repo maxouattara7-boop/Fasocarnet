@@ -7,6 +7,10 @@ import { expensesService } from './expensesService';
 export const salesService = {
   async recordSale(data: {
     totalAmount: number;
+    subtotalAmount?: number;
+    discountAmount?: number;
+    discountType?: 'PERCENT' | 'AMOUNT';
+    discountValue?: number;
     paymentMethod: PaymentMethod;
     isCredit: boolean;
     isPartialCredit?: boolean;
@@ -22,9 +26,31 @@ export const salesService = {
     notes?: string;
     items?: import('../../types').SaleItem[];
   }): Promise<Sale> {
+    // Enrichir chaque article avec son coût d'achat actuel pour historique de rentabilité fiable
+    let enrichedItems = data.items;
+    if (data.items && data.items.length > 0) {
+      enrichedItems = await Promise.all(
+        data.items.map(async (item) => {
+          if (item.costPrice !== undefined) return item;
+          const targetId = item.productId || item.id;
+          if (targetId) {
+            const product = await db.products.get(targetId);
+            if (product && typeof product.costPrice === 'number') {
+              return { ...item, costPrice: product.costPrice };
+            }
+          }
+          return item;
+        })
+      );
+    }
+
     const sale: Sale = {
       id: `sale_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       totalAmount: data.totalAmount,
+      subtotalAmount: data.subtotalAmount,
+      discountAmount: data.discountAmount,
+      discountType: data.discountType,
+      discountValue: data.discountValue,
       paymentMethod: data.paymentMethod,
       isCredit: data.isCredit,
       isPartialCredit: data.isPartialCredit,
@@ -38,7 +64,7 @@ export const salesService = {
       changeAmount: data.changeAmount,
       transactionRef: data.transactionRef,
       notes: data.notes,
-      items: data.items,
+      items: enrichedItems,
       createdAt: new Date().toISOString()
     };
 
@@ -114,9 +140,14 @@ export const salesService = {
       moovMoneyExpenses: expSummary.moovMoneyExpenses,
       waveExpenses: expSummary.waveExpenses,
       netCashFlow: 0,
+      totalCostOfGoodsSold: 0,
+      grossProfit: 0,
+      netProfit: 0,
       totalOutstandingDebt,
       debtorsCount
     };
+
+    let totalCOGS = 0;
 
     for (const sale of daySales) {
       if (sale.isCredit) {
@@ -139,10 +170,25 @@ export const salesService = {
         if (sale.paymentMethod === 'MOOV_MONEY') summary.moovMoneySales += sale.totalAmount;
         if (sale.paymentMethod === 'WAVE') summary.waveSales += sale.totalAmount;
       }
+
+      // Calcul du coût de revient des articles vendus
+      if (sale.items && sale.items.length > 0) {
+        for (const it of sale.items) {
+          if (it.costPrice && it.costPrice > 0) {
+            totalCOGS += it.costPrice * (it.quantity || 1);
+          }
+        }
+      }
     }
 
     // Flux net de trésorerie = (Ventes encaissées + Dettes récupérées) - Dépenses totales
     summary.netCashFlow = (summary.totalSales + summary.totalRecoveredDebts) - summary.totalExpenses!;
+    summary.totalCostOfGoodsSold = totalCOGS;
+    // Marge Brute = Chiffre d'affaires total (encaissé + accordé à crédit) - Coût des marchandises
+    const totalVolume = summary.totalSales + summary.creditSales;
+    summary.grossProfit = Math.max(0, totalVolume - totalCOGS);
+    // Bénéfice Net = Marge Brute - Dépenses d'exploitation
+    summary.netProfit = summary.grossProfit - summary.totalExpenses!;
 
     return summary;
   },
@@ -200,9 +246,14 @@ export const salesService = {
       moovMoneyExpenses: expSummary.moovMoneyExpenses,
       waveExpenses: expSummary.waveExpenses,
       netCashFlow: 0,
+      totalCostOfGoodsSold: 0,
+      grossProfit: 0,
+      netProfit: 0,
       totalOutstandingDebt,
       debtorsCount
     };
+
+    let totalMonthCOGS = 0;
 
     for (const sale of monthSales) {
       if (sale.isCredit) {
@@ -225,9 +276,21 @@ export const salesService = {
         if (sale.paymentMethod === 'MOOV_MONEY') summary.moovMoneySales += sale.totalAmount;
         if (sale.paymentMethod === 'WAVE') summary.waveSales += sale.totalAmount;
       }
+
+      if (sale.items && sale.items.length > 0) {
+        for (const it of sale.items) {
+          if (it.costPrice && it.costPrice > 0) {
+            totalMonthCOGS += it.costPrice * (it.quantity || 1);
+          }
+        }
+      }
     }
 
     summary.netCashFlow = (summary.totalSales + summary.totalRecoveredDebts) - summary.totalExpenses!;
+    summary.totalCostOfGoodsSold = totalMonthCOGS;
+    const totalVolume = summary.totalSales + summary.creditSales;
+    summary.grossProfit = Math.max(0, totalVolume - totalMonthCOGS);
+    summary.netProfit = summary.grossProfit - summary.totalExpenses!;
 
     return summary;
   },

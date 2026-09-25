@@ -41,8 +41,11 @@ import {
   ArrowRight,
   BookOpen,
   Zap,
-  RefreshCw
+  RefreshCw,
+  TrendingUp
 } from 'lucide-react';
+import { SuppliesHistoryModal } from '../inventory/SuppliesHistoryModal';
+import { suppliesService } from '../../db/services/suppliesService';
 import { soundEffects } from '../../utils/soundEffects';
 import { hashPin, verifyHash } from '../../utils/crypto';
 import { cleanPhoneNumber, formatPhoneNumberDisplay, isValidPhoneNumber } from '../../utils/phoneValidation';
@@ -187,18 +190,24 @@ export const SettingsView: React.FC = () => {
   // Gestion du Catalogue d'Articles & Stock
   const [products, setProducts] = useState<Product[]>([]);
   const [newProductName, setNewProductName] = useState('');
+  const [newProductCostPrice, setNewProductCostPrice] = useState('');
   const [newProductPrice, setNewProductPrice] = useState('');
   const [newProductBarcode, setNewProductBarcode] = useState('');
   const [newProductStock, setNewProductStock] = useState('');
   const [newProductMinAlert, setNewProductMinAlert] = useState('5');
   const [isBarcodeModalOpen, setIsBarcodeModalOpen] = useState(false);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [isSuppliesHistoryModalOpen, setIsSuppliesHistoryModalOpen] = useState(false);
   const [catalogFilter, setCatalogFilter] = useState<'all' | 'low_stock'>('all');
   const [catalogSearch, setCatalogSearch] = useState('');
 
   // Modal de Réapprovisionnement Rapide
   const [restockProduct, setRestockProduct] = useState<Product | null>(null);
   const [restockQtyInput, setRestockQtyInput] = useState('10');
+  const [restockCostPriceInput, setRestockCostPriceInput] = useState('');
+  const [restockSellingPriceInput, setRestockSellingPriceInput] = useState('');
+  const [restockSupplierInput, setRestockSupplierInput] = useState('');
+  const [restockNotesInput, setRestockNotesInput] = useState('');
   const [isRestocking, setIsRestocking] = useState(false);
 
   // Gestion de l'Abonnement & Licence
@@ -346,8 +355,9 @@ export const SettingsView: React.FC = () => {
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     const price = parseFloat(newProductPrice) || 0;
+    const costPrice = parseFloat(newProductCostPrice) || undefined;
     if (!newProductName.trim() || price <= 0) {
-      alert("Veuillez renseigner le nom de l'article et un prix supérieur à 0.");
+      alert("Veuillez renseigner le nom de l'article et un prix de vente supérieur à 0.");
       return;
     }
 
@@ -362,9 +372,11 @@ export const SettingsView: React.FC = () => {
         newProductBarcode.trim() || undefined,
         undefined,
         stockQty,
-        minAlert
+        minAlert,
+        costPrice
       );
       setNewProductName('');
+      setNewProductCostPrice('');
       setNewProductPrice('');
       setNewProductBarcode('');
       setNewProductStock('');
@@ -386,15 +398,29 @@ export const SettingsView: React.FC = () => {
       alert("Veuillez indiquer une quantité valide à ajouter.");
       return;
     }
+    const cost = parseFloat(restockCostPriceInput) || restockProduct.costPrice || 0;
+    const selling = parseFloat(restockSellingPriceInput) || restockProduct.price;
+
     setIsRestocking(true);
     try {
-      await productsService.addStock(restockProduct.id, qty);
+      await suppliesService.recordSupply({
+        productId: restockProduct.id,
+        quantity: qty,
+        costPrice: cost,
+        sellingPrice: selling,
+        supplierName: restockSupplierInput,
+        notes: restockNotesInput
+      });
       setRestockProduct(null);
       setRestockQtyInput('10');
+      setRestockCostPriceInput('');
+      setRestockSellingPriceInput('');
+      setRestockSupplierInput('');
+      setRestockNotesInput('');
       await loadProducts();
     } catch (err) {
       console.error(err);
-      alert("Erreur lors du réapprovisionnement.");
+      alert("Erreur lors de l'enregistrement de l'approvisionnement.");
     } finally {
       setIsRestocking(false);
     }
@@ -1212,8 +1238,27 @@ export const SettingsView: React.FC = () => {
                 />
               </div>
 
-              {/* Champ 2 & 3 : Prix & Code-Barres */}
-              <div className="grid grid-cols-2 gap-2.5">
+              {/* Champ 2, 3 & 4 : Prix d'Achat, Prix de Vente & Code-Barres */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1 font-display">
+                    Prix d'achat <span className="text-slate-400 text-[9px] font-normal">(coût)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Ex: 350"
+                      value={newProductCostPrice}
+                      onChange={(e) => setNewProductCostPrice(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder:text-slate-400 shadow-2xs"
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 pointer-events-none">
+                      FCFA
+                    </span>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1 font-display">
                     Prix de vente <span className="text-emerald-600">*</span>
@@ -1221,6 +1266,8 @@ export const SettingsView: React.FC = () => {
                   <div className="relative">
                     <input
                       type="number"
+                      min="1"
+                      required
                       placeholder="Ex: 500"
                       value={newProductPrice}
                       onChange={(e) => setNewProductPrice(e.target.value)}
@@ -1259,7 +1306,21 @@ export const SettingsView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Champ 4 & 5 : Gestion de Stock & Alerte */}
+              {/* Indicateur de Marge unitaire en direct */}
+              {parseFloat(newProductPrice) > 0 && parseFloat(newProductCostPrice) > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-center justify-between text-xs animate-in fade-in duration-150">
+                  <div className="flex items-center space-x-1.5 text-amber-900 font-bold">
+                    <TrendingUp className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Marge bénéficiaire unitaire :</span>
+                  </div>
+                  <span className="font-black text-amber-900 font-display">
+                    +{formatCurrency(parseFloat(newProductPrice) - parseFloat(newProductCostPrice))}
+                    {' '}(+{Math.round(((parseFloat(newProductPrice) - parseFloat(newProductCostPrice)) / parseFloat(newProductCostPrice)) * 100)}%)
+                  </span>
+                </div>
+              )}
+
+              {/* Champ 5 & 6 : Gestion de Stock & Alerte */}
               <div className="bg-emerald-50/40 border border-emerald-100 rounded-xl p-3 space-y-2">
                 <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-wider block font-display">
                   Gestion du Stock & Alertes
@@ -1307,10 +1368,19 @@ export const SettingsView: React.FC = () => {
 
           {/* RECHERCHE ET LISTE DES ARTICLES */}
           <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <h4 className="font-extrabold text-xs text-slate-900 font-display">
                 Articles en Boutique ({products.length})
               </h4>
+              <button
+                type="button"
+                onClick={() => setIsSuppliesHistoryModalOpen(true)}
+                className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 transition-all shadow-2xs cursor-pointer font-display"
+                title="Consulter et exporter les arrivages et entrées de stock"
+              >
+                <PackagePlus className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Approvisionnements</span>
+              </button>
             </div>
 
             {/* Barre de Recherche Rapide */}
@@ -1411,10 +1481,22 @@ export const SettingsView: React.FC = () => {
                             )}
                           </div>
 
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                             <span className="text-emerald-700 font-extrabold text-xs tracking-tight font-display">
                               {formatCurrency(prod.price)}
                             </span>
+
+                            {prod.costPrice !== undefined && prod.costPrice > 0 && (
+                              <span className="text-[10px] text-slate-500 font-medium">
+                                (Achat: {formatCurrency(prod.costPrice)})
+                              </span>
+                            )}
+
+                            {prod.costPrice !== undefined && prod.costPrice > 0 && prod.price > prod.costPrice && (
+                              <span className="text-[9px] font-black text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded-md">
+                                Marge: +{formatCurrency(prod.price - prod.costPrice)}
+                              </span>
+                            )}
 
                             {/* Badge de Stock Soigné */}
                             {!hasStock && (
@@ -2033,7 +2115,7 @@ export const SettingsView: React.FC = () => {
 
             <form onSubmit={handleApplyRestockModal} className="space-y-3">
               <div>
-                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
+                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1 font-display">
                   Quantité à ajouter au stock *
                 </label>
                 <input
@@ -2042,7 +2124,7 @@ export const SettingsView: React.FC = () => {
                   required
                   value={restockQtyInput}
                   onChange={(e) => setRestockQtyInput(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border-2 border-emerald-500 rounded-xl text-sm font-black text-center text-slate-900 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                  className="w-full px-3 py-2 bg-white border-2 border-emerald-500 rounded-xl text-sm font-black text-center text-slate-900 focus:ring-2 focus:ring-emerald-500/20 outline-none font-display"
                   placeholder="Ex: 10"
                   autoFocus
                 />
@@ -2055,7 +2137,7 @@ export const SettingsView: React.FC = () => {
                     key={qty}
                     type="button"
                     onClick={() => setRestockQtyInput(String(qty))}
-                    className={`py-1 rounded-lg text-xs font-bold border transition-all ${
+                    className={`py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer font-display ${
                       restockQtyInput === String(qty)
                         ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
                         : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
@@ -2066,27 +2148,113 @@ export const SettingsView: React.FC = () => {
                 ))}
               </div>
 
+              {/* Prix d'achat & Prix de vente pour cet arrivage */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-600 mb-1">
+                    Prix d'achat unitaire (FCFA)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder={restockProduct.costPrice ? String(restockProduct.costPrice) : 'Ex: 350'}
+                    value={restockCostPriceInput}
+                    onChange={(e) => setRestockCostPriceInput(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:bg-white focus:border-emerald-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-600 mb-1">
+                    Prix de vente (FCFA)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder={String(restockProduct.price)}
+                    value={restockSellingPriceInput}
+                    onChange={(e) => setRestockSellingPriceInput(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-900 focus:bg-white focus:border-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Fournisseur & Notes */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-600 mb-1">
+                    Fournisseur <span className="text-slate-400 font-normal">(opt.)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Grossiste Ouaga"
+                    value={restockSupplierInput}
+                    onChange={(e) => setRestockSupplierInput(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:border-emerald-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-600 mb-1">
+                    Notes / N° Facture <span className="text-slate-400 font-normal">(opt.)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Arrivage du matin"
+                    value={restockNotesInput}
+                    onChange={(e) => setRestockNotesInput(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:bg-white focus:border-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Coût total estimé du réassort */}
+              {parseInt(restockQtyInput, 10) > 0 && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs">
+                  <span className="font-bold text-emerald-900 text-[11px]">Coût total arrivage :</span>
+                  <span className="font-black text-emerald-800 font-display">
+                    {formatCurrency(
+                      parseInt(restockQtyInput, 10) * 
+                      (parseFloat(restockCostPriceInput) || restockProduct.costPrice || 0)
+                    )}
+                  </span>
+                </div>
+              )}
+
               <div className="flex space-x-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => setRestockProduct(null)}
-                  className="w-1/2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
+                  onClick={() => {
+                    setRestockProduct(null);
+                    setRestockCostPriceInput('');
+                    setRestockSellingPriceInput('');
+                    setRestockSupplierInput('');
+                    setRestockNotesInput('');
+                  }}
+                  className="w-1/2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer font-display"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={isRestocking}
-                  className="w-1/2 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs shadow-xs active:scale-98 flex items-center justify-center space-x-1 disabled:opacity-50"
+                  className="w-1/2 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs shadow-xs active:scale-98 flex items-center justify-center space-x-1 disabled:opacity-50 cursor-pointer font-display"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
-                  <span>{isRestocking ? 'Ajout...' : 'Confirmer'}</span>
+                  <span>{isRestocking ? 'Ajout...' : 'Valider Entrée'}</span>
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Modal Historique & Export des Approvisionnements */}
+      <SuppliesHistoryModal
+        isOpen={isSuppliesHistoryModalOpen}
+        onClose={() => setIsSuppliesHistoryModalOpen(false)}
+        onSupplyUpdated={loadProducts}
+      />
 
       {/* Modal Centre d'Aide & Guide Rapide */}
       <HelpGuideModal isOpen={isHelpGuideOpen} onClose={() => setIsHelpGuideOpen(false)} />

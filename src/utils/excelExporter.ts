@@ -59,9 +59,9 @@ export async function exportMonthlyReportToExcel(params: {
   rows.push(''); // Ligne vide
 
   // =========================================================================
-  // 2. SYNTHÈSE DES ENCAISSEMENTS & CRÉANCES DU MOIS
+  // 2. SYNTHÈSE FINANCIÈRE & RENTABILITÉ DU MOIS
   // =========================================================================
-  rows.push([escapeCsv('=== SYNTHÈSE FINANCIÈRE DU MOIS ===')].join(';'));
+  rows.push([escapeCsv('=== SYNTHÈSE FINANCIÈRE & RENTABILITÉ DU MOIS ===')].join(';'));
   rows.push([escapeCsv('Indicateur Comptable'), escapeCsv('Montant (FCFA)'), escapeCsv('Détail / Commentaire')].join(';'));
   
   rows.push([
@@ -107,6 +107,30 @@ export async function exportMonthlyReportToExcel(params: {
   ].join(';'));
 
   rows.push([
+    escapeCsv('Coût d\'Achat des Marchandises Vendues (CAMV)'),
+    escapeCsv(summary?.totalCostOfGoodsSold || 0),
+    escapeCsv('Valeur d\'achat totale des articles vendus ce mois-ci')
+  ].join(';'));
+
+  rows.push([
+    escapeCsv('Marge Commerciale Brute'),
+    escapeCsv(summary?.grossProfit || 0),
+    escapeCsv('Volume total des ventes - Coût d\'achat des marchandises vendues')
+  ].join(';'));
+
+  rows.push([
+    escapeCsv('Total Dépenses d\'Exploitation'),
+    escapeCsv(summary?.totalExpenses || 0),
+    escapeCsv('Frais, loyers, salaires et charges courantes payés')
+  ].join(';'));
+
+  rows.push([
+    escapeCsv('Bénéfice Net d\'Exploitation'),
+    escapeCsv(summary?.netProfit || 0),
+    escapeCsv('Marge Commerciale Brute - Dépenses d\'Exploitation')
+  ].join(';'));
+
+  rows.push([
     escapeCsv('Nombre Total de Ventes'),
     escapeCsv(summary?.salesCount || 0),
     escapeCsv('Volume de transactions enregistrées')
@@ -125,7 +149,9 @@ export async function exportMonthlyReportToExcel(params: {
     escapeCsv('Articles / Fournitures vendus'),
     escapeCsv('Mode de Paiement'),
     escapeCsv('Type de Vente'),
-    escapeCsv('Montant Total (FCFA)'),
+    escapeCsv('Sous-Total Brut (FCFA)'),
+    escapeCsv('Remise Accordée (FCFA)'),
+    escapeCsv('Net Payé (FCFA)'),
     escapeCsv('Nom Client'),
     escapeCsv('Téléphone Client')
   ].join(';'));
@@ -140,12 +166,17 @@ export async function exportMonthlyReportToExcel(params: {
       articlesStr = 'Vente directe caisse';
     }
 
+    const subtotal = s.subtotalAmount ?? s.totalAmount;
+    const discount = s.discountAmount ?? 0;
+
     rows.push([
       escapeCsv(formatDateTime(s.createdAt)),
       escapeCsv(`#${s.id.slice(-8).toUpperCase()}`),
       escapeCsv(articlesStr),
       escapeCsv(s.paymentMethod),
       escapeCsv(s.isCredit ? 'CRÉDIT / DETTE' : 'COMPTANT'),
+      escapeCsv(subtotal),
+      escapeCsv(discount > 0 ? discount : '-'),
       escapeCsv(s.totalAmount),
       escapeCsv(s.customerName || '-'),
       escapeCsv(s.customerPhone || '-')

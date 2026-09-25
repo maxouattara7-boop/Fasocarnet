@@ -65,15 +65,15 @@ export const HelpGuideModal: React.FC<HelpGuideModalProps> = ({ isOpen, onClose 
           )
         },
         {
-          question: 'Comment appliquer une remise (rabais en % ou en FCFA) ?',
+          question: 'Comment appliquer une remise et comment apparaît-elle sur la facture ?',
           answer: (
             <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
               <p>Pour accorder un rabais ou une réduction à un client :</p>
               <ol className="list-decimal pl-4 space-y-1">
                 <li>Cliquez sur le bouton <strong>Remise</strong> situé juste au-dessus du clavier.</li>
                 <li>Choisissez le type : <strong>En Pourcentage (%)</strong> (ex: 5%, 10%, 20%) ou <strong>Montant Fixe (FCFA)</strong> (ex: 500 F, 1 000 F).</li>
-                <li>L'écran calcule le montant net à payer et affiche le sous-total barré ainsi que la remise déduite.</li>
-                <li>La remise est automatiquement consignée dans les notes comptables de la vente.</li>
+                <li>L'écran calcule le montant net à payer et affiche le sous-total brut ainsi que la remise déduite.</li>
+                <li><strong>Sur la facture & le ticket thermique :</strong> le <em>Sous-Total Brut</em>, la <em>Remise accordée</em> et le <em>Net à Payer</em> sont affichés de manière parfaitement claire et transparente.</li>
               </ol>
             </div>
           )
@@ -112,7 +112,7 @@ export const HelpGuideModal: React.FC<HelpGuideModalProps> = ({ isOpen, onClose 
             <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
               <p>Dès qu'une vente est validée, le modal de reçu s'affiche avec 3 options :</p>
               <ul className="list-disc pl-4 space-y-1">
-                <li><strong>📱 Partager WhatsApp :</strong> ouvre directement une conversation WhatsApp avec le client avec le détail complet du ticket formaté.</li>
+                <li><strong>📱 Partager WhatsApp :</strong> ouvre directement une conversation WhatsApp avec le client avec le détail complet du ticket formaté (incluant les remises déduites).</li>
                 <li><strong>🖨️ Imprimer Reçu :</strong> imprime instantanément sur imprimante thermique 58mm (Bluetooth, USB ou système).</li>
                 <li><strong>💾 Télécharger Image :</strong> enregistre une photo haute définition du reçu dans votre galerie de photos.</li>
               </ul>
@@ -165,10 +165,23 @@ export const HelpGuideModal: React.FC<HelpGuideModalProps> = ({ isOpen, onClose 
     },
     {
       id: 'depenses',
-      title: 'Dépenses & Trésorerie',
+      title: 'Bilan, Marges & Bénéfices',
       icon: TrendingDown,
       badgeColor: 'bg-rose-100 text-rose-800 border-rose-300',
       items: [
+        {
+          question: 'Comment sont calculés la Marge Commerciale Brute et le Bénéfice Net ?',
+          answer: (
+            <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+              <p>L'application suit la comptabilité analytique de votre commerce en temps réel :</p>
+              <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-lg border border-slate-200 font-mono text-[11px] text-slate-800">
+                <p><strong>Marge Brute</strong> = Total Ventes (Cash + MM + Crédit) − Coût d'Achat des Marchandises Vendues (CAMV)</p>
+                <p><strong>Bénéfice Net</strong> = Marge Brute − Dépenses d'Exploitation payées</p>
+              </div>
+              <p>Si vous avez renseigné le prix d'achat de vos articles, vous connaissez immédiatement vos bénéfices réels nets de chaque journée et de chaque mois.</p>
+            </div>
+          )
+        },
         {
           question: 'Comment enregistrer une sortie d\'argent ou dépense de la boutique ?',
           answer: (
@@ -186,11 +199,11 @@ export const HelpGuideModal: React.FC<HelpGuideModalProps> = ({ isOpen, onClose 
           question: 'Qu\'est-ce que le "Flux Net de Trésorerie" sur le Bilan ?',
           answer: (
             <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
-              <p>Le <strong>Flux Net de Trésorerie</strong> représente l'argent réel généré par votre commerce aujourd'hui :</p>
+              <p>Le <strong>Flux Net de Trésorerie</strong> représente l'argent réel entré en caisse et sur vos comptes aujourd'hui :</p>
               <div className="bg-slate-100 p-2 rounded-lg font-mono text-[11px] text-slate-800">
                 Trésorerie Réelle = (Ventes encaissées + Dettes recouvrées) − Dépenses
               </div>
-              <p>Ce chiffre vous donne une visibilité immédiate sur vos gains réels de la journée.</p>
+              <p>Ce chiffre vous indique les liquidités disponibles immédiatement.</p>
             </div>
           )
         },
@@ -200,8 +213,8 @@ export const HelpGuideModal: React.FC<HelpGuideModalProps> = ({ isOpen, onClose 
             <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
               <p>Sur l'écran <strong>Bilan</strong>, vous disposez de boutons pour :</p>
               <ul className="list-disc pl-4 space-y-1">
-                <li><strong>📊 Exporter Excel :</strong> génère une feuille de calcul complète avec la liste des ventes, des dépenses et de la ventilation par compte.</li>
-                <li><strong>📲 Rapport Patron WhatsApp :</strong> envoie en un clic le récapitulatif financier de la journée au propriétaire du magasin.</li>
+                <li><strong>📊 Exporter Excel :</strong> génère une feuille de calcul complète avec la synthèse de rentabilité (Marge, Bénéfice Net, CAMV), le journal détaillé des ventes et des dépenses.</li>
+                <li><strong>📲 Rapport Patron WhatsApp :</strong> envoie en un clic le récapitulatif financier complet (Ventes, Dépenses, Marge Brute et Bénéfice Net) au propriétaire du magasin.</li>
               </ul>
             </div>
           )
@@ -210,10 +223,36 @@ export const HelpGuideModal: React.FC<HelpGuideModalProps> = ({ isOpen, onClose 
     },
     {
       id: 'articles',
-      title: 'Catalogue & Scan Code-barres',
+      title: 'Catalogue, Stocks & Approvisionnements',
       icon: Package,
       badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
       items: [
+        {
+          question: 'Comment renseigner le Prix d\'Achat, Prix de Vente et calculer la Marge ?',
+          answer: (
+            <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+              <p>Dans <strong>Paramètres → Catalogue</strong> :</p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>Renseignez le <strong>Prix d'achat unitaire (FCFA)</strong> et le <strong>Prix de vente (FCFA)</strong>.</li>
+                <li>La <strong>Marge unitaire</strong> en FCFA et en pourcentage (%) est calculée et affichée instantanément en temps réel (ex: <em>+2 500 F (+25%)</em>).</li>
+                <li>Cette marge alimente automatiquement le calcul du bénéfice net sur le Bilan.</li>
+              </ul>
+            </div>
+          )
+        },
+        {
+          question: 'Comment consulter et exporter l\'historique des approvisionnements ?',
+          answer: (
+            <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+              <p>Pour suivre tous les réapprovisionnements et entrées de stock reçus :</p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>Cliquez sur le bouton <strong>📦 Approvisionnements</strong> dans <em>Paramètres → Catalogue</em> ou directement depuis l'onglet <em>Bilan</em>.</li>
+                <li>Visualisez la liste chronologique avec la date, le nom du fournisseur, la quantité reçue, le prix d'achat et le coût total de l'arrivage.</li>
+                <li>Cliquez sur <strong>Exporter Excel (CSV)</strong> pour télécharger le registre complet d'approvisionnement.</li>
+              </ul>
+            </div>
+          )
+        },
         {
           question: 'Comment scanner des articles avec la caméra ou une douchette ?',
           answer: (

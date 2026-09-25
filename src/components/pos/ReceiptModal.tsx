@@ -193,8 +193,20 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
           <div class="double-divider"></div>
 
+          ${sale.discountAmount && sale.discountAmount > 0 ? `
+          <div class="row" style="font-size: 11px; color: #444;">
+            <span>Sous-Total Brut :</span>
+            <span>${(sale.subtotalAmount || (sale.totalAmount + sale.discountAmount)).toLocaleString('fr-FR')} F</span>
+          </div>
+          <div class="row" style="font-size: 11px; font-weight: bold; color: #000;">
+            <span>Remise accordée ${sale.discountType === 'PERCENT' && sale.discountValue ? `(${sale.discountValue}%)` : ''} :</span>
+            <span>-${sale.discountAmount.toLocaleString('fr-FR')} F</span>
+          </div>
+          <div class="divider"></div>
+          ` : ''}
+
           <div class="row total-row">
-            <span>TOTAL :</span>
+            <span>${sale.discountAmount && sale.discountAmount > 0 ? 'NET À PAYER :' : 'TOTAL :'}</span>
             <span>${sale.totalAmount.toLocaleString('fr-FR')} FCFA</span>
           </div>
 

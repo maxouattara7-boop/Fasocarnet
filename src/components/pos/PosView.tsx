@@ -34,6 +34,7 @@ export const PosView: React.FC = () => {
   const [scannedUnknownBarcode, setScannedUnknownBarcode] = useState<string | null>(null);
   const [newBarcodeArticleName, setNewBarcodeArticleName] = useState('');
   const [newBarcodeArticlePrice, setNewBarcodeArticlePrice] = useState('');
+  const [newBarcodeArticleCostPrice, setNewBarcodeArticleCostPrice] = useState('');
   const [scanToast, setScanToast] = useState<string | null>(null);
   const [lastScannedFeedback, setLastScannedFeedback] = useState<{ name: string; price: number; totalCartAmount: number } | null>(null);
 
@@ -187,12 +188,17 @@ export const PosView: React.FC = () => {
   const handleCreateUnknownBarcodeProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     const price = parseFloat(newBarcodeArticlePrice) || 0;
+    const cost = parseFloat(newBarcodeArticleCostPrice) || undefined;
     if (!newBarcodeArticleName.trim() || price <= 0 || !scannedUnknownBarcode) return;
 
     const newProd = await productsService.create(
       newBarcodeArticleName.trim(),
       price,
-      scannedUnknownBarcode
+      scannedUnknownBarcode,
+      undefined,
+      undefined,
+      5,
+      cost
     );
     await loadProducts();
     handleSelectProduct(newProd.id);
@@ -205,6 +211,9 @@ export const PosView: React.FC = () => {
     });
 
     setScannedUnknownBarcode(null);
+    setNewBarcodeArticleName('');
+    setNewBarcodeArticlePrice('');
+    setNewBarcodeArticleCostPrice('');
     setScanToast(`✓ Article créé : ${newProd.name}`);
     setTimeout(() => setScanToast(null), 3000);
   };
@@ -224,6 +233,10 @@ export const PosView: React.FC = () => {
 
     const recorded = await salesService.recordSale({
       totalAmount: finalPayableAmount,
+      subtotalAmount: subtotalAmount,
+      discountAmount: discount && discount.calculatedAmount > 0 ? discount.calculatedAmount : undefined,
+      discountType: discount && discount.calculatedAmount > 0 ? discount.type : undefined,
+      discountValue: discount && discount.calculatedAmount > 0 ? discount.value : undefined,
       ...data,
       items: selectedItems.length > 0 ? selectedItems : undefined,
       notes: finalNotes || undefined
@@ -609,20 +622,37 @@ export const PosView: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
-                  Prix de vente (FCFA) *
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  step="any"
-                  placeholder="Ex: 500"
-                  value={newBarcodeArticlePrice}
-                  onChange={(e) => setNewBarcodeArticlePrice(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 outline-none font-mono"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                    Prix de vente (FCFA) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    step="any"
+                    placeholder="Ex: 500"
+                    value={newBarcodeArticlePrice}
+                    onChange={(e) => setNewBarcodeArticlePrice(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 outline-none font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                    Prix d'achat (FCFA)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="Ex: 350"
+                    value={newBarcodeArticleCostPrice}
+                    onChange={(e) => setNewBarcodeArticleCostPrice(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 outline-none font-mono"
+                  />
+                </div>
               </div>
 
               <div className="flex space-x-2 pt-2">

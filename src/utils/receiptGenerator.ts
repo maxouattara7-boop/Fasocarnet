@@ -117,10 +117,11 @@ export async function generateReceiptCanvas(
 
   const width = 640;
   const isCredit = Boolean(sale.isCredit || sale.isPartialCredit);
+  const hasDiscount = Boolean(sale.discountAmount && sale.discountAmount > 0);
   // Calcul dynamique de la hauteur pour garantir des proportions parfaites
   const dynamicHeight = Math.max(
-    isCredit ? 920 : 820,
-    headerHeight + 430 + (itemsCount * 36) + (sale.customerName ? 30 : 0) + (isCredit ? 95 : 0) + (shop?.orangeMoneyNumber || shop?.moovMoneyNumber || shop?.waveNumber ? 30 : 0)
+    isCredit ? (hasDiscount ? 960 : 920) : (hasDiscount ? 860 : 820),
+    headerHeight + 430 + (itemsCount * 36) + (sale.customerName ? 30 : 0) + (isCredit ? 95 : 0) + (hasDiscount ? 30 : 0) + (shop?.orangeMoneyNumber || shop?.moovMoneyNumber || shop?.waveNumber ? 30 : 0)
   );
   const height = dynamicHeight;
   const scale = 2; // Rétina 2x pour une netteté cristalline
@@ -352,18 +353,14 @@ export async function generateReceiptCanvas(
 
   // 7. Bloc Total en Grand
   const totalBoxY = currentY + 12;
+  const totalBoxH = hasDiscount ? 104 : 85;
   ctx.fillStyle = '#f8fafc';
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.roundRect(cardX + 20, totalBoxY, cardW - 40, 85, 14);
+  ctx.roundRect(cardX + 20, totalBoxY, cardW - 40, totalBoxH, 14);
   ctx.fill();
   ctx.stroke();
-
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#475569';
-  ctx.font = 'bold 12px sans-serif';
-  ctx.fillText('TOTAL DE LA VENTE :', cardX + 38, totalBoxY + 30);
 
   let modeText = 'Espèces (Cash)';
   if (sale.paymentMethod === 'ORANGE_MONEY') modeText = 'Orange Money';
@@ -380,17 +377,48 @@ export async function generateReceiptCanvas(
     modeText += ` (Réf: ${sale.transactionRef})`;
   }
 
-  ctx.font = '11px sans-serif';
-  ctx.fillStyle = '#64748b';
-  ctx.fillText(`Règlement : ${modeText}`, cardX + 38, totalBoxY + 58);
+  if (hasDiscount) {
+    const subtotal = sale.subtotalAmount || (sale.totalAmount + (sale.discountAmount || 0));
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#64748b';
+    ctx.font = '11px sans-serif';
+    ctx.fillText(`Sous-total brut : ${formatCurrency(subtotal)}`, cardX + 38, totalBoxY + 24);
 
-  ctx.textAlign = 'right';
-  ctx.fillStyle = '#047857';
-  ctx.font = 'bold 24px sans-serif';
-  ctx.fillText(formatCurrency(sale.totalAmount), cardX + cardW - 38, totalBoxY + 48);
+    ctx.fillStyle = '#d97706';
+    ctx.font = 'bold 11px sans-serif';
+    const discLabel = sale.discountType === 'PERCENT' && sale.discountValue ? `(${sale.discountValue}%)` : '';
+    ctx.fillText(`Remise déduite : -${formatCurrency(sale.discountAmount || 0)} ${discLabel}`, cardX + 38, totalBoxY + 44);
+
+    ctx.fillStyle = '#475569';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('NET À PAYER :', cardX + 38, totalBoxY + 68);
+
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText(`Règlement : ${modeText}`, cardX + 38, totalBoxY + 88);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#047857';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText(formatCurrency(sale.totalAmount), cardX + cardW - 38, totalBoxY + 62);
+  } else {
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#475569';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('TOTAL DE LA VENTE :', cardX + 38, totalBoxY + 30);
+
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText(`Règlement : ${modeText}`, cardX + 38, totalBoxY + 58);
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#047857';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText(formatCurrency(sale.totalAmount), cardX + cardW - 38, totalBoxY + 48);
+  }
 
   // 8. Mentions légales & Signature pour Factures Commerciales de Crédit
-  let afterTotalY = totalBoxY + 95;
+  let afterTotalY = totalBoxY + totalBoxH + 10;
 
   if (isCredit) {
     ctx.textAlign = 'left';

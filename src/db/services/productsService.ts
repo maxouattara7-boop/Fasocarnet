@@ -16,11 +16,13 @@ export const productsService = {
     barcode?: string,
     category?: string,
     stockQuantity?: number,
-    minStockAlert: number = 5
+    minStockAlert: number = 5,
+    costPrice?: number
   ): Promise<Product> {
     let cleanCategory: string | undefined = undefined;
     let cleanStock: number | undefined = undefined;
     let cleanMinAlert = minStockAlert;
+    let cleanCost = typeof costPrice === 'number' ? Math.max(0, costPrice) : undefined;
 
     // Support si category a été omis et que le stock est passé en 4ème argument
     if (typeof category === 'number') {
@@ -39,6 +41,7 @@ export const productsService = {
       id: `prod_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       name: name.trim(),
       price: Math.max(0, price),
+      costPrice: cleanCost,
       barcode: barcode?.trim() || undefined,
       category: cleanCategory,
       stockQuantity: typeof cleanStock === 'number' ? Math.max(0, cleanStock) : undefined,
@@ -46,6 +49,22 @@ export const productsService = {
       createdAt: new Date().toISOString()
     };
     await db.products.put(newProduct);
+
+    // Si stock initial et coût d'achat renseignés, consigner dans l'historique des approvisionnements
+    if (typeof cleanStock === 'number' && cleanStock > 0 && typeof cleanCost === 'number' && cleanCost > 0) {
+      await db.supplies.put({
+        id: `sup_init_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        productId: newProduct.id,
+        productName: newProduct.name,
+        quantity: cleanStock,
+        costPrice: cleanCost,
+        sellingPrice: newProduct.price,
+        totalCost: cleanStock * cleanCost,
+        notes: 'Stock initial à la création',
+        createdAt: newProduct.createdAt
+      });
+    }
+
     return newProduct;
   },
 

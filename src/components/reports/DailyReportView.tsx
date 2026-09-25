@@ -29,13 +29,15 @@ import {
   PlusCircle,
   Trash2,
   AlertCircle,
-  ArrowUpRight
+  ArrowUpRight,
+  PackagePlus
 } from 'lucide-react';
 import { exportMonthlyReportToExcel } from '../../utils/excelExporter';
 import { useAppStore } from '../../store/appStore';
 import { db } from '../../db/db';
 import { subscriptionService } from '../../db/services/subscriptionService';
 import { NewExpenseModal } from './NewExpenseModal';
+import { SuppliesHistoryModal } from '../inventory/SuppliesHistoryModal';
 
 export const DailyReportView: React.FC = () => {
   const { shopProfile, setActiveTab } = useAppStore();
@@ -53,6 +55,8 @@ export const DailyReportView: React.FC = () => {
   );
   const [isCashDetailsOpen, setIsCashDetailsOpen] = useState(false);
   const [isExpensesDetailsOpen, setIsExpensesDetailsOpen] = useState(false);
+  const [isProfitDetailsOpen, setIsProfitDetailsOpen] = useState(false);
+  const [isSuppliesHistoryModalOpen, setIsSuppliesHistoryModalOpen] = useState(false);
   const [isNewExpenseModalOpen, setIsNewExpenseModalOpen] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [exportModalData, setExportModalData] = useState<{
@@ -339,7 +343,56 @@ export const DailyReportView: React.FC = () => {
         </p>
       </div>
 
-      {/* CARTE 2 : TRÉSORERIE NETTE RÉELLE (BÉNÉFICE = ENCAISSEMENTS - DÉPENSES) */}
+      {/* CARTE 2 : BÉNÉFICE COMMERCIAL & MARGE BRUTE */}
+      <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-emerald-950 text-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-indigo-700/40 shadow-md space-y-2">
+        <div className="flex items-center justify-between text-indigo-300 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider font-display">
+          <div className="flex items-center space-x-1.5">
+            <TrendingUp className="w-4 h-4 text-emerald-400 stroke-[2.5]" />
+            <span>Marge Commerciale & Bénéfice</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsProfitDetailsOpen(!isProfitDetailsOpen)}
+            className="text-[10px] bg-indigo-900/80 hover:bg-indigo-800 text-indigo-200 px-2 py-0.5 rounded-md font-bold flex items-center space-x-1 transition-colors cursor-pointer"
+          >
+            <span>{isProfitDetailsOpen ? 'Masquer' : 'Détails'}</span>
+            {isProfitDetailsOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+        </div>
+
+        <div className="flex items-baseline justify-between flex-wrap gap-2">
+          <div>
+            <span className="text-[10px] text-slate-400 font-medium block">Marge Brute (Ventes − Coût d'achat)</span>
+            <div className="text-xl sm:text-2xl font-black text-emerald-400 font-display">
+              +{formatCurrency(summary?.grossProfit || 0)}
+            </div>
+          </div>
+
+          <div className="text-right">
+            <span className="text-[10px] text-slate-400 font-medium block">Bénéfice Net (après dépenses)</span>
+            <div className={`text-xl sm:text-2xl font-black font-display ${
+              (summary?.netProfit || 0) >= 0 ? 'text-amber-300' : 'text-rose-400'
+            }`}>
+              {(summary?.netProfit || 0) >= 0 ? `+${formatCurrency(summary?.netProfit || 0)}` : `-${formatCurrency(Math.abs(summary?.netProfit || 0))}`}
+            </div>
+          </div>
+        </div>
+
+        {isProfitDetailsOpen && (
+          <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 gap-2 text-xs animate-in fade-in duration-150">
+            <div className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800">
+              <span className="text-[10px] text-slate-400 block font-medium">Coût d'Achat Marchandises</span>
+              <span className="font-extrabold text-slate-200 font-display">{formatCurrency(summary?.totalCostOfGoodsSold || 0)}</span>
+            </div>
+            <div className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800">
+              <span className="text-[10px] text-slate-400 block font-medium">Dépenses Exploitation</span>
+              <span className="font-extrabold text-rose-300 font-display">{formatCurrency(summary?.totalExpenses || 0)}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* CARTE 3 : TRÉSORERIE NETTE RÉELLE (ENCAISSEMENTS - DÉPENSES) */}
       <div className={`p-4 rounded-2xl sm:rounded-3xl border shadow-xs transition-all ${
         isPositiveFlow 
           ? 'bg-gradient-to-br from-teal-900 to-emerald-950 text-white border-teal-700/40' 
@@ -363,6 +416,19 @@ export const DailyReportView: React.FC = () => {
           Calcul : (Total Encaissé {formatCurrency(summary?.totalSales || 0)} + Dettes Récupérées {formatCurrency(summary?.totalRecoveredDebts || 0)}) − Dépenses {formatCurrency(summary?.totalExpenses || 0)}
         </p>
       </div>
+
+      {/* Bouton Historique des Approvisionnements */}
+      <button
+        type="button"
+        onClick={() => setIsSuppliesHistoryModalOpen(true)}
+        className="w-full py-2.5 px-3 bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200 rounded-2xl font-bold text-xs text-slate-800 flex items-center justify-between shadow-2xs transition-all cursor-pointer group"
+      >
+        <div className="flex items-center space-x-2 text-slate-700">
+          <PackagePlus className="w-4 h-4 text-emerald-600" />
+          <span className="font-extrabold font-display">Historique des Approvisionnements & Achats</span>
+        </div>
+        <span className="text-[11px] font-extrabold text-emerald-700 group-hover:underline">Consulter →</span>
+      </button>
 
       {/* Bouton d'exportation Excel pour le Bilan Mensuel */}
       {reportPeriod === 'month' && (
@@ -758,6 +824,12 @@ export const DailyReportView: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Modal Historique des Approvisionnements */}
+      <SuppliesHistoryModal
+        isOpen={isSuppliesHistoryModalOpen}
+        onClose={() => setIsSuppliesHistoryModalOpen(false)}
+        onSupplyUpdated={loadReportData}
+      />
     </div>
   );
 };
