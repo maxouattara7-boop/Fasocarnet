@@ -51,16 +51,30 @@ export const HelpGuideModal: React.FC<HelpGuideModalProps> = ({ isOpen, onClose 
       badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
       items: [
         {
-          question: 'Comment utiliser la calculatrice intégrée (+, −, ×) ?',
+          question: 'Comment utiliser le clavier de caisse et les additions (+)',
           answer: (
             <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
-              <p>Le clavier de caisse vous permet d'effectuer des calculs rapides en direct sans quitter l'écran :</p>
+              <p>Le clavier de caisse est optimisé pour des saisies ultra-rapides :</p>
               <ul className="list-disc pl-4 space-y-1">
                 <li><strong className="text-slate-900">+ (Addition) :</strong> tapez un montant, appuyez sur <code className="bg-slate-100 px-1.5 py-0.5 rounded text-emerald-700 font-bold">+</code> puis tapez le suivant (ex: <code className="bg-slate-100 px-1 rounded">2500 + 1000</code>).</li>
-                <li><strong className="text-slate-900">− (Remise / Rabais) :</strong> appliquez une déduction immédiate pour un client (ex: <code className="bg-slate-100 px-1 rounded">5000 - 500</code> = 4 500 FCFA).</li>
-                <li><strong className="text-slate-900">× (Multiplication / Quantités) :</strong> calculez le prix pour plusieurs unités (ex: <code className="bg-slate-100 px-1 rounded">3 × 1500</code> = 4 500 FCFA).</li>
+                <li><strong className="text-slate-900">Articles & Quantités :</strong> cliquez sur un article pour choisir sa quantité exacte (1, 2, 5, 10...) et l'ajouter instantanément.</li>
+                <li><strong className="text-slate-900">00 et 000 :</strong> saisissez les centaines et milliers en un seul geste sans faire d'erreur.</li>
               </ul>
-              <p className="text-emerald-700 font-medium">💡 L'écran supérieur affiche la formule et calcule le total instantanément.</p>
+              <p className="text-emerald-700 font-medium">💡 L'écran supérieur calcule le total instantanément au fur et à mesure.</p>
+            </div>
+          )
+        },
+        {
+          question: 'Comment appliquer une remise (rabais en % ou en FCFA) ?',
+          answer: (
+            <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+              <p>Pour accorder un rabais ou une réduction à un client :</p>
+              <ol className="list-decimal pl-4 space-y-1">
+                <li>Cliquez sur le bouton <strong>Remise</strong> situé juste au-dessus du clavier.</li>
+                <li>Choisissez le type : <strong>En Pourcentage (%)</strong> (ex: 5%, 10%, 20%) ou <strong>Montant Fixe (FCFA)</strong> (ex: 500 F, 1 000 F).</li>
+                <li>L'écran calcule le montant net à payer et affiche le sous-total barré ainsi que la remise déduite.</li>
+                <li>La remise est automatiquement consignée dans les notes comptables de la vente.</li>
+              </ol>
             </div>
           )
         },
@@ -74,7 +88,7 @@ export const HelpGuideModal: React.FC<HelpGuideModalProps> = ({ isOpen, onClose 
                 <li>Choisissez l'option <strong>Acompte + Dette</strong>.</li>
                 <li>Sélectionnez le mode de versement de l'acompte (Cash, OM, Moov, Wave) et saisissez la somme reçue.</li>
                 <li>Le <strong>reliquat restant</strong> est calculé automatiquement et ajouté directement dans le carnet de dettes du client sélectionné.</li>
-                <li>Un reçu officiel mentionnant l'acompte et le reliquat est généré.</li>
+                <li>Une <strong>Facture Commerciale officielle</strong> mentionnant l'acompte, la dette restante, la mention légale d'arrêt et la signature du responsable est générée.</li>
               </ol>
             </div>
           )
@@ -254,6 +268,19 @@ export const HelpGuideModal: React.FC<HelpGuideModalProps> = ({ isOpen, onClose 
           answer: (
             <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
               <p>Pour protéger le commerçant contre toute tentative malveillante (ex: un employé ou un tiers qui remplacerait le numéro marchand par le sien), toute modification des numéros Orange Money, Moov Money ou Wave exige obligatoirement la confirmation par le code PIN du propriétaire.</p>
+            </div>
+          )
+        },
+        {
+          question: 'Comment vérifier et installer les mises à jour de l\'application ?',
+          answer: (
+            <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+              <p>Dans <strong>Paramètres → Mise à Jour de l'Application</strong>, vous disposez d'un bouton dédié <strong>Vérifier les Mises à Jour</strong> :</p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>L'application interroge directement les serveurs pour détecter toute nouvelle version publiée.</li>
+                <li>Si une mise à jour est disponible, un bouton <strong>Télécharger & Mettre à jour</strong> apparaît avec le journal des nouveautés.</li>
+                <li>Le téléchargement de l'APK ou du paquet démarre instantanément en un clic.</li>
+              </ul>
             </div>
           )
         }

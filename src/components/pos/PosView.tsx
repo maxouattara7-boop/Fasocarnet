@@ -3,6 +3,7 @@ import { Keypad } from './Keypad';
 import { PaymentModal } from './PaymentModal';
 import { ReceiptModal } from './ReceiptModal';
 import { QuantityModal } from './QuantityModal';
+import { DiscountModal, DiscountData } from './DiscountModal';
 import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
 import { salesService } from '../../db/services/salesService';
 import { productsService } from '../../db/services/productsService';
@@ -10,11 +11,13 @@ import { Product, Sale, SaleItem } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 import { triggerHaptic, triggerDoubleHaptic } from '../../utils/haptics';
 import { soundEffects } from '../../utils/soundEffects';
-import { ArrowRight, ShoppingCart, Package, Calculator, Search, X, ChevronDown, Barcode, Camera, Check, Sparkles } from 'lucide-react';
+import { ArrowRight, ShoppingCart, Package, Calculator, Search, X, ChevronDown, Barcode, Camera, Check, Sparkles, Tag } from 'lucide-react';
 import { evaluatePosExpression, formatPosExpressionDisplay } from '../../utils/calculator';
 
 export const PosView: React.FC = () => {
   const [amountStr, setAmountStr] = useState<string>('0');
+  const [discount, setDiscount] = useState<DiscountData | null>(null);
+  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [lastSale, setLastSale] = useState<Sale | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
@@ -77,11 +80,14 @@ export const PosView: React.FC = () => {
     setProducts(list);
   };
 
-  const totalAmount = evaluatePosExpression(amountStr);
+  const subtotalAmount = evaluatePosExpression(amountStr);
+  const discountAmount = discount ? discount.calculatedAmount : 0;
+  const finalPayableAmount = Math.max(0, subtotalAmount - discountAmount);
 
   const handleClear = () => {
     setAmountStr('0');
     setSelectedItems([]);
+    setDiscount(null);
     setLastScannedFeedback(null);
   };
 
@@ -160,7 +166,7 @@ export const PosView: React.FC = () => {
       handleSelectProduct(matched.id);
       triggerDoubleHaptic();
       
-      const newTotal = totalAmount + matched.price;
+      const newTotal = subtotalAmount + matched.price;
       setLastScannedFeedback({
         name: matched.name,
         price: matched.price,
@@ -191,7 +197,7 @@ export const PosView: React.FC = () => {
     await loadProducts();
     handleSelectProduct(newProd.id);
     
-    const newTotal = totalAmount + price;
+    const newTotal = subtotalAmount + price;
     setLastScannedFeedback({
       name: newProd.name,
       price: newProd.price,
@@ -204,17 +210,23 @@ export const PosView: React.FC = () => {
   };
 
   const handleOpenPayment = () => {
-    if (totalAmount <= 0) return;
+    if (finalPayableAmount <= 0) return;
     triggerHaptic(40);
     setIsPaymentModalOpen(true);
   };
 
   const handleConfirmSale = async (data: any) => {
+    let finalNotes = data.notes;
+    if (discount && discount.calculatedAmount > 0) {
+      const discountDesc = `[Remise: -${formatCurrency(discount.calculatedAmount)} (${discount.type === 'PERCENT' ? `${discount.value}%` : 'Montant fixe'})]`;
+      finalNotes = finalNotes ? `${discountDesc} ${finalNotes}` : discountDesc;
+    }
+
     const recorded = await salesService.recordSale({
-      totalAmount,
+      totalAmount: finalPayableAmount,
       ...data,
       items: selectedItems.length > 0 ? selectedItems : undefined,
-      notes: data.notes || undefined
+      notes: finalNotes || undefined
     });
     triggerDoubleHaptic();
     soundEffects.notifySaleSuccess(recorded.totalAmount, recorded.isCredit);
@@ -223,10 +235,11 @@ export const PosView: React.FC = () => {
     setIsReceiptModalOpen(true);
     setAmountStr('0');
     setSelectedItems([]);
+    setDiscount(null);
     await loadProducts();
   };
 
-  const hasCalculation = /[+\-×*x]/.test(amountStr);
+  const hasCalculation = /[+]/.test(amountStr);
 
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(articleSearch.toLowerCase())
@@ -234,7 +247,7 @@ export const PosView: React.FC = () => {
 
   return (
     <div className="max-w-lg mx-auto p-3.5 sm:p-4 space-y-3 sm:space-y-3.5 pb-24">
-      {/* Écran d'affichage du montant et du calcul */}
+      {/* Écran d'affichage du montant, de la remise et du calcul */}
       <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-4 sm:p-4.5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[118px] sm:min-h-[125px] border border-emerald-700/50">
         <div className="flex items-center justify-between text-emerald-300 text-[11px] font-bold tracking-wider uppercase">
           <div className="flex items-center space-x-1.5">
@@ -243,25 +256,47 @@ export const PosView: React.FC = () => {
             ) : (
               <ShoppingCart className="w-3.5 h-3.5" />
             )}
-            <span>{hasCalculation ? 'Total Calculé' : 'Montant à Encaisser'}</span>
+            <span>{hasCalculation ? 'Total Additionné' : 'Montant à Encaisser'}</span>
           </div>
-          <span className="bg-emerald-700/70 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide">FCFA</span>
+          {discount && discount.calculatedAmount > 0 ? (
+            <button
+              type="button"
+              onClick={() => setIsDiscountModalOpen(true)}
+              className="bg-amber-400 hover:bg-amber-300 text-amber-950 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide flex items-center space-x-1 transition-all"
+            >
+              <Tag className="w-3 h-3" />
+              <span>Remise -{formatCurrency(discountAmount)}</span>
+            </button>
+          ) : (
+            <span className="bg-emerald-700/70 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide">FCFA</span>
+          )}
         </div>
 
         <div className="text-right mt-1">
-          {/* Formule de calcul si opération en cours */}
+          {/* Formule de calcul si addition en cours */}
           {hasCalculation && (
             <div className="text-[11px] sm:text-xs font-semibold text-amber-300 bg-amber-950/40 px-2 py-0.5 rounded-md inline-block max-w-full truncate mb-0.5 border border-amber-500/30">
-              {formatPosExpressionDisplay(amountStr)} {/[+\-×*x]\s*$/.test(amountStr) ? '...' : '='}
+              {formatPosExpressionDisplay(amountStr)} {/[+]\s*$/.test(amountStr) ? '...' : '='}
+            </div>
+          )}
+
+          {/* Affichage du sous-total barré si remise active */}
+          {discount && discount.calculatedAmount > 0 && (
+            <div className="text-xs font-semibold text-emerald-300/80 line-through">
+              {formatCurrency(subtotalAmount)}
             </div>
           )}
 
           <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white drop-shadow-xs truncate leading-tight">
-            {formatCurrency(totalAmount).replace(' FCFA', '')}
+            {formatCurrency(finalPayableAmount).replace(' FCFA', '')}
           </div>
 
           <div className="text-[10px] text-emerald-300/80 mt-0.5">
-            {selectedItems.length > 0 ? (
+            {discount && discount.calculatedAmount > 0 ? (
+              <span className="font-bold text-amber-300">
+                Remise appliquée : -{formatCurrency(discountAmount)} ({discount.type === 'PERCENT' ? `${discount.value}%` : 'Montant fixe'})
+              </span>
+            ) : selectedItems.length > 0 ? (
               <span className="font-medium text-amber-300 truncate block">
                 {selectedItems.map((it) => `${it.description}${it.quantity > 1 ? ` (x${it.quantity})` : ''}`).join(' • ')}
               </span>
@@ -283,7 +318,7 @@ export const PosView: React.FC = () => {
         </div>
       )}
 
-      {/* BARRE D'ACTIONS RAPIDES : SCANNER & ARTICLES CHIPS */}
+      {/* BARRE D'ACTIONS RAPIDES : SCANNER, REMISE & ARTICLES */}
       <div className="flex items-center space-x-1.5 overflow-x-auto pb-0.5 scrollbar-none">
         {/* Bouton Scanner Caméra Code-Barres */}
         <button
@@ -294,6 +329,24 @@ export const PosView: React.FC = () => {
         >
           <Camera className="w-3.5 h-3.5 text-white" />
           <span>Scanner</span>
+        </button>
+
+        {/* Bouton Remise (% ou FCFA) */}
+        <button
+          type="button"
+          onClick={() => {
+            triggerHaptic(30);
+            setIsDiscountModalOpen(true);
+          }}
+          className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shrink-0 shadow-xs active:scale-95 transition-all cursor-pointer ${
+            discount && discount.calculatedAmount > 0
+              ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-500 font-black'
+              : 'bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 text-white'
+          }`}
+          title="Appliquer une remise en % ou FCFA"
+        >
+          <Tag className="w-3.5 h-3.5 text-amber-300" />
+          <span>{discount && discount.calculatedAmount > 0 ? `Remise (-${formatCurrency(discountAmount)})` : 'Remise'}</span>
         </button>
 
         {/* Bouton catalogue complet */}
@@ -363,24 +416,33 @@ export const PosView: React.FC = () => {
       {/* Bouton d'encaissement principal */}
       <button
         type="button"
-        disabled={totalAmount <= 0}
+        disabled={finalPayableAmount <= 0}
         onClick={handleOpenPayment}
         className={`w-full py-4 sm:py-4.5 rounded-2xl font-black text-base sm:text-lg shadow-lg flex items-center justify-center space-x-2 transition-all cursor-pointer ${
-          totalAmount > 0
+          finalPayableAmount > 0
             ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30 active:scale-98'
             : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
         }`}
       >
-        <span>ENCAISSER ({formatCurrency(totalAmount)})</span>
+        <span>ENCAISSER ({formatCurrency(finalPayableAmount)})</span>
         <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
       </button>
 
       {/* Modal de sélection de mode de paiement */}
       <PaymentModal
         isOpen={isPaymentModalOpen}
-        totalAmount={totalAmount}
+        totalAmount={finalPayableAmount}
         onClose={() => setIsPaymentModalOpen(false)}
         onConfirm={handleConfirmSale}
+      />
+
+      {/* Modal de Remise (% ou Montant Fixe) */}
+      <DiscountModal
+        isOpen={isDiscountModalOpen}
+        subtotal={subtotalAmount}
+        currentDiscount={discount}
+        onClose={() => setIsDiscountModalOpen(false)}
+        onApply={(appliedDiscount) => setDiscount(appliedDiscount)}
       />
 
       {/* Modal de reçu et partage WhatsApp */}

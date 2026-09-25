@@ -162,7 +162,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             ${ifu ? `<div style="font-size: 11px;">IFU : ${ifu}</div>` : ''}
             ${rccm ? `<div style="font-size: 11px;">RCCM : ${rccm}</div>` : ''}
             <div style="font-size: 11px; margin-top: 3px; font-weight: 900; letter-spacing: 0.5px;">
-              ${sale.isCredit ? 'FACTURE À CRÉDIT' : sale.isPartialCredit ? 'FACTURE AVEC ACOMPTE & RELIQUAT' : 'REÇU DE CAISSE'}
+              ${sale.isCredit ? 'FACTURE COMMERCIALE & CRÉDIT' : sale.isPartialCredit ? 'FACTURE COMMERCIALE (ACOMPTE & CRÉDIT)' : 'REÇU DE CAISSE'}
             </div>
           </div>
 
@@ -245,8 +245,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
           ` : ''}
 
           ${sale.isCredit || sale.isPartialCredit ? `
-          <div style="font-size: 10px; margin-top: 8px; border: 1px dashed #000; padding: 4px; text-align: center; font-style: italic;">
+          <div style="font-size: 10px; margin-top: 8px; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 0; text-align: left; font-style: italic; font-weight: bold;">
+            Arrêtée la présente facture à la somme de : ${sale.totalAmount.toLocaleString('fr-FR')} FCFA.
+          </div>
+          <div style="font-size: 10px; margin-top: 6px; border: 1px dashed #000; padding: 4px; text-align: center; font-style: italic;">
             Engagement : Le client reconnaît devoir la somme de ${(sale.creditAmount || sale.totalAmount).toLocaleString('fr-FR')} FCFA à l'établissement ${shopName}.
+          </div>
+          <div style="margin-top: 12px; margin-bottom: 6px; text-align: right; font-size: 10px;">
+            <div style="font-weight: 900; text-transform: uppercase;">Le Responsable</div>
+            <div style="font-weight: 600; margin-top: 2px;">${shopProfile?.ownerName || shopProfile?.name || 'Le Gérant'}</div>
           </div>
           ` : ''}
 

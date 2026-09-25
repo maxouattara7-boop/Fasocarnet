@@ -16,7 +16,7 @@ export const Header: React.FC = () => {
             <Logo size="sm" showText={false} />
             <div className="min-w-0 flex-1">
               <span className="text-[10px] text-emerald-200/90 font-semibold block leading-tight truncate">
-                Bienvenue sur votre espace de gestion
+                Bienvenue dans votre espace
               </span>
               <h1 className="font-extrabold text-xs sm:text-sm leading-tight truncate text-white tracking-tight font-display">
                 {shopProfile?.name || 'FasoCarnet'}

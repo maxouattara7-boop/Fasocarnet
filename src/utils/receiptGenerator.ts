@@ -116,10 +116,11 @@ export async function generateReceiptCanvas(
   headerHeight += 16; // Bottom padding
 
   const width = 640;
+  const isCredit = Boolean(sale.isCredit || sale.isPartialCredit);
   // Calcul dynamique de la hauteur pour garantir des proportions parfaites
   const dynamicHeight = Math.max(
-    820,
-    headerHeight + 430 + (itemsCount * 36) + (sale.customerName ? 30 : 0) + (shop?.orangeMoneyNumber || shop?.moovMoneyNumber || shop?.waveNumber ? 30 : 0)
+    isCredit ? 920 : 820,
+    headerHeight + 430 + (itemsCount * 36) + (sale.customerName ? 30 : 0) + (isCredit ? 95 : 0) + (shop?.orangeMoneyNumber || shop?.moovMoneyNumber || shop?.waveNumber ? 30 : 0)
   );
   const height = dynamicHeight;
   const scale = 2; // Rétina 2x pour une netteté cristalline
@@ -388,9 +389,29 @@ export async function generateReceiptCanvas(
   ctx.font = 'bold 24px sans-serif';
   ctx.fillText(formatCurrency(sale.totalAmount), cardX + cardW - 38, totalBoxY + 48);
 
-  // 8. Le Grand Tampon Officiel Stylisé
+  // 8. Mentions légales & Signature pour Factures Commerciales de Crédit
+  let afterTotalY = totalBoxY + 95;
+
+  if (isCredit) {
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'italic bold 12px sans-serif';
+    ctx.fillText(`Arrêtée la présente facture à la somme de : ${formatCurrency(sale.totalAmount)}.`, cardX + 24, afterTotalY + 12);
+
+    ctx.textAlign = 'right';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillStyle = '#0f172a';
+    ctx.fillText('Le Responsable', cardX + cardW - 24, afterTotalY + 36);
+    ctx.font = '600 12px sans-serif';
+    ctx.fillStyle = '#475569';
+    ctx.fillText(shop?.ownerName || shop?.name || 'Le Gérant', cardX + cardW - 24, afterTotalY + 54);
+
+    afterTotalY += 72;
+  }
+
+  // 9. Le Grand Tampon Officiel Stylisé
   const stampX = width / 2;
-  const stampY = totalBoxY + 145;
+  const stampY = afterTotalY + 48;
 
   ctx.save();
   ctx.translate(stampX, stampY);

@@ -74,7 +74,18 @@ export function generateWhatsAppReceiptUrl(
       (sale.customerName ? `👤 *Client bénéficiaire :* ${sale.customerName}\n` : '');
   }
 
-  const message = `🧾 *REÇU DE VENTE - ${shopName.toUpperCase()}*\n` +
+  const isCredit = Boolean(sale.isCredit || sale.isPartialCredit);
+  const title = isCredit 
+    ? (sale.isCredit ? `🧾 *FACTURE COMMERCIALE & CRÉDIT - ${shopName.toUpperCase()}*` : `🧾 *FACTURE COMMERCIALE (ACOMPTE & CRÉDIT) - ${shopName.toUpperCase()}*`)
+    : `🧾 *REÇU DE VENTE - ${shopName.toUpperCase()}*`;
+
+  let legalMention = '';
+  if (isCredit) {
+    legalMention = `\n📜 _Arrêtée la présente facture à la somme de : ${formatCurrency(sale.totalAmount)}_\n` +
+      `✍️ *Le Responsable :* ${shop?.ownerName || shop?.name || 'Le Gérant'}\n`;
+  }
+
+  const message = `${title}\n` +
     `📅 Date : ${dateStr}\n` +
     `--------------------------\n` +
     itemsText +
@@ -83,8 +94,9 @@ export function generateWhatsAppReceiptUrl(
     (sale.transactionRef ? `🔖 *Réf. Transaction :* ${sale.transactionRef}\n` : '') +
     partialDetailsText +
     (!sale.isPartialCredit && sale.receivedAmount && sale.changeAmount ? `💵 Reçu : ${formatCurrency(sale.receivedAmount)} | Monnaie : ${formatCurrency(sale.changeAmount)}\n` : '') +
+    legalMention +
     `--------------------------\n` +
-    `Merci de votre achat chez *${shopName}* ! À bientôt. ✨`;
+    (isCredit ? `Merci pour votre engagement. Établissement *${shopName}*. 🙏` : `Merci de votre achat chez *${shopName}* ! À bientôt. ✨`);
 
   const targetPhone = customerPhone ? cleanPhoneNumber(customerPhone) : '';
   return targetPhone ? `https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}` : `https://wa.me/?text=${encodeURIComponent(message)}`;
