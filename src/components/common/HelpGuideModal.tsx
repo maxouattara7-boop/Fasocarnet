@@ -10,7 +10,8 @@ import {
   ShieldCheck, 
   MessageCircle, 
   ChevronDown, 
-  ChevronUp
+  ChevronUp,
+  FileText
 } from 'lucide-react';
 
 interface HelpGuideModalProps {
@@ -45,11 +46,66 @@ export const HelpGuideModal: React.FC<HelpGuideModalProps> = ({ isOpen, onClose 
 
   const sections: GuideSection[] = [
     {
+      id: 'factures',
+      title: 'Factures & Devis Libres',
+      icon: FileText,
+      badgeColor: 'bg-teal-100 text-teal-800 border-teal-300',
+      items: [
+        {
+          question: 'Comment créer une facture, un devis ou une facture proforma personnalisée ?',
+          answer: (
+            <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+              <p>Dans l'en-tête en haut de l'écran, cliquez sur le bouton <strong>📄 Factures</strong> :</p>
+              <ol className="list-decimal pl-4 space-y-1">
+                <li>Choisissez le type de document : <strong>Facture de Vente</strong>, <strong>Devis Commercial</strong> ou <strong>Facture Proforma</strong>.</li>
+                <li>Le numéro de document (ex: <code className="bg-slate-100 px-1 rounded font-bold">FAC-202609-001</code> ou <code className="bg-slate-100 px-1 rounded font-bold">DEV-202609-001</code>) est généré automatiquement.</li>
+                <li>Renseignez les coordonnées du client (Nom, Téléphone, Adresse, IFU) ou sélectionnez un client existant dans votre liste.</li>
+                <li>Ajoutez des lignes d'articles depuis votre catalogue ou saisissez des prestations / désignations libres avec leurs prix et quantités.</li>
+                <li>Appliquez une remise (% ou montant) et la TVA si applicable.</li>
+                <li>Cliquez sur <strong>🖨️ Imprimer A4</strong> pour éditer un PDF/A4 impeccable ou <strong>📱 WhatsApp</strong> pour l'expédier directement à votre client.</li>
+              </ol>
+            </div>
+          )
+        },
+        {
+          question: 'Les devis et factures libres impactent-ils les stocks et la caisse ?',
+          answer: (
+            <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+              <p>Non, ce module vous permet de rédiger des devis, des offres de prix proforma et des factures pour des clients sans impacter immédiatement les stocks ni la trésorerie de votre caisse journalière jusqu'à encaissement réel.</p>
+            </div>
+          )
+        }
+      ]
+    },
+    {
       id: 'caisse',
       title: 'Caisse & Encaissements',
       icon: ShoppingCart,
       badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
       items: [
+        {
+          question: 'Pourquoi la caisse bloque-t-elle l\'ajout si le stock est épuisé ?',
+          answer: (
+            <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+              <p><strong className="text-emerald-800">Gestion rigoureuse des stocks :</strong> Pour garantir l'exactitude de votre inventaire, aucun article ne peut être vendu s'il n'y a pas de stock disponible ($\le 0$) ou si la quantité demandée dépasse le stock restant.</p>
+              <p>Si un article est en rupture, réapprovisionnez-le simplement dans <em>Paramètres → Catalogue</em> pour débloquer sa vente en caisse.</p>
+            </div>
+          )
+        },
+        {
+          question: 'Comment annuler ou supprimer une vente en cas d\'erreur ?',
+          answer: (
+            <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+              <p>Dans l'onglet <strong>Bilan</strong>, retrouvez la vente dans le <em>Journal des Ventes</em> et cliquez sur l'icône d'annulation <strong>(↩️)</strong> :</p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li><strong className="text-slate-900">Protection PIN :</strong> Le code PIN secret à 4 chiffres du commerçant est obligatoirement requis pour valider l'annulation.</li>
+                <li><strong className="text-emerald-800">Restitution du stock :</strong> Tous les articles de la vente sont réintégrés automatiquement dans votre stock boutique.</li>
+                <li><strong className="text-blue-800">Annulation de la dette :</strong> Si la vente avait été faite à crédit ou avec acompte, le montant correspondant est automatiquement déduit du solde du client.</li>
+                <li><strong className="text-amber-800">Recalcul financier :</strong> Le CA du jour, la marge et la trésorerie sont recalculés instantanément.</li>
+              </ul>
+            </div>
+          )
+        },
         {
           question: 'Comment utiliser le clavier de caisse et les additions (+)',
           answer: (
@@ -57,7 +113,7 @@ export const HelpGuideModal: React.FC<HelpGuideModalProps> = ({ isOpen, onClose 
               <p>Le clavier de caisse est optimisé pour des saisies ultra-rapides :</p>
               <ul className="list-disc pl-4 space-y-1">
                 <li><strong className="text-slate-900">+ (Addition) :</strong> tapez un montant, appuyez sur <code className="bg-slate-100 px-1.5 py-0.5 rounded text-emerald-700 font-bold">+</code> puis tapez le suivant (ex: <code className="bg-slate-100 px-1 rounded">2500 + 1000</code>).</li>
-                <li><strong className="text-slate-900">Articles & Quantités :</strong> cliquez sur un article pour choisir sa quantité exacte (1, 2, 5, 10...) et l'ajouter instantanément.</li>
+                <li><strong className="text-slate-900">Articles & Quantités :</strong> cliquez sur un article pour choisir sa quantité exacte (1, 2, 5, 10...) dans la limite du stock disponible.</li>
                 <li><strong className="text-slate-900">00 et 000 :</strong> saisissez les centaines et milliers en un seul geste sans faire d'erreur.</li>
               </ul>
               <p className="text-emerald-700 font-medium">💡 L'écran supérieur calcule le total instantanément au fur et à mesure.</p>
@@ -228,6 +284,19 @@ export const HelpGuideModal: React.FC<HelpGuideModalProps> = ({ isOpen, onClose 
       badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
       items: [
         {
+          question: 'Comment fonctionne la gestion obligatoire des stocks ?',
+          answer: (
+            <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
+              <p>Dans <strong>Paramètres → Catalogue</strong> :</p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>Chaque article créé possède obligatoirement une <strong>quantité en stock initiale</strong> ($\ge 0$).</li>
+                <li>Il n'y a pas d'article à stock infini. Lors d'une vente en caisse, le stock diminue automatiquement.</li>
+                <li>Si le stock atteint 0, l'article passe en rupture et la caisse bloque toute vente jusqu'à nouvel approvisionnement.</li>
+              </ul>
+            </div>
+          )
+        },
+        {
           question: 'Comment renseigner le Prix d\'Achat, Prix de Vente et calculer la Marge ?',
           answer: (
             <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
@@ -241,13 +310,14 @@ export const HelpGuideModal: React.FC<HelpGuideModalProps> = ({ isOpen, onClose 
           )
         },
         {
-          question: 'Comment consulter et exporter l\'historique des approvisionnements ?',
+          question: 'Comment consulter et exporter l\'historique des arrivages groupés par date ?',
           answer: (
             <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
               <p>Pour suivre tous les réapprovisionnements et entrées de stock reçus :</p>
               <ul className="list-disc pl-4 space-y-1">
                 <li>Cliquez sur le bouton <strong>📦 Approvisionnements</strong> dans <em>Paramètres → Catalogue</em> ou directement depuis l'onglet <em>Bilan</em>.</li>
-                <li>Visualisez la liste chronologique avec la date, le nom du fournisseur, la quantité reçue, le prix d'achat et le coût total de l'arrivage.</li>
+                <li>Les approvisionnements sont <strong>groupés par session/date d'arrivage</strong> (ex: <em>Arrivage du 26 Septembre 2026</em>).</li>
+                <li>Au clic sur une session, découvrez le détail de tous les articles reçus ce jour-là, leur fournisseur, prix d'achat et marges.</li>
                 <li>Cliquez sur <strong>Exporter Excel (CSV)</strong> pour télécharger le registre complet d'approvisionnement.</li>
               </ul>
             </div>
@@ -262,14 +332,6 @@ export const HelpGuideModal: React.FC<HelpGuideModalProps> = ({ isOpen, onClose 
                 <li><strong>Caméra smartphone :</strong> cliquez sur le bouton <strong>Scanner</strong> pour ouvrir la caméra et viser le code-barres.</li>
                 <li><strong>Douchette Code-barres (USB / Bluetooth) :</strong> il suffit de biper l'article à n'importe quel moment sur l'écran de caisse. L'application le détecte automatiquement et l'ajoute au panier sans toucher l'écran.</li>
               </ul>
-            </div>
-          )
-        },
-        {
-          question: 'Comment être alerté en cas de stock faible ou rupture ?',
-          answer: (
-            <div className="space-y-2 text-xs text-slate-600 leading-relaxed">
-              <p>Lorsque vous créez un article dans <strong>Paramètres → Catalogue</strong>, définissez la <strong>Quantité en stock</strong> et le <strong>Seuil d'alerte</strong> (ex: 5 unités). À chaque vente, le stock diminue automatiquement et une notification visuelle et sonore vous avertit lorsque le stock devient critique.</p>
             </div>
           )
         }

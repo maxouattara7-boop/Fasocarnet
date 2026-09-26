@@ -37,6 +37,8 @@ export const productsService = {
       cleanStock = typeof stockQuantity === 'number' ? stockQuantity : undefined;
     }
 
+    const initialStock = typeof cleanStock === 'number' ? Math.max(0, cleanStock) : 0;
+
     const newProduct: Product = {
       id: `prod_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       name: name.trim(),
@@ -44,7 +46,7 @@ export const productsService = {
       costPrice: cleanCost,
       barcode: barcode?.trim() || undefined,
       category: cleanCategory,
-      stockQuantity: typeof cleanStock === 'number' ? Math.max(0, cleanStock) : undefined,
+      stockQuantity: initialStock,
       minStockAlert: typeof cleanMinAlert === 'number' ? Math.max(0, cleanMinAlert) : 5,
       createdAt: new Date().toISOString()
     };
@@ -100,11 +102,41 @@ export const productsService = {
         product = await db.products.where('name').equals(item.description.trim()).first();
       }
 
-      if (product && typeof product.stockQuantity === 'number') {
+      if (product) {
+        const current = typeof product.stockQuantity === 'number' ? product.stockQuantity : 0;
         const qtyToDeduct = Math.max(1, item.quantity || 1);
-        const newStock = Math.max(0, product.stockQuantity - qtyToDeduct);
+        const newStock = Math.max(0, current - qtyToDeduct);
         await db.products.update(product.id, {
           stockQuantity: newStock,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    }
+  },
+
+  /**
+   * Restitue le stock des articles lors de l'annulation d'une vente
+   */
+  async incrementStock(items?: { id?: string; productId?: string; description?: string; quantity: number }[]): Promise<void> {
+    if (!items || items.length === 0) return;
+
+    for (const item of items) {
+      const targetId = item.productId || item.id;
+      let product: Product | undefined;
+
+      if (targetId) {
+        product = await db.products.get(targetId);
+      }
+      
+      if (!product && item.description) {
+        product = await db.products.where('name').equals(item.description.trim()).first();
+      }
+
+      if (product) {
+        const current = typeof product.stockQuantity === 'number' ? product.stockQuantity : 0;
+        const qtyToRestore = Math.max(1, item.quantity || 1);
+        await db.products.update(product.id, {
+          stockQuantity: current + qtyToRestore,
           updatedAt: new Date().toISOString()
         });
       }

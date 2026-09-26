@@ -102,6 +102,9 @@ export interface Sale {
   changeAmount?: number;
   transactionRef?: string; // Référence / ID de transaction Mobile Money (OM, Moov, Wave)
   notes?: string;
+  isCancelled?: boolean; // Vente annulée / supprimée
+  cancelledAt?: string; // Date et heure de l'annulation
+  cancelReason?: string; // Motif de l'annulation (erreur saisie, retour client...)
   createdAt: string;
 }
 
@@ -250,3 +253,43 @@ export interface AdminDepositNumbers {
   merchantName?: string;
   updatedAt?: string;
 }
+
+export type CustomInvoiceType = 'INVOICE' | 'QUOTE' | 'PROFORMA';
+
+export interface CustomInvoiceItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  productId?: string;
+}
+
+export interface CustomInvoice {
+  id: string;
+  shopId?: string;
+  number: string; // Ex: FAC-202609-001 ou DEV-202609-001
+  type: CustomInvoiceType;
+  clientName: string;
+  clientPhone?: string;
+  clientAddress?: string;
+  clientIfu?: string;
+  issueDate: string; // YYYY-MM-DD
+  dueDate?: string; // YYYY-MM-DD
+  items: CustomInvoiceItem[];
+  subtotal: number;
+  discountAmount?: number;
+  discountType?: 'PERCENT' | 'AMOUNT';
+  discountValue?: number;
+  taxRate?: number; // Taux TVA (ex: 18%)
+  taxAmount?: number; // Montant TVA
+  totalAmount: number;
+  paidAmount?: number;
+  remainingAmount?: number;
+  status: 'DRAFT' | 'SENT' | 'PAID' | 'CANCELLED';
+  paymentTerms?: string; // Conditions de règlement
+  notes?: string; // Mentions particulières
+  createdAt: string;
+  updatedAt?: string;
+}
+

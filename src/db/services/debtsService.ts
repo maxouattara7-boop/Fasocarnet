@@ -93,5 +93,18 @@ export const debtsService = {
       db.debtPayments.where('customerId').equals(customerId).reverse().toArray()
     ]);
     return { debts, payments };
+  },
+
+  /**
+   * Annule ou supprime la dette liée à une vente annulée et ajuste le solde du client
+   */
+  async cancelDebtBySaleId(saleId: string): Promise<void> {
+    const debts = await db.debts.where('saleId').equals(saleId).toArray();
+    for (const d of debts) {
+      if (d.remainingAmount > 0) {
+        await customersService.updateDebt(d.customerId, -d.remainingAmount);
+      }
+      await db.debts.delete(d.id);
+    }
   }
 };

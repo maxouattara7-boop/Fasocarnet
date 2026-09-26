@@ -361,7 +361,12 @@ export const SettingsView: React.FC = () => {
       return;
     }
 
-    const stockQty = newProductStock.trim() !== '' ? Math.max(0, parseInt(newProductStock, 10) || 0) : undefined;
+    if (newProductStock.trim() === '' || isNaN(parseInt(newProductStock, 10)) || parseInt(newProductStock, 10) < 0) {
+      alert("Veuillez renseigner la quantité initiale en stock pour cet article (au moins 0).");
+      return;
+    }
+
+    const stockQty = Math.max(0, parseInt(newProductStock, 10) || 0);
     const minAlert = newProductMinAlert.trim() !== '' ? Math.max(0, parseInt(newProductMinAlert, 10) || 0) : 5;
 
     setIsAddingProduct(true);
@@ -1328,12 +1333,13 @@ export const SettingsView: React.FC = () => {
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
                     <label className="block text-[9px] font-bold text-slate-600 mb-1">
-                      Stock initial en boutique
+                      Stock initial en boutique <span className="text-emerald-600">*</span>
                     </label>
                     <input
                       type="number"
                       min="0"
-                      placeholder="Illimité si vide"
+                      required
+                      placeholder="Ex: 10, 50, 100..."
                       value={newProductStock}
                       onChange={(e) => setNewProductStock(e.target.value)}
                       className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:border-emerald-500 outline-none placeholder:text-slate-400 placeholder:text-[10px] shadow-2xs"

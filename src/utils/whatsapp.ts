@@ -169,3 +169,18 @@ export function generateDailyReportWhatsAppUrl(
   const targetPhone = shop?.ownerPhone ? cleanPhoneNumber(shop.ownerPhone) : '';
   return targetPhone ? `https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}` : `https://wa.me/?text=${encodeURIComponent(message)}`;
 }
+
+/**
+ * Ouvre directement WhatsApp avec un numéro de téléphone optionnel et un message
+ */
+export function openWhatsApp(options: { phone?: string; message: string }): void {
+  const clean = options.phone ? cleanPhoneNumber(options.phone) : '';
+  const url = clean 
+    ? `https://wa.me/${clean}?text=${encodeURIComponent(options.message)}`
+    : `https://wa.me/?text=${encodeURIComponent(options.message)}`;
+  
+  if (typeof window !== 'undefined') {
+    window.open(url, '_blank');
+  }
+}
+

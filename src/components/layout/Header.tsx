@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../store/appStore';
-import { ShieldCheck, Lock, Cloud, CloudOff, RefreshCw, HelpCircle } from 'lucide-react';
+import { ShieldCheck, Lock, Cloud, CloudOff, RefreshCw, HelpCircle, FileText } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { HelpGuideModal } from '../common/HelpGuideModal';
+import { CustomInvoiceModal } from '../invoices/CustomInvoiceModal';
 
 export const Header: React.FC = () => {
   const { shopProfile, setIsLocked, isOnline, isSyncing, syncNow } = useAppStore();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
 
   return (
     <>
@@ -25,6 +27,17 @@ export const Header: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-1.5 flex-shrink-0">
+            {/* Bouton Factures & Devis Libres */}
+            <button
+              type="button"
+              onClick={() => setIsInvoiceOpen(true)}
+              className="p-1.5 bg-emerald-800/80 hover:bg-emerald-700 rounded-lg text-emerald-100 border border-emerald-600/40 transition-all active:scale-95 cursor-pointer flex items-center space-x-1"
+              title="Factures & Devis Libres"
+            >
+              <FileText className="w-3.5 h-3.5 text-emerald-200" />
+              <span className="text-[10px] font-bold hidden xs:inline">Factures</span>
+            </button>
+
             {/* Bouton Guide & Aide */}
             <button
               type="button"
@@ -87,6 +100,10 @@ export const Header: React.FC = () => {
 
       {/* Modal Centre d'Aide & Guide Rapide */}
       <HelpGuideModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+
+      {/* Modal Factures & Devis Libres */}
+      <CustomInvoiceModal isOpen={isInvoiceOpen} onClose={() => setIsInvoiceOpen(false)} />
     </>
   );
 };
+

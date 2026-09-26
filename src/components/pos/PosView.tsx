@@ -96,24 +96,47 @@ export const PosView: React.FC = () => {
     triggerHaptic(35);
     const product = products.find((p) => p.id === productId);
     if (!product) return;
+
+    // RÈGLE STRICTE : Bloquer si le stock est épuisé (<= 0)
+    const currentStock = typeof product.stockQuantity === 'number' ? product.stockQuantity : 0;
+    if (currentStock <= 0) {
+      triggerHaptic(60);
+      setScanToast(`⚠️ Vente impossible : Le stock de "${product.name}" est épuisé (0 en stock).`);
+      setTimeout(() => setScanToast(null), 3500);
+      return;
+    }
+
     setProductForQuantity(product);
   };
 
   const handleConfirmQuantity = (product: Product, quantity: number) => {
+    const availableStock = typeof product.stockQuantity === 'number' ? product.stockQuantity : 0;
+
+    // RÈGLE STRICTE : Bloquer si le stock est épuisé ou insuffisant
+    if (availableStock <= 0) {
+      triggerHaptic(60);
+      setScanToast(`⚠️ Vente impossible : "${product.name}" est en rupture de stock !`);
+      setTimeout(() => setScanToast(null), 3500);
+      return;
+    }
+
+    const existingInCart = selectedItems.find((it) => it.id === product.id || it.productId === product.id);
+    const currentQtyInCart = existingInCart ? existingInCart.quantity : 0;
+    const totalRequested = currentQtyInCart + quantity;
+
+    if (totalRequested > availableStock) {
+      triggerHaptic(60);
+      setScanToast(`⚠️ Stock insuffisant : Seules ${availableStock} unités sont disponibles (${currentQtyInCart} déjà au panier).`);
+      setTimeout(() => setScanToast(null), 3500);
+      return;
+    }
+
     const itemTotal = product.price * quantity;
 
-    // Signalement d'alerte si le stock est critique
-    if (typeof product.stockQuantity === 'number') {
-      if (product.stockQuantity <= 0) {
-        setScanToast(`⚠️ Rupture : "${product.name}" est épuisé (0 en stock) !`);
-        setTimeout(() => setScanToast(null), 3500);
-      } else if (product.stockQuantity < quantity) {
-        setScanToast(`⚠️ Stock insuffisant : "${product.name}" (${product.stockQuantity} restant${product.stockQuantity > 1 ? 's' : ''})`);
-        setTimeout(() => setScanToast(null), 3500);
-      } else if (product.stockQuantity <= (product.minStockAlert ?? 5)) {
-        setScanToast(`⚠️ Stock faible : "${product.name}" (${product.stockQuantity} restant${product.stockQuantity > 1 ? 's' : ''})`);
-        setTimeout(() => setScanToast(null), 3500);
-      }
+    // Signalement d'alerte si le stock devient critique
+    if (availableStock - totalRequested <= (product.minStockAlert ?? 5)) {
+      setScanToast(`⚠️ Stock faible : Il restera ${availableStock - totalRequested} unité(s) après cette vente.`);
+      setTimeout(() => setScanToast(null), 3500);
     }
 
     setSelectedItems((prev) => {
@@ -132,7 +155,8 @@ export const PosView: React.FC = () => {
           productId: product.id,
           description: product.name,
           quantity: quantity,
-          unitPrice: product.price
+          unitPrice: product.price,
+          costPrice: product.costPrice
         }
       ];
     });
@@ -164,6 +188,14 @@ export const PosView: React.FC = () => {
     const matched = await productsService.findByBarcode(cleanCode);
 
     if (matched) {
+      const stock = typeof matched.stockQuantity === 'number' ? matched.stockQuantity : 0;
+      if (stock <= 0) {
+        triggerHaptic(60);
+        setScanToast(`⚠️ Vente impossible : "${matched.name}" scanné est en rupture de stock (0 unité).`);
+        setTimeout(() => setScanToast(null), 3500);
+        return;
+      }
+
       handleSelectProduct(matched.id);
       triggerDoubleHaptic();
       
@@ -173,9 +205,6 @@ export const PosView: React.FC = () => {
         price: matched.price,
         totalCartAmount: newTotal
       });
-
-      setScanToast(`✓ ${matched.name} (${formatCurrency(matched.price)}) ajouté !`);
-      setTimeout(() => setScanToast(null), 3000);
     } else {
       // Produit non reconnu dans le catalogue
       triggerHaptic(60);
@@ -518,45 +547,63 @@ export const PosView: React.FC = () => {
                   Aucun article trouvé.
                 </div>
               ) : (
-                filteredProducts.map((prod) => (
-                  <button
-                    key={prod.id}
-                    type="button"
-                    onClick={() => {
-                      handleSelectProduct(prod.id);
-                      setIsArticlePickerOpen(false);
-                    }}
-                    className="w-full pt-2.5 pb-2 px-2.5 rounded-xl flex items-center justify-between hover:bg-emerald-50/80 active:bg-emerald-100 text-left transition-all cursor-pointer group"
-                  >
-                    <div className="flex items-center space-x-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white font-black text-xs flex items-center justify-center shadow-xs shrink-0 font-display">
-                        {prod.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center space-x-1.5">
-                          <span className="font-extrabold text-slate-900 block text-xs truncate">{prod.name}</span>
-                          {typeof prod.stockQuantity === 'number' && (
+                filteredProducts.map((prod) => {
+                  const isZeroStock = (prod.stockQuantity ?? 0) <= 0;
+                  return (
+                    <button
+                      key={prod.id}
+                      type="button"
+                      onClick={() => {
+                        if (isZeroStock) {
+                          setScanToast(`⚠️ "${prod.name}" est épuisé (0 unité). Réapprovisionnez l'article.`);
+                          triggerHaptic(60);
+                          return;
+                        }
+                        handleSelectProduct(prod.id);
+                        setIsArticlePickerOpen(false);
+                      }}
+                      className={`w-full pt-2.5 pb-2 px-2.5 rounded-xl flex items-center justify-between text-left transition-all group ${
+                        isZeroStock
+                          ? 'bg-red-50/30 opacity-70 hover:bg-red-50/50 cursor-not-allowed'
+                          : 'hover:bg-emerald-50/80 active:bg-emerald-100 cursor-pointer'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2.5 min-w-0">
+                        <div className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center shadow-xs shrink-0 font-display ${
+                          isZeroStock
+                            ? 'bg-red-100 text-red-700 border border-red-200'
+                            : 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white'
+                        }`}>
+                          {prod.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center space-x-1.5">
+                            <span className="font-extrabold text-slate-900 block text-xs truncate">{prod.name}</span>
                             <span
                               className={`text-[9px] font-black px-1.5 py-0.2 rounded-md border shrink-0 ${
-                                prod.stockQuantity <= 0
-                                  ? 'bg-red-50 text-red-700 border-red-200'
-                                  : prod.stockQuantity <= (prod.minStockAlert ?? 5)
+                                isZeroStock
+                                  ? 'bg-red-100 text-red-800 border-red-300'
+                                  : (prod.stockQuantity ?? 0) <= (prod.minStockAlert ?? 5)
                                   ? 'bg-amber-50 text-amber-800 border-amber-200'
                                   : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                               }`}
                             >
-                              {prod.stockQuantity <= 0 ? 'Rupture' : `Stock: ${prod.stockQuantity}`}
+                              {isZeroStock ? 'Épuisé (0)' : `Stock: ${prod.stockQuantity}`}
                             </span>
-                          )}
+                          </div>
+                          <span className="text-emerald-700 font-extrabold text-[11px] tracking-tight">{formatCurrency(prod.price)}</span>
                         </div>
-                        <span className="text-emerald-700 font-extrabold text-[11px] tracking-tight">{formatCurrency(prod.price)}</span>
                       </div>
-                    </div>
-                    <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white px-2.5 py-1 rounded-xl border border-emerald-200/80 transition-all shrink-0 shadow-2xs font-display">
-                      Choisir
-                    </span>
-                  </button>
-                ))
+                      <span className={`text-[11px] font-extrabold px-2.5 py-1 rounded-xl border transition-all shrink-0 shadow-2xs font-display ${
+                        isZeroStock
+                          ? 'text-red-700 bg-red-100/60 border-red-200'
+                          : 'text-emerald-700 bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white border-emerald-200/80'
+                      }`}>
+                        {isZeroStock ? 'Épuisé' : 'Choisir'}
+                      </span>
+                    </button>
+                  );
+                })
               )}
             </div>
           </div>

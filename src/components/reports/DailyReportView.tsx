@@ -30,7 +30,12 @@ import {
   Trash2,
   AlertCircle,
   ArrowUpRight,
-  PackagePlus
+  PackagePlus,
+  RotateCcw,
+  KeyRound,
+  ShieldAlert,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { exportMonthlyReportToExcel } from '../../utils/excelExporter';
 import { useAppStore } from '../../store/appStore';
@@ -40,7 +45,7 @@ import { NewExpenseModal } from './NewExpenseModal';
 import { SuppliesHistoryModal } from '../inventory/SuppliesHistoryModal';
 
 export const DailyReportView: React.FC = () => {
-  const { shopProfile, setActiveTab } = useAppStore();
+  const { shopProfile, setActiveTab, verifyPin } = useAppStore();
   const isPremium = subscriptionService.isPremiumActive(shopProfile);
   const [reportPeriod, setReportPeriod] = useState<'day' | 'month'>('day');
   const [summary, setSummary] = useState<DailySummary | null>(null);
@@ -59,6 +64,12 @@ export const DailyReportView: React.FC = () => {
   const [isSuppliesHistoryModalOpen, setIsSuppliesHistoryModalOpen] = useState(false);
   const [isNewExpenseModalOpen, setIsNewExpenseModalOpen] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [saleToCancel, setSaleToCancel] = useState<Sale | null>(null);
+  const [cancelPinInput, setCancelPinInput] = useState('');
+  const [showCancelPin, setShowCancelPin] = useState(false);
+  const [cancelPinError, setCancelPinError] = useState('');
+  const [cancelReasonInput, setCancelReasonInput] = useState('Erreur de saisie caisse');
+  const [isCancellingSale, setIsCancellingSale] = useState(false);
   const [exportModalData, setExportModalData] = useState<{
     isOpen: boolean;
     fileName: string;
@@ -116,6 +127,43 @@ export const DailyReportView: React.FC = () => {
     if (confirm("Supprimer cette dépense ?")) {
       await expensesService.delete(id);
       await loadReportData();
+    }
+  };
+
+  const handleOpenCancelSale = (sale: Sale) => {
+    setSaleToCancel(sale);
+    setCancelPinInput('');
+    setCancelPinError('');
+    setShowCancelPin(false);
+    setCancelReasonInput('Erreur de saisie caisse');
+  };
+
+  const handleConfirmCancelSale = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!saleToCancel) return;
+    setCancelPinError('');
+
+    if (shopProfile?.pinCode) {
+      if (!cancelPinInput.trim()) {
+        setCancelPinError('Veuillez saisir votre code PIN pour confirmer.');
+        return;
+      }
+      const isValid = verifyPin(cancelPinInput.trim());
+      if (!isValid) {
+        setCancelPinError('Code PIN incorrect.');
+        return;
+      }
+    }
+
+    setIsCancellingSale(true);
+    try {
+      await salesService.cancelSale(saleToCancel.id, cancelReasonInput);
+      setSaleToCancel(null);
+      await loadReportData();
+    } catch (err: any) {
+      setCancelPinError(err.message || "Erreur lors de l'annulation de la vente.");
+    } finally {
+      setIsCancellingSale(false);
     }
   };
 
@@ -670,16 +718,28 @@ export const DailyReportView: React.FC = () => {
             ) : (
               <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto pr-1">
                 {salesList.map((sale) => (
-                  <div key={sale.id} className="py-2.5 flex items-center justify-between text-xs">
+                  <div key={sale.id} className={`py-2.5 flex items-center justify-between text-xs ${sale.isCancelled ? 'opacity-60 bg-red-50/20 px-2 rounded-xl my-1' : ''}`}>
                     <div className="min-w-0 pr-2">
-                      <div className="font-bold text-slate-900 text-xs truncate font-display">
-                        {sale.isPartialCredit 
-                          ? `Vente Partielle : ${sale.customerName || 'Client'}` 
-                          : sale.isCredit 
-                          ? `Crédit : ${sale.customerName || 'Client'}` 
-                          : `Vente ${sale.paymentMethod}`}
+                      <div className="flex items-center space-x-1.5 flex-wrap">
+                        <span className={`font-bold text-xs truncate font-display ${sale.isCancelled ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
+                          {sale.isPartialCredit 
+                            ? `Vente Partielle : ${sale.customerName || 'Client'}` 
+                            : sale.isCredit 
+                            ? `Crédit : ${sale.customerName || 'Client'}` 
+                            : `Vente ${sale.paymentMethod}`}
+                        </span>
+                        {sale.isCancelled && (
+                          <span className="bg-red-100 text-red-800 text-[9px] font-black px-1.5 py-0.2 rounded-md border border-red-200">
+                            ANNULÉE
+                          </span>
+                        )}
                       </div>
                       <div className="text-[10px] text-slate-400 mt-0.5">{formatDateTime(sale.createdAt)}</div>
+                      {sale.isCancelled && sale.cancelReason && (
+                        <div className="text-[10px] text-red-600 italic mt-0.5">
+                          Motif : {sale.cancelReason}
+                        </div>
+                      )}
                       {sale.isPartialCredit && (
                         <div className="text-[10px] text-indigo-700 font-semibold mt-0.5">
                           Acompte : {formatCurrency(sale.paidAmount || 0)} • Dette : {formatCurrency(sale.creditAmount || 0)}
@@ -691,8 +751,26 @@ export const DailyReportView: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    <div className={`font-black font-display text-xs sm:text-sm flex-shrink-0 ${sale.isCredit ? 'text-amber-700' : 'text-emerald-700'}`}>
-                      {formatCurrency(sale.totalAmount)}
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                      <div className={`font-black font-display text-xs sm:text-sm ${
+                        sale.isCancelled 
+                          ? 'text-slate-400 line-through' 
+                          : sale.isCredit 
+                          ? 'text-amber-700' 
+                          : 'text-emerald-700'
+                      }`}>
+                        {formatCurrency(sale.totalAmount)}
+                      </div>
+                      {!sale.isCancelled && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenCancelSale(sale)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          title="Annuler cette vente"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -824,6 +902,154 @@ export const DailyReportView: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Modal d'Annulation Sécurisée d'une Vente */}
+      {saleToCancel && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
+          <form 
+            onSubmit={handleConfirmCancelSale}
+            className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4 animate-in slide-in-from-bottom duration-200 border border-slate-100"
+          >
+            {/* En-tête */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-700 flex items-center justify-center font-bold shrink-0">
+                  <RotateCcw className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 font-display">
+                    Annuler la Vente
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-medium">
+                    #{saleToCancel.id.slice(-8).toUpperCase()} • {formatDateTime(saleToCancel.createdAt)}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSaleToCancel(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Récapitulatif de la vente */}
+            <div className="bg-red-50/50 p-3 rounded-2xl border border-red-200/80 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-700">Montant de la vente :</span>
+                <span className="font-black text-sm text-red-800 font-display">{formatCurrency(saleToCancel.totalAmount)}</span>
+              </div>
+              {saleToCancel.items && saleToCancel.items.length > 0 && (
+                <div className="text-[11px] text-slate-600 border-t border-red-100/80 pt-1">
+                  <strong>Articles concernés :</strong> {saleToCancel.items.map(it => `${it.description} (x${it.quantity})`).join(', ')}
+                </div>
+              )}
+              {saleToCancel.customerName && (
+                <div className="text-[11px] text-slate-600">
+                  <strong>Client :</strong> {saleToCancel.customerName} ({saleToCancel.customerPhone})
+                </div>
+              )}
+            </div>
+
+            {/* Note d'impact */}
+            <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-600 space-y-1 leading-snug">
+              <p className="font-bold text-slate-800 flex items-center space-x-1">
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span>Conséquences de l'annulation :</span>
+              </p>
+              <ul className="list-disc pl-4 space-y-0.5 text-[10px]">
+                <li>Les quantités vendues seront <strong>restituées en stock</strong>.</li>
+                <li>Le montant sera déduit du chiffre d'affaires et de la caisse.</li>
+                {saleToCancel.isCredit && <li>La dette client associée sera annulée.</li>}
+              </ul>
+            </div>
+
+            {/* Motif */}
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-600 mb-1">
+                Motif de l'annulation
+              </label>
+              <select
+                value={cancelReasonInput}
+                onChange={(e) => setCancelReasonInput(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-red-500 outline-none cursor-pointer"
+              >
+                <option value="Erreur de saisie caisse">Erreur de saisie caisse</option>
+                <option value="Retour marchandise client">Retour marchandise client</option>
+                <option value="Paiement refusé / annulé">Paiement refusé / annulé</option>
+                <option value="Autre motif">Autre motif</option>
+              </select>
+            </div>
+
+            {/* Demande Code PIN */}
+            {shopProfile?.pinCode && (
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-600 mb-1">
+                  Code PIN commerçant (4 chiffres) <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <KeyRound className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showCancelPin ? 'text' : 'password'}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={4}
+                    required
+                    placeholder="Entrez votre code PIN"
+                    value={cancelPinInput}
+                    onChange={(e) => {
+                      setCancelPinInput(e.target.value.replace(/\D/g, ''));
+                      setCancelPinError('');
+                    }}
+                    className="w-full pl-9 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:bg-white focus:border-red-500 outline-none"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelPin(!showCancelPin)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                  >
+                    {showCancelPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {cancelPinError && (
+              <div className="p-2 bg-red-50 border border-red-200 rounded-xl text-xs font-bold text-red-700 flex items-center space-x-1.5 animate-in shake">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{cancelPinError}</span>
+              </div>
+            )}
+
+            {/* Boutons */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setSaleToCancel(null)}
+                className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                Garder la vente
+              </button>
+              <button
+                type="submit"
+                disabled={isCancellingSale}
+                className="py-2.5 bg-red-600 hover:bg-red-700 active:scale-98 text-white font-black rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-red-600/25 transition-all cursor-pointer font-display disabled:opacity-50"
+              >
+                {isCancellingSale ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RotateCcw className="w-4 h-4" />
+                )}
+                <span>{isCancellingSale ? 'Annulation...' : 'CONFIRMER L\'ANNULATION'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* Modal Historique des Approvisionnements */}
       <SuppliesHistoryModal
         isOpen={isSuppliesHistoryModalOpen}

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { StockSupply } from '../../types';
 import { suppliesService } from '../../db/services/suppliesService';
-import { formatCurrency, formatDateTime } from '../../utils/formatters';
+import { formatCurrency } from '../../utils/formatters';
 import { 
   X, 
   PackagePlus, 
   Search, 
   FileSpreadsheet, 
-  Trash2
+  Trash2,
+  Calendar,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { downloadOrShareTextFile } from '../../utils/fileDownloader';
 
@@ -15,6 +18,14 @@ interface SuppliesHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSupplyUpdated?: () => void;
+}
+
+interface SupplyGroup {
+  dateKey: string;
+  formattedDate: string;
+  totalQuantity: number;
+  totalCost: number;
+  supplies: StockSupply[];
 }
 
 export const SuppliesHistoryModal: React.FC<SuppliesHistoryModalProps> = ({
@@ -27,6 +38,7 @@ export const SuppliesHistoryModal: React.FC<SuppliesHistoryModalProps> = ({
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (isOpen) {
@@ -39,6 +51,13 @@ export const SuppliesHistoryModal: React.FC<SuppliesHistoryModalProps> = ({
     try {
       const list = await suppliesService.getAll();
       setSupplies(list);
+      // Par défaut, déplier tous les groupes
+      const initialExpanded: Record<string, boolean> = {};
+      list.forEach(s => {
+        const key = s.createdAt.slice(0, 10);
+        initialExpanded[key] = true;
+      });
+      setExpandedDates(initialExpanded);
     } catch (err) {
       console.error('Erreur chargement approvisionnements:', err);
     } finally {
@@ -48,11 +67,12 @@ export const SuppliesHistoryModal: React.FC<SuppliesHistoryModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Filtrage par mois et recherche
+  // Mois disponibles pour filtrage
   const availableMonths = Array.from(
     new Set(supplies.map((s) => s.createdAt.slice(0, 7)))
   ).sort().reverse();
 
+  // Filtrage
   const filteredSupplies = supplies.filter((s) => {
     const matchesMonth = selectedMonth === 'all' || s.createdAt.startsWith(selectedMonth);
     const matchesSearch = !searchQuery.trim() || 
@@ -64,6 +84,56 @@ export const SuppliesHistoryModal: React.FC<SuppliesHistoryModalProps> = ({
 
   const totalQuantityAdded = filteredSupplies.reduce((sum, s) => sum + s.quantity, 0);
   const totalCostInvestment = filteredSupplies.reduce((sum, s) => sum + s.totalCost, 0);
+
+  // Groupement par date (YYYY-MM-DD)
+  const groupedSupplies: SupplyGroup[] = [];
+  const groupsMap = new Map<string, StockSupply[]>();
+
+  filteredSupplies.forEach(s => {
+    const dateKey = s.createdAt.slice(0, 10);
+    if (!groupsMap.has(dateKey)) {
+      groupsMap.set(dateKey, []);
+    }
+    groupsMap.get(dateKey)!.push(s);
+  });
+
+  groupsMap.forEach((groupItems, dateKey) => {
+    const d = new Date(dateKey + 'T12:00:00');
+    const formattedDate = d.toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    // Capitaliser la première lettre
+    const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+
+    const totalQty = groupItems.reduce((acc, curr) => acc + curr.quantity, 0);
+    const totalCost = groupItems.reduce((acc, curr) => acc + curr.totalCost, 0);
+
+    groupedSupplies.push({
+      dateKey,
+      formattedDate: capitalizedDate,
+      totalQuantity: totalQty,
+      totalCost,
+      supplies: groupItems
+    });
+  });
+
+  const toggleDateGroup = (dateKey: string) => {
+    setExpandedDates(prev => ({
+      ...prev,
+      [dateKey]: !prev[dateKey]
+    }));
+  };
+
+  const toggleAllGroups = (expand: boolean) => {
+    const updated: Record<string, boolean> = {};
+    groupedSupplies.forEach(g => {
+      updated[g.dateKey] = expand;
+    });
+    setExpandedDates(updated);
+  };
 
   const handleExportCsv = async () => {
     if (filteredSupplies.length === 0) {
@@ -139,7 +209,7 @@ export const SuppliesHistoryModal: React.FC<SuppliesHistoryModalProps> = ({
                 Historique des Approvisionnements
               </h3>
               <p className="text-[11px] text-emerald-200 font-medium">
-                Entrées en stock, prix d'achats et réapprovisionnements
+                Arrivages groupés par date, prix d'achat et rentabilité
               </p>
             </div>
           </div>
@@ -214,80 +284,161 @@ export const SuppliesHistoryModal: React.FC<SuppliesHistoryModalProps> = ({
               <span>{isExporting ? 'Export...' : 'Exporter Excel'}</span>
             </button>
           </div>
+
+          {/* Boutons d'accordéon rapide */}
+          {groupedSupplies.length > 1 && (
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] font-bold text-slate-500">
+                {groupedSupplies.length} session(s) d'arrivage
+              </span>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => toggleAllGroups(true)}
+                  className="text-[10px] font-bold text-emerald-700 hover:underline cursor-pointer"
+                >
+                  Tout déplier
+                </button>
+                <span className="text-slate-300">•</span>
+                <button
+                  type="button"
+                  onClick={() => toggleAllGroups(false)}
+                  className="text-[10px] font-bold text-slate-500 hover:underline cursor-pointer"
+                >
+                  Tout replier
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Liste des approvisionnements */}
-        <div className="p-4 space-y-2.5 overflow-y-auto max-h-[50vh] divide-y divide-slate-100">
+        {/* Liste des approvisionnements groupés par date */}
+        <div className="p-4 space-y-3 overflow-y-auto max-h-[50vh]">
           {isLoading ? (
             <div className="text-center py-10 text-slate-400 text-xs font-medium">
               Chargement de l'historique...
             </div>
-          ) : filteredSupplies.length === 0 ? (
+          ) : groupedSupplies.length === 0 ? (
             <div className="text-center py-10 text-slate-400 text-xs font-medium space-y-1 bg-slate-50/60 rounded-2xl border border-dashed border-slate-200">
               <span className="font-bold block text-slate-700">Aucun approvisionnement trouvé</span>
               <p className="text-[11px]">Les nouveaux réapprovisionnements apparaîtront ici automatiquement.</p>
             </div>
           ) : (
-            filteredSupplies.map((sup) => {
-              const selling = sup.sellingPrice || sup.costPrice;
-              const margin = selling - sup.costPrice;
-              const marginPercent = sup.costPrice > 0 ? Math.round((margin / sup.costPrice) * 100) : 0;
+            groupedSupplies.map((group) => {
+              const isExpanded = expandedDates[group.dateKey] ?? true;
 
               return (
                 <div
-                  key={sup.id}
-                  className="pt-2.5 pb-1 flex items-start justify-between gap-3 text-left group"
+                  key={group.dateKey}
+                  className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden transition-all"
                 >
-                  <div className="flex items-start space-x-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center font-black text-xs shrink-0 font-display mt-0.5">
-                      +{sup.quantity}
+                  {/* Entête du groupe d'arrivage */}
+                  <button
+                    type="button"
+                    onClick={() => toggleDateGroup(group.dateKey)}
+                    className="w-full px-4 py-3 bg-slate-50/90 hover:bg-slate-100/90 flex items-center justify-between text-left transition-colors cursor-pointer border-b border-slate-100"
+                  >
+                    <div className="flex items-center space-x-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-100/80 text-emerald-800 flex items-center justify-center shrink-0">
+                        <Calendar className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate font-display">
+                          Arrivage du {group.formattedDate}
+                        </h4>
+                        <p className="text-[11px] font-semibold text-slate-500">
+                          {group.supplies.length} article(s) • +{group.totalQuantity} pièces au total
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="min-w-0 space-y-0.5">
-                      <div className="flex items-center space-x-1.5 flex-wrap gap-y-0.5">
-                        <span className="font-extrabold text-slate-900 text-xs truncate">{sup.productName}</span>
-                        <span className="text-[10px] font-bold text-slate-500">
-                          • {formatDateTime(sup.createdAt)}
+                    <div className="flex items-center space-x-3 shrink-0">
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold text-slate-400 block uppercase">Coût jour</span>
+                        <span className="font-extrabold text-xs sm:text-sm text-emerald-800 font-display">
+                          {formatCurrency(group.totalCost)}
                         </span>
                       </div>
-
-                      <div className="flex items-center space-x-2 text-[11px] font-semibold text-slate-600 flex-wrap gap-y-0.5">
-                        <span>Achat : <strong className="text-slate-800">{formatCurrency(sup.costPrice)}</strong> /u</span>
-                        <span>•</span>
-                        <span>Vente : <strong className="text-emerald-700">{formatCurrency(selling)}</strong></span>
-                        {margin > 0 && (
-                          <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded-md">
-                            Marge : +{formatCurrency(margin)} (+{marginPercent}%)
-                          </span>
+                      <div className="p-1 rounded-lg bg-white border border-slate-200 text-slate-500">
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
                         )}
                       </div>
-
-                      {(sup.supplierName || sup.notes) && (
-                        <div className="text-[10px] text-slate-500 italic flex items-center space-x-1 pt-0.5">
-                          {sup.supplierName && (
-                            <span className="font-medium text-slate-700 not-italic bg-slate-100 px-1.5 py-0.2 rounded">
-                              Fournisseur : {sup.supplierName}
-                            </span>
-                          )}
-                          {sup.notes && <span>{sup.notes}</span>}
-                        </div>
-                      )}
                     </div>
-                  </div>
+                  </button>
 
-                  <div className="text-right shrink-0 space-y-1">
-                    <div className="font-extrabold text-xs text-emerald-800 font-display">
-                      {formatCurrency(sup.totalCost)}
+                  {/* Détail des articles de cette session */}
+                  {isExpanded && (
+                    <div className="p-3 space-y-2.5 divide-y divide-slate-100 bg-white">
+                      {group.supplies.map((sup) => {
+                        const selling = sup.sellingPrice || sup.costPrice;
+                        const margin = selling - sup.costPrice;
+                        const marginPercent = sup.costPrice > 0 ? Math.round((margin / sup.costPrice) * 100) : 0;
+
+                        return (
+                          <div
+                            key={sup.id}
+                            className="pt-2.5 first:pt-0 flex items-start justify-between gap-3 text-left group"
+                          >
+                            <div className="flex items-start space-x-2.5 min-w-0">
+                              <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center font-black text-xs shrink-0 font-display mt-0.5">
+                                +{sup.quantity}
+                              </div>
+
+                              <div className="min-w-0 space-y-0.5">
+                                <div className="flex items-center space-x-1.5 flex-wrap gap-y-0.5">
+                                  <span className="font-extrabold text-slate-900 text-xs truncate">
+                                    {sup.productName}
+                                  </span>
+                                  <span className="text-[10px] font-bold text-slate-400">
+                                    • {new Date(sup.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center space-x-2 text-[11px] font-semibold text-slate-600 flex-wrap gap-y-0.5">
+                                  <span>Achat : <strong className="text-slate-800">{formatCurrency(sup.costPrice)}</strong>/u</span>
+                                  <span>•</span>
+                                  <span>Vente : <strong className="text-emerald-700">{formatCurrency(selling)}</strong></span>
+                                  {margin > 0 && (
+                                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-md">
+                                      Marge : +{formatCurrency(margin)} (+{marginPercent}%)
+                                    </span>
+                                  )}
+                                </div>
+
+                                {(sup.supplierName || sup.notes) && (
+                                  <div className="text-[10px] text-slate-500 italic flex items-center space-x-1 pt-0.5">
+                                    {sup.supplierName && (
+                                      <span className="font-medium text-slate-700 not-italic bg-slate-100 px-1.5 py-0.2 rounded">
+                                        Fournisseur : {sup.supplierName}
+                                      </span>
+                                    )}
+                                    {sup.notes && <span>{sup.notes}</span>}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0 space-y-1">
+                              <div className="font-extrabold text-xs text-slate-900 font-display">
+                                {formatCurrency(sup.totalCost)}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteSupply(sup.id)}
+                                className="text-slate-300 hover:text-red-600 p-1 rounded-lg transition-colors cursor-pointer"
+                                title="Supprimer la ligne"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteSupply(sup.id)}
-                      className="text-slate-300 hover:text-red-600 p-1 rounded-lg transition-colors cursor-pointer"
-                      title="Supprimer la ligne"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  )}
                 </div>
               );
             })
@@ -297,7 +448,7 @@ export const SuppliesHistoryModal: React.FC<SuppliesHistoryModalProps> = ({
         {/* Footer */}
         <div className="p-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
           <span className="text-[11px] text-slate-500 font-medium">
-            {filteredSupplies.length} approvisionnement(s) listé(s)
+            {filteredSupplies.length} ligne(s) d'approvisionnement
           </span>
           <button
             type="button"

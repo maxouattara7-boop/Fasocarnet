@@ -107,10 +107,13 @@ export const salesService = {
     const startOfDay = `${targetDate}T00:00:00.000Z`;
     const endOfDay = `${targetDate}T23:59:59.999Z`;
 
-    const daySales = await db.sales
+    const rawDaySales = await db.sales
       .where('createdAt')
       .between(startOfDay, endOfDay, true, true)
       .toArray();
+
+    // Exclure les ventes annulées du calcul comptable
+    const daySales = rawDaySales.filter(s => !s.isCancelled);
 
     const dayPayments = await db.debtPayments
       .where('createdAt')
@@ -206,6 +209,40 @@ export const salesService = {
     return sales.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
 
+  /**
+   * Annule une vente : restitue le stock des articles, supprime/ajuste la dette éventuelle et régularise le bilan
+   */
+  async cancelSale(saleId: string, reason?: string): Promise<boolean> {
+    const sale = await db.sales.get(saleId);
+    if (!sale || sale.isCancelled) return false;
+
+    // 1. Restituer le stock des articles vendus
+    if (sale.items && sale.items.length > 0) {
+      await productsService.incrementStock(sale.items);
+    }
+
+    // 2. Annuler les dettes liées si vente à crédit
+    await debtsService.cancelDebtBySaleId(saleId);
+
+    // 3. Marquer la vente comme annulée
+    await db.sales.update(saleId, {
+      isCancelled: true,
+      cancelledAt: new Date().toISOString(),
+      cancelReason: reason || 'Annulation par le commerçant'
+    });
+
+    return true;
+  },
+
+  /**
+   * Supprime définitivement une vente
+   */
+  async deleteSale(saleId: string): Promise<boolean> {
+    await this.cancelSale(saleId);
+    await db.sales.delete(saleId);
+    return true;
+  },
+
   async getMonthlySummary(monthString: string): Promise<DailySummary> {
     const targetMonth = monthString || new Date().toISOString().slice(0, 7);
     const [year, month] = targetMonth.split('-').map(Number);
@@ -213,10 +250,12 @@ export const salesService = {
     const startOfMonth = `${targetMonth}-01T00:00:00.000Z`;
     const endOfMonth = `${targetMonth}-${String(lastDay).padStart(2, '0')}T23:59:59.999Z`;
 
-    const monthSales = await db.sales
+    const rawMonthSales = await db.sales
       .where('createdAt')
       .between(startOfMonth, endOfMonth, true, true)
       .toArray();
+
+    const monthSales = rawMonthSales.filter(s => !s.isCancelled);
 
     const monthPayments = await db.debtPayments
       .where('createdAt')

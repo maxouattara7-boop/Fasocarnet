@@ -46,16 +46,15 @@ describe('productsService', () => {
     // 1. Creation with stock and min alert
     const p1 = await productsService.create('Lait Nido 400g', 3500, undefined, undefined, 10, 3);
     const p2 = await productsService.create('Sucre 1kg', 800, undefined, undefined, 2, 5);
-    const p3 = await productsService.create('Service Divers', 1000); // stock non suivi
+    const p3 = await productsService.create('Service Divers', 1000); // stock par defaut 0
 
     expect(p1.stockQuantity).toBe(10);
     expect(p1.minStockAlert).toBe(3);
-    expect(p3.stockQuantity).toBeUndefined();
+    expect(p3.stockQuantity).toBe(0);
 
-    // 2. Low stock retrieval
+    // 2. Low stock retrieval (p2 a 2 <= 5, p3 a 0 <= 5)
     let lowStockList = await productsService.getLowStockProducts();
-    expect(lowStockList.length).toBe(1);
-    expect(lowStockList[0].id).toBe(p2.id); // 2 <= 5
+    expect(lowStockList.length).toBe(2);
 
     // 3. Stock decrementation
     await productsService.decrementStock([
@@ -69,9 +68,9 @@ describe('productsService', () => {
     expect(p1After?.stockQuantity).toBe(2);
     expect(p2After?.stockQuantity).toBe(0);
 
-    // Both are now low stock or out of stock
+    // All 3 are now low stock or out of stock
     lowStockList = await productsService.getLowStockProducts();
-    expect(lowStockList.length).toBe(2);
+    expect(lowStockList.length).toBe(3);
 
     // 4. Restock
     await productsService.addStock(p1.id, 15); // 2 + 15 = 17
