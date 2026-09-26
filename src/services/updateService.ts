@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { supabaseClient } from '../db/supabaseClient';
 
 export interface AppUpdateInfo {
   version: string;
@@ -15,12 +16,12 @@ export interface AppUpdateInfo {
 export const CURRENT_APP_VERSION = '1.4.0';
 export const CURRENT_VERSION_CODE = 26;
 
-// Réseau multi-CDN redondant (GitHub Raw sans cache + GitHub API + CDN jsDelivr purgé)
+// Réseau multi-CDN redondant
 const UPDATE_SERVERS = [
   'https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/version.json',
   'https://cdn.jsdelivr.net/gh/maxouattara7-boop/Fasocarnet@main/version.json',
-  'https://api.github.com/repos/maxouattara7-boop/Fasocarnet/contents/version.json',
-  'https://fastly.jsdelivr.net/gh/maxouattara7-boop/Fasocarnet@main/version.json'
+  'https://fastly.jsdelivr.net/gh/maxouattara7-boop/Fasocarnet@main/version.json',
+  'https://api.github.com/repos/maxouattara7-boop/Fasocarnet/contents/version.json'
 ];
 
 const DISMISSED_UPDATE_KEY = 'fasocarnet_dismissed_update';
@@ -69,7 +70,7 @@ const fetchWithXhr = (url: string, timeoutMs: number, headers?: Record<string, s
 };
 
 /**
- * Compare deux chaînes de versions sémantiques (ex: '1.2.14' vs '1.2.13')
+ * Compare deux chaînes de versions sémantiques (ex: '1.4.0' vs '1.3.0')
  * @returns true si remoteVersion > localVersion
  */
 export function isNewerVersion(remoteVersion: string, localVersion: string = CURRENT_APP_VERSION): boolean {
@@ -103,15 +104,32 @@ class UpdateService {
   }
 
   /**
-   * Vérifie la disponibilité d'une nouvelle version sur GitHub / jsDelivr / Render
+   * Vérifie la disponibilité d'une nouvelle version (Supabase direct + GitHub Raw + CDNs)
    */
   async checkForUpdate(): Promise<{ hasUpdate: boolean; updateInfo?: AppUpdateInfo; error?: string }> {
+    // 1. Source prioritaire ultra-rapide (0 ms de cache) : Supabase Cloud
+    try {
+      const supabaseVersion = await supabaseClient.fetchAppVersion();
+      if (supabaseVersion && supabaseVersion.version) {
+        const isNewer = isNewerVersion(supabaseVersion.version, CURRENT_APP_VERSION);
+        const hasHigherCode = (supabaseVersion.versionCode || 0) > CURRENT_VERSION_CODE;
+        if (isNewer || hasHigherCode) {
+          console.log(`[UpdateService] Nouvelle version détectée via Supabase: v${supabaseVersion.version}`);
+          return { hasUpdate: true, updateInfo: supabaseVersion };
+        }
+      }
+    } catch (sbErr) {
+      console.warn('[UpdateService] Vérification Supabase échouée, bascule vers CDN:', sbErr);
+    }
+
+    // 2. Sources de secours multi-CDN avec contournement agressif du cache
     const timestamp = Date.now();
+    const nonce = Math.random().toString(36).substring(2, 8);
     let lastError: any = null;
 
     for (const baseUrl of UPDATE_SERVERS) {
       const isGithubApi = baseUrl.includes('api.github.com');
-      const url = `${baseUrl}?_t=${timestamp}`;
+      const url = `${baseUrl}?_t=${timestamp}&_n=${nonce}`;
       const headers: Record<string, string> = {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache'
@@ -171,27 +189,28 @@ class UpdateService {
   }
 
   /**
-   * Télécharge une mise à jour à chaud (Live Update / OTA)
+   * Télécharge et installe une mise à jour à chaud (Live Update / OTA)
    */
   async downloadLiveUpdate(bundleUrl: string, version: string): Promise<{ success: boolean; message?: string }> {
     if (!Capacitor.isNativePlatform()) {
       return { success: false, message: 'Les mises à jour à chaud sont réservées à l\'application installée.' };
     }
 
-    // Essayer l'URL principale puis le CDN jsDelivr comme secours
     const downloadCandidates = [
       bundleUrl,
+      'https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip',
       'https://cdn.jsdelivr.net/gh/maxouattara7-boop/Fasocarnet@main/dist.zip',
-      'https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip'
+      'https://fastly.jsdelivr.net/gh/maxouattara7-boop/Fasocarnet@main/dist.zip'
     ];
 
     let lastErr: any = null;
 
     for (const url of downloadCandidates) {
       try {
+        const nonce = Math.random().toString(36).substring(2, 7);
         console.log(`[UpdateService] Téléchargement Live Update v${version} depuis ${url}...`);
         const bundle = await CapacitorUpdater.download({
-          url: `${url}?_t=${Date.now()}`,
+          url: `${url}?_t=${Date.now()}&_n=${nonce}`,
           version: version
         });
 
@@ -218,7 +237,7 @@ class UpdateService {
   }
 
   /**
-   * Applique le rechargement lorsque l'utilisateur clique sur "Compris / C'est noté"
+   * Applique le rechargement de l'application
    */
   async reloadApp(): Promise<void> {
     if (Capacitor.isNativePlatform()) {
@@ -233,7 +252,7 @@ class UpdateService {
   }
 
   /**
-   * Vérification et téléchargement silencieux en arrière-plan (sans rechargement brusque)
+   * Vérification et téléchargement silencieux automatique en arrière-plan
    */
   async performBackgroundLiveUpdate(): Promise<void> {
     if (!Capacitor.isNativePlatform()) return;

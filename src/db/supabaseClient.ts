@@ -338,5 +338,48 @@ export const supabaseClient = {
     } catch {
       return false;
     }
+  },
+
+  /**
+   * Récupère la dernière version de l'application depuis Supabase (instantané sans cache CDN)
+   */
+  async fetchAppVersion(): Promise<any | null> {
+    const client = this.getClient();
+    if (!client) return null;
+
+    try {
+      const { data, error } = await client
+        .from('broadcasts')
+        .select('message')
+        .eq('id', 'app_version')
+        .single();
+
+      if (error || !data) return null;
+      return data.message || null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Publie la dernière version sur Supabase
+   */
+  async pushAppVersion(versionInfo: any): Promise<boolean> {
+    const client = this.getClient();
+    if (!client) return false;
+
+    try {
+      const { error } = await client
+        .from('broadcasts')
+        .upsert({
+          id: 'app_version',
+          message: versionInfo,
+          updated_at: new Date().toISOString()
+        });
+      return !error;
+    } catch {
+      return false;
+    }
   }
 };
+
