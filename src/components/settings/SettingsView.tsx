@@ -57,6 +57,7 @@ import { updateService, CURRENT_APP_VERSION, AppUpdateInfo } from '../../service
 import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
 import { HelpGuideModal } from '../common/HelpGuideModal';
 import { UpdateModal } from '../common/UpdateModal';
+import { OnlinePaymentModal } from '../subscription/OnlinePaymentModal';
 import { Product } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -216,6 +217,8 @@ export const SettingsView: React.FC = () => {
   const [licenseInput, setLicenseInput] = useState('');
   const [licenseFeedback, setLicenseFeedback] = useState<{ success?: boolean; message?: string } | null>(null);
   const [isActivatingLicense, setIsActivatingLicense] = useState(false);
+  const [isOnlinePaymentModalOpen, setIsOnlinePaymentModalOpen] = useState(false);
+  const [planForOnlinePayment, setPlanForOnlinePayment] = useState<SubscriptionPlan | undefined>(undefined);
 
   // Retours Sonores, Vocaux et Vibreur Tactile
   const [soundEnabled, setSoundEnabledState] = useState(() => soundEffects.getSoundEnabled());
@@ -1583,7 +1586,7 @@ export const SettingsView: React.FC = () => {
               </button>
 
               {/* Récapitulatif de la formule sélectionnée */}
-              <div className="bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white p-3.5 sm:p-4 rounded-xl shadow-md border border-emerald-500/30 space-y-2">
+              <div className="bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white p-3.5 sm:p-4 rounded-xl shadow-md border border-emerald-500/30 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1.5 text-amber-400">
                     <Crown className="w-4 h-4" />
@@ -1604,17 +1607,33 @@ export const SettingsView: React.FC = () => {
                     🎁 {selectedPlanForPayment.discountText}
                   </p>
                 )}
+
+                {/* BOUTON PRINCIPAL : PAIEMENT AUTOMATIQUE INSTANTANÉ */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPlanForOnlinePayment(selectedPlanForPayment);
+                    setIsOnlinePaymentModalOpen(true);
+                  }}
+                  className="w-full py-3 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-lg shadow-emerald-900/40 flex items-center justify-center space-x-2 active:scale-98 transition-all cursor-pointer"
+                >
+                  <Zap className="w-4 h-4 fill-slate-950" />
+                  <span>Payer en ligne (Activation Automatique)</span>
+                </button>
+                <p className="text-[10px] text-emerald-300 text-center">
+                  ⚡ Aucune clé à saisir • Orange Money, Wave, Moov, Carte acceptés
+                </p>
               </div>
 
-              {/* Numéros de Paiement Mobile Money Officiels */}
-              <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-100 shadow-xs space-y-2.5">
+              {/* Option secondaire : Dépôt manuel & WhatsApp */}
+              <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs space-y-2.5">
                 <div className="border-b border-slate-100 pb-1.5">
-                  <div className="flex items-center space-x-2 text-emerald-800">
-                    <Smartphone className="w-4 h-4 text-emerald-600" />
-                    <h3 className="font-extrabold text-xs">Comptes de Paiement Mobile Money</h3>
+                  <div className="flex items-center space-x-2 text-slate-800">
+                    <Smartphone className="w-4 h-4 text-slate-600" />
+                    <h3 className="font-extrabold text-xs">Alternative : Transfert Manuel & WhatsApp</h3>
                   </div>
                   <p className="text-[10px] text-slate-500 mt-0.5">
-                    Effectuez le transfert de <strong>{formatCurrency(selectedPlanForPayment.price)}</strong> vers l'un des comptes ci-dessous :
+                    Si vous préférez effectuer un dépôt direct et recevoir un code de licence sur WhatsApp :
                   </p>
                 </div>
 
@@ -1669,7 +1688,7 @@ export const SettingsView: React.FC = () => {
                   className="w-full py-2.5 bg-[#25D366] hover:bg-[#20ba5a] text-slate-950 font-black rounded-xl text-xs shadow-xs flex items-center justify-center space-x-1.5 active:scale-98 transition-all cursor-pointer mt-2"
                 >
                   <MessageCircle className="w-4 h-4" />
-                  <span>Confirmer mon paiement sur WhatsApp</span>
+                  <span>Demander une clé sur WhatsApp</span>
                 </button>
               </div>
 
@@ -1764,31 +1783,40 @@ export const SettingsView: React.FC = () => {
 
               {/* Grille des Formules d'Abonnement */}
               <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-100 shadow-xs space-y-2.5">
-                <div className="flex items-center space-x-2 text-emerald-800 border-b border-slate-100 pb-2">
-                  <CreditCard className="w-4 h-4" />
-                  <h3 className="font-extrabold text-xs">Choisir une Formule de Licence</h3>
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <div className="flex items-center space-x-2 text-emerald-800">
+                    <CreditCard className="w-4 h-4" />
+                    <h3 className="font-extrabold text-xs">Formules d'Abonnement FasoCarnet</h3>
+                  </div>
+                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full flex items-center space-x-1">
+                    <Zap className="w-2.5 h-2.5" />
+                    <span>Activation 100% Auto</span>
+                  </span>
                 </div>
                 
                 <p className="text-[10px] text-slate-500">
-                  Cliquez sur une formule pour accéder au paiement par <strong>Orange Money</strong>, <strong>Moov Money</strong> ou <strong>Wave</strong>.
+                  Paiement sécurisé par <strong>Orange Money</strong>, <strong>Moov Money</strong>, <strong>Wave</strong> ou <strong>Carte</strong>. Votre compte s'active instantanément sans clé de licence.
                 </p>
 
                 <div className="space-y-2 pt-0.5">
                   {SUBSCRIPTION_PLANS.map((plan) => (
                     <div
                       key={plan.id}
-                      onClick={() => setSelectedPlanForPayment(plan)}
-                      className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                      onClick={() => {
+                        setPlanForOnlinePayment(plan);
+                        setIsOnlinePaymentModalOpen(true);
+                      }}
+                      className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                         plan.popular
-                          ? 'border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50 shadow-xs'
+                          ? 'border-emerald-500 bg-emerald-50/50 hover:bg-emerald-50 shadow-xs ring-1 ring-emerald-400/40'
                           : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-slate-50'
                       }`}
                     >
                       <div className="space-y-0.5">
                         <div className="flex items-center space-x-1.5">
-                          <span className="font-bold text-slate-900 text-xs">{plan.name}</span>
+                          <span className="font-extrabold text-slate-900 text-xs sm:text-sm">{plan.name}</span>
                           {plan.popular && (
-                            <span className="bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase">
+                            <span className="bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider">
                               Populaire
                             </span>
                           )}
@@ -1800,20 +1828,21 @@ export const SettingsView: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="text-right">
-                        <span className="text-xs font-black text-slate-900 block">
+                      <div className="text-right flex flex-col items-end space-y-1">
+                        <span className="text-xs sm:text-sm font-black text-slate-900 block">
                           {formatCurrency(plan.price)}
                         </span>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedPlanForPayment(plan);
+                            setPlanForOnlinePayment(plan);
+                            setIsOnlinePaymentModalOpen(true);
                           }}
-                          className="mt-0.5 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-md shadow-xs flex items-center space-x-1 cursor-pointer"
+                          className="px-2.5 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-[10px] font-extrabold rounded-lg shadow-xs flex items-center space-x-1 cursor-pointer active:scale-95 transition-all"
                         >
-                          <CreditCard className="w-3 h-3" />
-                          <span>Payer ➔</span>
+                          <Zap className="w-3 h-3 text-amber-300" />
+                          <span>Payer en ligne ➔</span>
                         </button>
                       </div>
                     </div>
@@ -2273,6 +2302,17 @@ export const SettingsView: React.FC = () => {
           onClose={() => setShowManualUpdateModal(false)}
         />
       )}
+
+      {/* Modal de Paiement Automatique Instantané (PayTech) */}
+      <OnlinePaymentModal
+        isOpen={isOnlinePaymentModalOpen}
+        onClose={() => setIsOnlinePaymentModalOpen(false)}
+        shopProfile={shopProfile}
+        initialPlan={planForOnlinePayment}
+        onSubscriptionSuccess={(updatedShop) => {
+          updateShopProfile(updatedShop);
+        }}
+      />
     </div>
   );
 };

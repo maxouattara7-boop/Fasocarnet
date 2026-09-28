@@ -403,5 +403,154 @@ export const subscriptionService = {
 
     const cleanPhone = supportPhone.replace(/\D/g, '');
     return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+  },
+
+  /**
+   * Initialise un paiement en ligne PayTech via le serveur
+   */
+  async initiateOnlinePayment(
+    shop: ShopProfile,
+    plan: SubscriptionPlan,
+    redirectUrls?: { successUrl?: string; cancelUrl?: string }
+  ): Promise<{
+    success: boolean;
+    mode?: 'paytech_live' | 'sandbox_simulation';
+    redirectUrl?: string;
+    token?: string;
+    refCommand: string;
+    message?: string;
+  }> {
+    const baseUrl = (typeof window !== 'undefined' && (window as any).VITE_API_URL) ||
+      (import.meta as any).env?.VITE_API_URL ||
+      'http://localhost:5000';
+
+    try {
+      const res = await fetch(`${baseUrl}/api/payments/paytech/request-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          shopId: shop.id,
+          planId: plan.id,
+          shopName: shop.name,
+          shopPhone: shop.phone,
+          successRedirectUrl: redirectUrls?.successUrl,
+          cancelRedirectUrl: redirectUrls?.cancelUrl
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Impossible d\'initialiser le paiement en ligne.');
+      }
+
+      return data;
+    } catch (err: any) {
+      console.error('[SubscriptionService] Erreur initiateOnlinePayment:', err);
+      throw err;
+    }
+  },
+
+  /**
+   * Vérifie le statut d'un paiement en ligne
+   */
+  async checkPaymentStatus(refCommand: string): Promise<{
+    status: 'PAID' | 'PENDING' | 'FAILED' | 'NOT_FOUND';
+    shopId?: string;
+    planId?: string;
+    planName?: string;
+    amount?: number;
+    paidAt?: string;
+    subscriptionExpiresAt?: string;
+  }> {
+    const baseUrl = (typeof window !== 'undefined' && (window as any).VITE_API_URL) ||
+      (import.meta as any).env?.VITE_API_URL ||
+      'http://localhost:5000';
+
+    try {
+      const res = await fetch(`${baseUrl}/api/payments/status/${refCommand}`);
+      if (!res.ok) {
+        return { status: 'NOT_FOUND' };
+      }
+      return await res.json();
+    } catch (e) {
+      console.warn('[SubscriptionService] checkPaymentStatus error:', e);
+      return { status: 'PENDING' };
+    }
+  },
+
+  /**
+   * Simule la validation d'un paiement (mode Bac à sable / Démo)
+   */
+  async simulatePaymentSuccess(refCommand: string): Promise<{
+    success: boolean;
+    status: string;
+    message: string;
+    subscriptionExpiresAt: string;
+  }> {
+    const baseUrl = (typeof window !== 'undefined' && (window as any).VITE_API_URL) ||
+      (import.meta as any).env?.VITE_API_URL ||
+      'http://localhost:5000';
+
+    const res = await fetch(`${baseUrl}/api/payments/paytech/simulate-payment-success`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refCommand })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Erreur lors de la validation simulée.');
+    }
+    return data;
+  },
+
+  /**
+   * Applique l'activation automatique de l'abonnement dans IndexedDB et synchronise
+   */
+  async applyAutomaticSubscription(
+    shop: ShopProfile,
+    planId: 'monthly' | 'semi-annual' | 'annual',
+    serverExpiresAt?: string
+  ): Promise<{ success: boolean; shop: ShopProfile; message: string }> {
+    const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId) || SUBSCRIPTION_PLANS[0];
+    let newExpiresIso = serverExpiresAt;
+
+    if (!newExpiresIso) {
+      const currentExpiry = shop.subscriptionExpiresAt ? new Date(shop.subscriptionExpiresAt) : new Date();
+      const baseDate = currentExpiry > new Date() ? currentExpiry : new Date();
+      const newExpiry = new Date(baseDate.getTime());
+      newExpiry.setMonth(newExpiry.getMonth() + plan.durationMonths);
+      newExpiresIso = newExpiry.toISOString();
+    }
+
+    const updated: ShopProfile = {
+      ...shop,
+      subscriptionPlan: plan.id,
+      subscriptionStatus: 'active',
+      subscriptionExpiresAt: newExpiresIso,
+      updatedAt: new Date().toISOString()
+    };
+
+    await db.shopProfiles.put(updated);
+
+    // Mettre à jour la boutique sur le cloud si possible
+    try {
+      const cloudDb = await syncService.fetchRemoteDatabase();
+      if (cloudDb[shop.id]) {
+        cloudDb[shop.id].profile = updated;
+        cloudDb[shop.id].lastUpdatedAt = new Date().toISOString();
+        await syncService.pushRemoteDatabase(cloudDb);
+      }
+    } catch (e) {
+      console.warn('[SubscriptionService] Sync cloud après activation automatique:', e);
+    }
+
+    return {
+      success: true,
+      shop: updated,
+      message: `🎉 Félicitations ! Votre formule « ${plan.name} » a été activée instantanément.`
+    };
   }
 };

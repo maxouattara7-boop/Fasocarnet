@@ -99,12 +99,16 @@ export const debtsService = {
    * Annule ou supprime la dette liée à une vente annulée et ajuste le solde du client
    */
   async cancelDebtBySaleId(saleId: string): Promise<void> {
-    const debts = await db.debts.where('saleId').equals(saleId).toArray();
-    for (const d of debts) {
-      if (d.remainingAmount > 0) {
-        await customersService.updateDebt(d.customerId, -d.remainingAmount);
+    try {
+      const debts = await db.debts.filter(d => d.saleId === saleId).toArray();
+      for (const d of debts) {
+        if (d.remainingAmount > 0) {
+          await customersService.updateDebt(d.customerId, -d.remainingAmount);
+        }
+        await db.debts.delete(d.id);
       }
-      await db.debts.delete(d.id);
+    } catch (error) {
+      console.error('Erreur lors de l\'annulation de la dette liée à la vente:', error);
     }
   }
 };

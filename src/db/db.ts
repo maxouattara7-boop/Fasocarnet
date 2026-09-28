@@ -60,6 +60,19 @@ export class FasoCarnetDB extends Dexie {
       supplies: 'id, productId, createdAt',
       customInvoices: 'id, type, number, clientName, createdAt'
     });
+
+    this.version(8).stores({
+      shopProfiles: 'id',
+      customers: 'id, name, phone, totalDebt',
+      products: 'id, name, price, barcode, createdAt',
+      sales: 'id, paymentMethod, isCredit, customerId, createdAt',
+      debts: 'id, customerId, saleId, status, createdAt',
+      debtPayments: 'id, debtId, customerId, createdAt',
+      licenses: 'id, code, plan, isUsed, createdAt',
+      expenses: 'id, category, paymentMethod, createdAt',
+      supplies: 'id, productId, createdAt',
+      customInvoices: 'id, type, number, clientName, createdAt'
+    });
   }
 }
 
