@@ -115,8 +115,12 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
         setStep('WAITING_VALIDATION');
         startPolling(response.refCommand, selectedPlan);
 
-        // Ouvrir la page de paiement dans un nouvel onglet
-        window.open(response.redirectUrl, '_blank');
+        // Sur mobile, redirection directe ou ouverture
+        try {
+          window.location.href = response.redirectUrl;
+        } catch {
+          window.open(response.redirectUrl, '_blank');
+        }
       } else {
         // Mode simulation / Sandbox disponible
         setStep('WAITING_VALIDATION');
