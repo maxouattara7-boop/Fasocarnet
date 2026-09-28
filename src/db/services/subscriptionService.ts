@@ -2,6 +2,7 @@ import { db } from '../db';
 import { ShopProfile, LicenseKey, AdminDepositNumbers } from '../../types';
 import { syncService } from './syncService';
 import { verifyLicenseSignature } from '../../utils/crypto';
+import { getApiBaseUrl } from '../../utils/apiConfig';
 
 export interface SubscriptionPlan {
   id: 'monthly' | 'semi-annual' | 'annual';
@@ -420,9 +421,7 @@ export const subscriptionService = {
     refCommand: string;
     message?: string;
   }> {
-    const baseUrl = (typeof window !== 'undefined' && (window as any).VITE_API_URL) ||
-      (import.meta as any).env?.VITE_API_URL ||
-      'http://localhost:5000';
+    const baseUrl = getApiBaseUrl();
 
     try {
       const res = await fetch(`${baseUrl}/api/payments/paytech/request-payment`, {
@@ -464,9 +463,7 @@ export const subscriptionService = {
     paidAt?: string;
     subscriptionExpiresAt?: string;
   }> {
-    const baseUrl = (typeof window !== 'undefined' && (window as any).VITE_API_URL) ||
-      (import.meta as any).env?.VITE_API_URL ||
-      'http://localhost:5000';
+    const baseUrl = getApiBaseUrl();
 
     try {
       const res = await fetch(`${baseUrl}/api/payments/status/${refCommand}`);
@@ -489,9 +486,7 @@ export const subscriptionService = {
     message: string;
     subscriptionExpiresAt: string;
   }> {
-    const baseUrl = (typeof window !== 'undefined' && (window as any).VITE_API_URL) ||
-      (import.meta as any).env?.VITE_API_URL ||
-      'http://localhost:5000';
+    const baseUrl = getApiBaseUrl();
 
     const res = await fetch(`${baseUrl}/api/payments/paytech/simulate-payment-success`, {
       method: 'POST',

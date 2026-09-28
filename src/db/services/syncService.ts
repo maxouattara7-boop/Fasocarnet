@@ -4,6 +4,7 @@ import { adminService } from './adminService';
 import { collectCurrentTelemetry } from '../../utils/telemetry';
 import { verifyHash, hashPin, isHashed, generateShopAuthToken, verifyShopAuthToken } from '../../utils/crypto';
 import { supabaseClient } from '../supabaseClient';
+import { getApiBaseUrl, setCustomServerUrl } from '../../utils/apiConfig';
 
 export interface CloudShopData {
   profile: ShopProfile;
@@ -31,27 +32,8 @@ const AUTH_TOKEN_STORAGE_KEY = 'fasocarnet_shop_auth_token_v1';
 
 let inMemoryCloudDb: Record<string, CloudShopData> = {};
 let inMemoryAuthToken: string | null = null;
-let inMemoryServerUrl: string | null = null;
 let inMemoryBroadcast: string | null = null;
 
-const getApiBaseUrl = (): string => {
-  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-    const saved = localStorage.getItem('fasocarnet_server_url');
-    if (saved && saved.trim()) return saved.trim().replace(/\/+$/, '');
-
-    const envUrl = (import.meta as any).env?.VITE_API_URL;
-    if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
-      return envUrl.trim().replace(/\/+$/, '');
-    }
-
-    if (window.location && window.location.protocol && window.location.protocol.startsWith('http') && !window.location.hostname.includes('localhost')) {
-      return window.location.origin;
-    }
-  } else if (inMemoryServerUrl) {
-    return inMemoryServerUrl;
-  }
-  return 'http://localhost:5000';
-};
 
 /**
  * Moteur de synchronisation Cloud & Gestion du compte unique par appareil
@@ -655,19 +637,7 @@ export const syncService = {
    * Configure une nouvelle URL de serveur Cloud distant
    */
   setServerUrl(url: string): void {
-    const trimmed = (url || '').trim().replace(/\/+$/, '');
-    inMemoryServerUrl = trimmed || null;
-    try {
-      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-        if (!trimmed) {
-          localStorage.removeItem('fasocarnet_server_url');
-        } else {
-          localStorage.setItem('fasocarnet_server_url', trimmed);
-        }
-      }
-    } catch (err) {
-      console.error('Erreur configuration URL serveur:', err);
-    }
+    setCustomServerUrl(url);
   },
 
   /**
