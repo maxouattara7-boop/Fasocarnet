@@ -14,12 +14,9 @@ import {
   KeyRound, 
   Crown,
   Sparkles,
-  Key,
   MessageCircle,
   CreditCard,
   CheckCircle2,
-  Copy,
-  ArrowLeft,
   Volume2,
   VolumeX,
   Mic,
@@ -51,7 +48,7 @@ import { hashPin, verifyHash } from '../../utils/crypto';
 import { cleanPhoneNumber, formatPhoneNumberDisplay, isValidPhoneNumber } from '../../utils/phoneValidation';
 import { isHapticsEnabled, setHapticsEnabled, triggerHaptic, triggerDoubleHaptic } from '../../utils/haptics';
 import { productsService } from '../../db/services/productsService';
-import { subscriptionService, SUBSCRIPTION_PLANS, SubscriptionPlan, getPaymentChannels } from '../../db/services/subscriptionService';
+import { subscriptionService, SUBSCRIPTION_PLANS, SubscriptionPlan } from '../../db/services/subscriptionService';
 import { syncService } from '../../db/services/syncService';
 import { updateService, CURRENT_APP_VERSION, AppUpdateInfo } from '../../services/updateService';
 import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
@@ -211,12 +208,7 @@ export const SettingsView: React.FC = () => {
   const [restockNotesInput, setRestockNotesInput] = useState('');
   const [isRestocking, setIsRestocking] = useState(false);
 
-  // Gestion de l'Abonnement & Licence
-  const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<SubscriptionPlan | null>(null);
-  const [copiedNumber, setCopiedNumber] = useState<string | null>(null);
-  const [licenseInput, setLicenseInput] = useState('');
-  const [licenseFeedback, setLicenseFeedback] = useState<{ success?: boolean; message?: string } | null>(null);
-  const [isActivatingLicense, setIsActivatingLicense] = useState(false);
+  // Gestion de l'Abonnement en ligne
   const [isOnlinePaymentModalOpen, setIsOnlinePaymentModalOpen] = useState(false);
   const [planForOnlinePayment, setPlanForOnlinePayment] = useState<SubscriptionPlan | undefined>(undefined);
 
@@ -259,12 +251,6 @@ export const SettingsView: React.FC = () => {
   const loadProducts = async () => {
     const list = await productsService.getAll();
     setProducts(list);
-  };
-
-  const handleCopyNumber = (num: string) => {
-    navigator.clipboard.writeText(num);
-    setCopiedNumber(num);
-    setTimeout(() => setCopiedNumber(null), 2000);
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -323,37 +309,12 @@ export const SettingsView: React.FC = () => {
 
   const handleContactSupport = () => {
     const shopName = shopProfile?.name || 'Mon commerce';
-    const text = encodeURIComponent(`Bonjour support FasoCarnet, je suis le responsable de « ${shopName} ». J'ai besoin d'une assistance.`);
+    const text = encodeURIComponent(`Bonjour support FasoCarnet, je suis le responsable de « ${shopName} ». J'ai besoin d'une assistance pour mon abonnement.`);
     window.open(`https://wa.me/22665616134?text=${text}`, '_blank');
   };
 
   const subInfo = subscriptionService.getSubscriptionInfo(shopProfile);
   const isPremium = subscriptionService.isPremiumActive(shopProfile);
-
-  const handleActivateLicense = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!shopProfile || !licenseInput.trim()) return;
-
-    setIsActivatingLicense(true);
-    setLicenseFeedback(null);
-    try {
-      const res = await subscriptionService.activateLicenseKey(shopProfile.id, licenseInput.trim());
-      setLicenseFeedback(res);
-      if (res.success && res.shop) {
-        updateShopProfile(res.shop);
-        setLicenseInput('');
-      }
-    } catch (err: any) {
-      setLicenseFeedback({ success: false, message: err.message || "Erreur lors de l'activation." });
-    } finally {
-      setIsActivatingLicense(false);
-    }
-  };
-
-  const handleOpenWhatsAppRenewal = (plan: SubscriptionPlan) => {
-    const url = subscriptionService.getWhatsAppPaymentConfirmationUrl(plan, shopProfile?.name, shopProfile?.phone);
-    window.open(url, '_blank');
-  };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1571,341 +1532,130 @@ export const SettingsView: React.FC = () => {
       {/* RUBRIQUE 3 : ABONNEMENT & LICENCE (2 000 FCFA / MOIS)    */}
       {/* ======================================================== */}
       {activeSubTab === 'subscription' && (
-        <div className="space-y-3 animate-in fade-in duration-150">
-          {selectedPlanForPayment ? (
-            /* ================= PAGE DE PAIEMENT DE LICENCE ================= */
-            <div className="space-y-3 animate-in slide-in-from-right-4 duration-200">
-              {/* Bouton retour */}
-              <button
-                type="button"
-                onClick={() => setSelectedPlanForPayment(null)}
-                className="inline-flex items-center space-x-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg border border-emerald-200 transition-colors"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Retour aux Formules</span>
-              </button>
+        <div className="space-y-3.5 animate-in fade-in duration-150">
+          {/* Carte Statut Actuel */}
+          <div className="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 text-white p-4 rounded-2xl shadow-md border border-emerald-700/50 space-y-3 relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mt-2 -mr-2 w-28 h-28 bg-amber-400/10 rounded-full blur-xl pointer-events-none" />
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-1.5">
+                <Crown className="w-4 h-4 text-amber-400" />
+                <span className="text-[10px] font-bold text-emerald-200 tracking-wider uppercase">
+                  Statut de votre compte
+                </span>
+              </div>
+              <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                subInfo.status === 'active' 
+                  ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40' 
+                  : subInfo.status === 'trial'
+                  ? 'bg-amber-500/30 text-amber-300 border border-amber-400/40'
+                  : 'bg-red-500/30 text-red-300 border border-red-400/40'
+              }`}>
+                {subInfo.statusLabel}
+              </span>
+            </div>
 
-              {/* Récapitulatif de la formule sélectionnée */}
-              <div className="bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white p-3.5 sm:p-4 rounded-xl shadow-md border border-emerald-500/30 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-1.5 text-amber-400">
-                    <Crown className="w-4 h-4" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Formule Sélectionnée</span>
-                  </div>
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-black px-2 py-0.5 rounded-full border border-emerald-400/30">
-                    {selectedPlanForPayment.durationMonths} Mois
-                  </span>
-                </div>
+            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-emerald-700/60">
+              <div>
+                <span className="text-[10px] text-emerald-300/80 block font-medium">Temps restant</span>
+                <span className="text-2xl font-black text-white font-display">
+                  {subInfo.daysRemaining} <span className="text-xs font-bold text-emerald-300">jours</span>
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-emerald-300/80 block font-medium">Valable jusqu'au</span>
+                <span className="text-xs font-bold text-amber-300 font-display">
+                  {subInfo.formattedExpiresAt}
+                </span>
+              </div>
+            </div>
 
-                <div className="flex items-baseline justify-between pt-1 border-t border-slate-800">
-                  <span className="text-sm font-black text-white">{selectedPlanForPayment.name}</span>
-                  <span className="text-lg font-black text-emerald-400">{formatCurrency(selectedPlanForPayment.price)}</span>
-                </div>
+            <div className="text-[11px] bg-emerald-950/70 p-2.5 rounded-xl border border-emerald-700/40 text-emerald-200 flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>Formule active : <strong>{subInfo.planName}</strong></span>
+            </div>
+          </div>
 
-                {selectedPlanForPayment.discountText && (
-                  <p className="text-[10px] text-amber-300 font-semibold bg-amber-500/10 p-1.5 rounded-lg border border-amber-500/20">
-                    🎁 {selectedPlanForPayment.discountText}
-                  </p>
-                )}
+          {/* Grille des Formules d'Abonnement */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div className="flex items-center space-x-2 text-emerald-900">
+                <CreditCard className="w-4 h-4 text-emerald-600" />
+                <h3 className="font-extrabold text-xs">Formules d'Abonnement</h3>
+              </div>
+              <span className="text-[9px] bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full flex items-center space-x-1">
+                <Zap className="w-2.5 h-2.5 text-emerald-700" />
+                <span>Activation instantanée</span>
+              </span>
+            </div>
+            
+            <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+              Prolongez votre accès en 1 clic par <strong>Orange Money</strong>, <strong>Moov Money</strong> ou <strong>Wave</strong>.
+            </p>
 
-                {/* BOUTON PRINCIPAL : PAIEMENT AUTOMATIQUE INSTANTANÉ */}
-                <button
-                  type="button"
+            <div className="space-y-2 pt-0.5">
+              {SUBSCRIPTION_PLANS.map((plan) => (
+                <div
+                  key={plan.id}
                   onClick={() => {
-                    setPlanForOnlinePayment(selectedPlanForPayment);
+                    setPlanForOnlinePayment(plan);
                     setIsOnlinePaymentModalOpen(true);
                   }}
-                  className="w-full py-3 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-lg shadow-emerald-900/40 flex items-center justify-center space-x-2 active:scale-98 transition-all cursor-pointer"
+                  className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                    plan.popular
+                      ? 'border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/80 shadow-xs ring-1 ring-emerald-400/40'
+                      : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-slate-50/80'
+                  }`}
                 >
-                  <Zap className="w-4 h-4 fill-slate-950" />
-                  <span>Payer en ligne (Activation Automatique)</span>
-                </button>
-                <p className="text-[10px] text-emerald-300 text-center">
-                  ⚡ Aucune clé à saisir • Orange Money, Wave, Moov, Carte acceptés
-                </p>
-              </div>
-
-              {/* Option secondaire : Dépôt manuel & WhatsApp */}
-              <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-xs space-y-2.5">
-                <div className="border-b border-slate-100 pb-1.5">
-                  <div className="flex items-center space-x-2 text-slate-800">
-                    <Smartphone className="w-4 h-4 text-slate-600" />
-                    <h3 className="font-extrabold text-xs">Alternative : Transfert Manuel & WhatsApp</h3>
-                  </div>
-                  <p className="text-[10px] text-slate-500 mt-0.5">
-                    Si vous préférez effectuer un dépôt direct et recevoir un code de licence sur WhatsApp :
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  {getPaymentChannels().map((channel) => {
-                    const isCopied = copiedNumber === channel.number;
-                    return (
-                      <div
-                        key={channel.id}
-                        className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between hover:bg-slate-100/80 transition-all"
-                      >
-                        <div className="space-y-0.5">
-                          <div className="flex items-center space-x-1.5">
-                            <span className="text-xs font-black text-slate-900">{channel.name}</span>
-                            <span className="text-[9px] text-slate-500 font-medium">({channel.merchantName})</span>
-                          </div>
-                          <span className="font-mono text-xs font-black text-emerald-800 tracking-wider block">
-                            {channel.number}
-                          </span>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleCopyNumber(channel.number)}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center space-x-1 transition-all shadow-xs ${
-                            isCopied
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-white text-slate-700 hover:text-emerald-800 border border-slate-200'
-                          }`}
-                        >
-                          {isCopied ? (
-                            <>
-                              <Check className="w-3 h-3" />
-                              <span>Copié !</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3 h-3" />
-                              <span>Copier</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Bouton WhatsApp de confirmation */}
-                <button
-                  type="button"
-                  onClick={() => handleOpenWhatsAppRenewal(selectedPlanForPayment)}
-                  className="w-full py-2.5 bg-[#25D366] hover:bg-[#20ba5a] text-slate-950 font-black rounded-xl text-xs shadow-xs flex items-center justify-center space-x-1.5 active:scale-98 transition-all cursor-pointer mt-2"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>Demander une clé sur WhatsApp</span>
-                </button>
-              </div>
-
-              {/* Saisie de la Clé reçue */}
-              <form onSubmit={handleActivateLicense} className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-100 shadow-xs space-y-2">
-                <div className="flex items-center space-x-2 text-emerald-800 border-b border-slate-100 pb-1.5">
-                  <Key className="w-4 h-4 text-emerald-600" />
-                  <h3 className="font-extrabold text-xs">Activer ma Clé de Licence</h3>
-                </div>
-                <p className="text-[10px] text-slate-500">
-                  Collez ci-dessous le code de licence reçu sur WhatsApp pour débloquer immédiatement votre boutique.
-                </p>
-
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    placeholder="Ex: FASO-1M-XXXX"
-                    value={licenseInput}
-                    onChange={(e) => setLicenseInput(e.target.value)}
-                    className="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold tracking-wider uppercase focus:ring-1 focus:ring-emerald-500 outline-none placeholder:text-slate-400 focus:placeholder:opacity-0"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isActivatingLicense || !licenseInput.trim()}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 text-white font-bold rounded-lg text-xs shadow-xs transition-all whitespace-nowrap cursor-pointer"
-                  >
-                    {isActivatingLicense ? 'Validation...' : 'Activer'}
-                  </button>
-                </div>
-
-                {licenseFeedback && (
-                  <div className={`p-2 rounded-lg text-[11px] font-semibold flex items-center space-x-1.5 ${
-                    licenseFeedback.success 
-                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
-                      : 'bg-red-50 text-red-800 border border-red-200'
-                  }`}>
-                    {licenseFeedback.success ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    ) : (
-                      <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                  <div className="space-y-0.5">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-extrabold text-slate-900 text-xs sm:text-sm font-display">{plan.name}</span>
+                      {plan.popular && (
+                        <span className="bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                          Populaire
+                        </span>
+                      )}
+                    </div>
+                    {plan.discountText && (
+                      <span className="text-[10px] font-bold text-emerald-700 block">
+                        🎁 {plan.discountText}
+                      </span>
                     )}
-                    <span>{licenseFeedback.message}</span>
                   </div>
-                )}
-              </form>
-            </div>
-          ) : (
-            /* ================= LISTE DES FORMULES D'ABONNEMENT ================= */
-            <>
-              {/* Carte Statut Actuel */}
-              <div className="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 text-white p-3.5 sm:p-4 rounded-xl shadow-md border border-emerald-700/50 space-y-2.5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 -mt-2 -mr-2 w-24 h-24 bg-amber-400/10 rounded-full blur-xl pointer-events-none" />
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-1.5">
-                    <Crown className="w-4 h-4 text-amber-400" />
-                    <span className="text-[10px] font-bold text-emerald-200 tracking-wider uppercase">
-                      Statut de l'Abonnement
+
+                  <div className="text-right flex items-center space-x-2.5">
+                    <span className="text-xs sm:text-sm font-black text-slate-900 font-display">
+                      {formatCurrency(plan.price)}
                     </span>
-                  </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                    subInfo.status === 'active' 
-                      ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40' 
-                      : subInfo.status === 'trial'
-                      ? 'bg-amber-500/30 text-amber-300 border border-amber-400/40'
-                      : 'bg-red-500/30 text-red-300 border border-red-400/40'
-                  }`}>
-                    {subInfo.statusLabel}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-emerald-700/60">
-                  <div>
-                    <span className="text-[10px] text-emerald-300/80 block">Temps restant</span>
-                    <span className="text-xl sm:text-2xl font-black text-white">
-                      {subInfo.daysRemaining} <span className="text-[11px] font-bold text-emerald-300">jours</span>
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] text-emerald-300/80 block">Valable jusqu'au</span>
-                    <span className="text-xs font-bold text-amber-300">
-                      {subInfo.formattedExpiresAt}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-[10px] bg-emerald-950/60 p-2 rounded-lg border border-emerald-700/40 text-emerald-200 flex items-center space-x-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>Formule active : <strong>{subInfo.planName}</strong></span>
-                </div>
-              </div>
-
-              {/* Grille des Formules d'Abonnement */}
-              <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-100 shadow-xs space-y-2.5">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <div className="flex items-center space-x-2 text-emerald-800">
-                    <CreditCard className="w-4 h-4" />
-                    <h3 className="font-extrabold text-xs">Formules d'Abonnement FasoCarnet</h3>
-                  </div>
-                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full flex items-center space-x-1">
-                    <Zap className="w-2.5 h-2.5" />
-                    <span>Activation 100% Auto</span>
-                  </span>
-                </div>
-                
-                <p className="text-[10px] text-slate-500">
-                  Paiement sécurisé par <strong>Orange Money</strong>, <strong>Moov Money</strong>, <strong>Wave</strong> ou <strong>Carte</strong>. Votre compte s'active instantanément sans clé de licence.
-                </p>
-
-                <div className="space-y-2 pt-0.5">
-                  {SUBSCRIPTION_PLANS.map((plan) => (
-                    <div
-                      key={plan.id}
-                      onClick={() => {
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setPlanForOnlinePayment(plan);
                         setIsOnlinePaymentModalOpen(true);
                       }}
-                      className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                        plan.popular
-                          ? 'border-emerald-500 bg-emerald-50/50 hover:bg-emerald-50 shadow-xs ring-1 ring-emerald-400/40'
-                          : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-slate-50'
-                      }`}
+                      className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-[11px] font-black rounded-xl shadow-xs flex items-center space-x-1 cursor-pointer active:scale-95 transition-all font-display"
                     >
-                      <div className="space-y-0.5">
-                        <div className="flex items-center space-x-1.5">
-                          <span className="font-extrabold text-slate-900 text-xs sm:text-sm">{plan.name}</span>
-                          {plan.popular && (
-                            <span className="bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider">
-                              Populaire
-                            </span>
-                          )}
-                        </div>
-                        {plan.discountText && (
-                          <span className="text-[10px] font-semibold text-emerald-700 block">
-                            {plan.discountText}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="text-right flex flex-col items-end space-y-1">
-                        <span className="text-xs sm:text-sm font-black text-slate-900 block">
-                          {formatCurrency(plan.price)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPlanForOnlinePayment(plan);
-                            setIsOnlinePaymentModalOpen(true);
-                          }}
-                          className="px-2.5 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-[10px] font-extrabold rounded-lg shadow-xs flex items-center space-x-1 cursor-pointer active:scale-95 transition-all"
-                        >
-                          <Zap className="w-3 h-3 text-amber-300" />
-                          <span>Payer en ligne ➔</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Activation directe par Clé de Licence */}
-              <form onSubmit={handleActivateLicense} className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-100 shadow-xs space-y-2">
-                <div className="flex items-center space-x-2 text-emerald-800 border-b border-slate-100 pb-1.5">
-                  <Key className="w-4 h-4" />
-                  <h3 className="font-extrabold text-xs">Activer un Code de Licence</h3>
-                </div>
-                
-                <p className="text-[10px] text-slate-500">
-                  Vous avez déjà une clé de licence ? Entrez-la ci-dessous pour activer immédiatement.
-                </p>
-
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    placeholder="Ex: FASO-1M-XXXX"
-                    value={licenseInput}
-                    onChange={(e) => setLicenseInput(e.target.value)}
-                    className="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold tracking-wider uppercase focus:ring-1 focus:ring-emerald-500 outline-none placeholder:text-slate-400 focus:placeholder:opacity-0"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isActivatingLicense || !licenseInput.trim()}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 text-white font-bold rounded-lg text-xs shadow-xs transition-all whitespace-nowrap cursor-pointer"
-                  >
-                    {isActivatingLicense ? 'Validation...' : 'Activer'}
-                  </button>
-                </div>
-
-                {licenseFeedback && (
-                  <div className={`p-2 rounded-lg text-[11px] font-semibold flex items-center space-x-1.5 ${
-                    licenseFeedback.success 
-                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
-                      : 'bg-red-50 text-red-800 border border-red-200'
-                  }`}>
-                    {licenseFeedback.success ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    ) : (
-                      <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                    )}
-                    <span>{licenseFeedback.message}</span>
+                      <Zap className="w-3 h-3 text-amber-300" />
+                      <span>Payer ➔</span>
+                    </button>
                   </div>
-                )}
-              </form>
+                </div>
+              ))}
+            </div>
+          </div>
 
-              {/* Note sur la Garantie Hors-Ligne */}
-              <div className="bg-emerald-50/60 p-3 rounded-xl border border-emerald-100 text-xs text-emerald-900 space-y-0.5">
-                <span className="font-bold flex items-center space-x-1.5 text-xs">
-                  <Check className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Garantie 100% Hors-Ligne & Données Sécurisées</span>
-                </span>
-                <p className="text-[10px] text-emerald-800/80 leading-relaxed">
-                  Toutes vos données restent stockées sur votre appareil et ne sont jamais supprimées. L'application continue de fonctionner même sans réseau.
-                </p>
-              </div>
-            </>
-          )}
+          {/* Assistance WhatsApp discrète */}
+          <div className="text-center pt-1">
+            <button
+              type="button"
+              onClick={handleContactSupport}
+              className="inline-flex items-center space-x-1.5 text-[11px] font-bold text-slate-500 hover:text-emerald-700 transition-colors cursor-pointer"
+            >
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Besoin d'aide pour votre abonnement ? Contactez le support</span>
+            </button>
+          </div>
         </div>
       )}
 
