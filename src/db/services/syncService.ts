@@ -448,6 +448,7 @@ export const syncService = {
       subscriptionPlan: 'trial',
       subscriptionStatus: 'trial',
       subscriptionExpiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+      referralCode: data.referralCode?.trim().toUpperCase() || undefined,
       telemetry,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()

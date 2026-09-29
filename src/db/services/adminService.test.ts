@@ -190,6 +190,72 @@ describe('adminService', () => {
     const checkShop = await db.shopProfiles.get('shop_delete_test');
     expect(checkShop).toBeUndefined();
   });
+
+  it('aggregates affiliate commercials, calculates 15% commissions (300 F) and records Sunday settlements', async () => {
+    // 1. Créer des boutiques avec code commercial 'ALI226'
+    const shop1: ShopProfile = {
+      id: 'shop_aff_1',
+      name: 'Alimentation Ali',
+      phone: '70112233',
+      referralCode: 'ALI226',
+      subscriptionStatus: 'active',
+      subscriptionPlan: 'monthly',
+      subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      currency: 'FCFA',
+      isConfigured: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    const shop2: ShopProfile = {
+      id: 'shop_aff_2',
+      name: 'Boutique Ali 2',
+      phone: '70445566',
+      referralCode: 'ALI226',
+      subscriptionStatus: 'trial',
+      subscriptionPlan: 'trial',
+      currency: 'FCFA',
+      isConfigured: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await db.shopProfiles.put(shop1);
+    await db.shopProfiles.put(shop2);
+
+    const reports = await adminService.getAffiliatesReports();
+    expect(reports.length).toBeGreaterThanOrEqual(1);
+
+    const aliReport = reports.find(r => r.code === 'ALI226');
+    expect(aliReport).toBeDefined();
+    expect(aliReport?.totalShopsReferred).toBe(2);
+    expect(aliReport?.activeSubscribedShops).toBe(1);
+    expect(aliReport?.totalRevenueGenerated).toBe(2000);
+    expect(aliReport?.totalCommissionAllTime).toBe(300); // 15% de 2000 F = 300 F
+
+    // 2. Vérifier le lien WhatsApp généré
+    const waUrl = adminService.getWhatsAppAffiliateStatementUrl(aliReport!, '70112233');
+    expect(waUrl).toContain('wa.me/22670112233');
+    expect(waUrl).toContain('ALI226');
+    expect(waUrl).toContain('300');
+
+    // 3. Valider le règlement de la semaine
+    const currentSunday = adminService.getCurrentWeekSundayIso();
+    const settlement = await adminService.settleAffiliateWeek(
+      'ALI226',
+      currentSunday,
+      300,
+      1,
+      2000,
+      'ORANGE_MONEY',
+      'TXN_123',
+      'Payé par Orange Money'
+    );
+    expect(settlement.commissionPaid).toBe(300);
+    expect(settlement.paymentMethod).toBe('ORANGE_MONEY');
+
+    const updatedReports = await adminService.getAffiliatesReports();
+    const updatedAli = updatedReports.find(r => r.code === 'ALI226');
+    expect(updatedAli?.currentWeekIsSettled).toBe(true);
+  });
 });
 
 

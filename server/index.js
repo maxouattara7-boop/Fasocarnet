@@ -237,11 +237,17 @@ app.post('/api/payments/paytech/request-payment', async (req, res) => {
     const db = loadDatabase();
     if (!db['_payments']) db['_payments'] = {};
 
+    const shopProfile = db[shopId]?.profile || db[shopId] || {};
+    const referralCode = shopProfile.referralCode || undefined;
+    const commissionAmount = Math.round(plan.price * 0.15); // 15% (300 F / mois)
+
     const paymentRecord = {
       refCommand,
       shopId,
-      shopName: shopName || 'Commerce FasoCarnet',
-      shopPhone: shopPhone || '',
+      shopName: shopName || shopProfile.name || 'Commerce FasoCarnet',
+      shopPhone: shopPhone || shopProfile.phone || '',
+      referralCode,
+      commissionAmount,
       planId: plan.id,
       planName: plan.name,
       durationMonths: plan.durationMonths,
@@ -487,12 +493,18 @@ app.post('/api/payments/ligdicash/request-payment', async (req, res) => {
     const db = loadDatabase();
     if (!db['_payments']) db['_payments'] = {};
 
+    const shopProfile = db[shopId]?.profile || db[shopId] || {};
+    const referralCode = shopProfile.referralCode || undefined;
+    const commissionAmount = Math.round(plan.price * 0.15); // 15% (300 F / mois)
+
     const paymentRecord = {
       refCommand,
       gateway: 'ligdicash',
       shopId,
-      shopName: shopName || 'Commerce FasoCarnet',
-      shopPhone: shopPhone || '',
+      shopName: shopName || shopProfile.name || 'Commerce FasoCarnet',
+      shopPhone: shopPhone || shopProfile.phone || '',
+      referralCode,
+      commissionAmount,
       planId: plan.id,
       planName: plan.name,
       durationMonths: plan.durationMonths,

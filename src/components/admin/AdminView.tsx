@@ -8,19 +8,19 @@ import {
 } from 'lucide-react';
 import { adminService, AdminStats, ShopAdminDetails } from '../../db/services/adminService';
 import { syncService } from '../../db/services/syncService';
-import { LicenseKey, ExtendedAdminAnalytics, AdminBroadcastMessage } from '../../types';
+import { LicenseKey, ExtendedAdminAnalytics, AdminBroadcastMessage, CommercialAffiliateReport } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 
 interface AdminViewProps {
   onClose: () => void;
 }
 
-type AdminTab = 'shops' | 'analytics' | 'licenses' | 'broadcast' | 'whatsapp' | 'security';
+type AdminTab = 'shops' | 'analytics' | 'affiliates' | 'licenses' | 'broadcast' | 'whatsapp' | 'security';
 
 const getInitialAdminTab = (): AdminTab => {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('fasocarnet_admin_tab');
-    if (saved === 'shops' || saved === 'analytics' || saved === 'licenses' || saved === 'broadcast' || saved === 'whatsapp' || saved === 'security') {
+    if (saved === 'shops' || saved === 'analytics' || saved === 'affiliates' || saved === 'licenses' || saved === 'broadcast' || saved === 'whatsapp' || saved === 'security') {
       return saved as AdminTab;
     }
   }
@@ -44,6 +44,17 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [analytics, setAnalytics] = useState<ExtendedAdminAnalytics | null>(null);
   const [shops, setShops] = useState<ShopAdminDetails[]>([]);
+  const [affiliates, setAffiliates] = useState<CommercialAffiliateReport[]>([]);
+  const [selectedAffiliate, setSelectedAffiliate] = useState<CommercialAffiliateReport | null>(null);
+  const [settleModalCommercial, setSettleModalCommercial] = useState<CommercialAffiliateReport | null>(null);
+  const [settleMethod, setSettleMethod] = useState<'ORANGE_MONEY' | 'MOOV_MONEY' | 'WAVE' | 'CASH'>('ORANGE_MONEY');
+  const [settleTxRef, setSettleTxRef] = useState('');
+  const [settleNotes, setSettleNotes] = useState('');
+  const [isSettling, setIsSettling] = useState(false);
+  const [affiliateSearch, setAffiliateSearch] = useState('');
+  const [affiliateFilter, setAffiliateFilter] = useState<'all' | 'due' | 'settled'>('all');
+  const [affiliateSuccessMsg, setAffiliateSuccessMsg] = useState('');
+
   const [licenses, setLicenses] = useState<LicenseKey[]>([]);
   const [broadcast, setBroadcast] = useState<AdminBroadcastMessage | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -171,19 +182,21 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const loadData = async () => {
     setIsRefreshing(true);
     try {
-      const [s, an, sh, l, bc, dep] = await Promise.all([
+      const [s, an, sh, l, bc, dep, aff] = await Promise.all([
         adminService.getAdminStats(),
         adminService.getExtendedAnalytics(),
         adminService.getAllShopsWithDetails(),
         adminService.getAllLicenses(),
         adminService.getBroadcastMessage(),
-        adminService.getDepositNumbers()
+        adminService.getDepositNumbers(),
+        adminService.getAffiliatesReports()
       ]);
       setStats(s);
       setAnalytics(an);
       setShops(sh);
       setLicenses(l);
       setBroadcast(bc);
+      setAffiliates(aff);
       if (bc) {
         setBroadcastTitle(bc.title);
         setBroadcastMessage(bc.message);
@@ -200,9 +213,48 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         const updatedSelected = sh.find(item => item.id === selectedShop.id);
         if (updatedSelected) setSelectedShop(updatedSelected);
       }
+      // Mettre à jour selectedAffiliate si modal ouverte
+      if (selectedAffiliate) {
+        const updatedAff = aff.find(item => item.code === selectedAffiliate.code);
+        if (updatedAff) setSelectedAffiliate(updatedAff);
+      }
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  const handleConfirmSettle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!settleModalCommercial) return;
+    setIsSettling(true);
+    try {
+      const currentSunday = adminService.getCurrentWeekSundayIso();
+      await adminService.settleAffiliateWeek(
+        settleModalCommercial.code,
+        currentSunday,
+        settleModalCommercial.currentWeekCommissionDue,
+        settleModalCommercial.currentWeekPaidCount,
+        settleModalCommercial.currentWeekRevenue,
+        settleMethod,
+        settleTxRef,
+        settleNotes
+      );
+      setAffiliateSuccessMsg(`Règlement de ${settleModalCommercial.currentWeekCommissionDue.toLocaleString('fr-FR')} FCFA validé pour « ${settleModalCommercial.code} » !`);
+      setSettleModalCommercial(null);
+      setSettleTxRef('');
+      setSettleNotes('');
+      await loadData();
+      setTimeout(() => setAffiliateSuccessMsg(''), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de la validation du règlement.');
+    } finally {
+      setIsSettling(false);
+    }
+  };
+
+  const handleOpenAffiliateWhatsApp = (commercial: CommercialAffiliateReport) => {
+    const url = adminService.getWhatsAppAffiliateStatementUrl(commercial);
+    window.open(url, '_blank');
   };
 
   const handleSaveDepositNumbers = async (e: React.FormEvent) => {
@@ -492,7 +544,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
 
       {/* Navigation tabs responsives */}
       <div className="max-w-6xl w-full mx-auto p-3 sm:p-5 md:p-6 space-y-4 flex-1 pb-16">
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-1 sm:gap-2 bg-slate-900/90 backdrop-blur p-1 sm:p-1.5 rounded-2xl border border-slate-800 shadow-lg">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-1 sm:gap-2 bg-slate-900/90 backdrop-blur p-1 sm:p-1.5 rounded-2xl border border-slate-800 shadow-lg">
           <button
             type="button"
             onClick={() => setActiveTab('shops')}
@@ -517,6 +569,19 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
           >
             <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-300 shrink-0" />
             <span className="truncate">Analytics</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('affiliates')}
+            className={`py-2 px-1 sm:px-2 rounded-xl text-[10px] sm:text-xs font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all cursor-pointer ${
+              activeTab === 'affiliates'
+                ? 'bg-amber-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 shrink-0" />
+            <span className="truncate">Commerciaux ({affiliates.length})</span>
           </button>
 
           <button
@@ -568,7 +633,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
             }`}
           >
             <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-            <span className="truncate">Sécurité & Dépôts</span>
+            <span className="truncate">Sécurité</span>
           </button>
         </div>
 
@@ -828,6 +893,402 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* TAB AFFILIATION : GESTION DES COMMERCIAUX & COMMISSIONS (15% / 300 F) */}
+        {activeTab === 'affiliates' && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            {/* Bannière Récapitulative du Dimanche */}
+            {(() => {
+              const currentSunday = adminService.getCurrentWeekSundayIso();
+              const currentMonday = adminService.getWeekMondayIso(currentSunday);
+              const totalDueThisSunday = affiliates
+                .filter(a => !a.currentWeekIsSettled)
+                .reduce((sum, a) => sum + a.currentWeekCommissionDue, 0);
+              const totalWeekPaidSubs = affiliates.reduce((sum, a) => sum + a.currentWeekPaidCount, 0);
+              const totalWeekRevenue = affiliates.reduce((sum, a) => sum + a.currentWeekRevenue, 0);
+              const totalAllTimeCommission = affiliates.reduce((sum, a) => sum + a.totalCommissionAllTime, 0);
+
+              return (
+                <div className="space-y-3">
+                  <div className="bg-gradient-to-br from-slate-900 via-amber-950/40 to-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-amber-500/30 shadow-lg space-y-3 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 -mt-4 -mr-4 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <Users className="w-5 h-5 text-amber-400" />
+                          <h3 className="text-sm sm:text-base font-black text-white font-display">
+                            Programme d'Affiliation & Commerciaux (15%)
+                          </h3>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Clôture hebdomadaire : <strong className="text-amber-300">Chaque Dimanche ({currentSunday})</strong> • 300 FCFA reversés par abonnement mensuel
+                        </p>
+                      </div>
+
+                      <span className="px-3 py-1 bg-amber-500/20 text-amber-300 font-black rounded-full text-xs border border-amber-400/30 self-start sm:self-auto font-mono">
+                        Semaine du {currentMonday} au {currentSunday}
+                      </span>
+                    </div>
+
+                    {/* Grille des 4 indicateurs clés */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                      <div className="bg-slate-850/80 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Commerciaux</span>
+                        <span className="text-lg sm:text-xl font-black text-white font-mono">{affiliates.length}</span>
+                        <span className="text-[10px] text-slate-500 block">codes actifs</span>
+                      </div>
+
+                      <div className="bg-slate-850/80 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Validés cette semaine</span>
+                        <span className="text-lg sm:text-xl font-black text-emerald-400 font-mono">{totalWeekPaidSubs}</span>
+                        <span className="text-[10px] text-emerald-500/80 block">{totalWeekRevenue.toLocaleString('fr-FR')} F encaissés</span>
+                      </div>
+
+                      <div className="bg-gradient-to-br from-amber-950/60 to-slate-900 p-3 rounded-xl border border-amber-500/40 shadow-inner">
+                        <span className="text-[10px] text-amber-300 uppercase font-black block">À verser ce Dimanche (15%)</span>
+                        <span className="text-lg sm:text-xl font-black text-amber-400 font-mono">{totalDueThisSunday.toLocaleString('fr-FR')} FCFA</span>
+                        <span className="text-[10px] text-amber-300/80 block">300 F / abonnement</span>
+                      </div>
+
+                      <div className="bg-slate-850/80 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold block">Commissions à vie</span>
+                        <span className="text-lg sm:text-xl font-black text-slate-200 font-mono">{totalAllTimeCommission.toLocaleString('fr-FR')} FCFA</span>
+                        <span className="text-[10px] text-slate-500 block">cumul historique</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {affiliateSuccessMsg && (
+              <div className="p-3 bg-emerald-950/70 border border-emerald-500/50 text-emerald-300 text-xs font-bold rounded-xl flex items-center space-x-2 animate-in fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{affiliateSuccessMsg}</span>
+              </div>
+            )}
+
+            {/* Barre de Recherche et Filtres */}
+            <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-800 space-y-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher par code commercial (ex: ALI226)..."
+                    value={affiliateSearch}
+                    onChange={(e) => setAffiliateSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                  />
+                </div>
+
+                {/* Filtre d'état */}
+                <div className="flex items-center space-x-1.5 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setAffiliateFilter('all')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      affiliateFilter === 'all'
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Tous ({affiliates.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAffiliateFilter('due')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      affiliateFilter === 'due'
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    À verser ({affiliates.filter(a => !a.currentWeekIsSettled && a.currentWeekCommissionDue > 0).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAffiliateFilter('settled')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      affiliateFilter === 'settled'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Réglés ({affiliates.filter(a => a.currentWeekIsSettled).length})
+                  </button>
+                </div>
+              </div>
+
+              {/* Liste des Commerciaux */}
+              {(() => {
+                const filteredAffiliates = affiliates.filter(a => {
+                  const matchQuery = a.code.toLowerCase().includes(affiliateSearch.toLowerCase()) ||
+                    (a.name && a.name.toLowerCase().includes(affiliateSearch.toLowerCase()));
+                  if (!matchQuery) return false;
+                  if (affiliateFilter === 'due') return !a.currentWeekIsSettled && a.currentWeekCommissionDue > 0;
+                  if (affiliateFilter === 'settled') return a.currentWeekIsSettled;
+                  return true;
+                });
+
+                if (filteredAffiliates.length === 0) {
+                  return (
+                    <div className="text-center py-10 text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl space-y-1">
+                      <Users className="w-8 h-8 text-slate-600 mx-auto mb-1 opacity-50" />
+                      <span className="font-bold text-slate-400 block">Aucun commercial trouvé</span>
+                      <p className="text-[11px]">
+                        Les commerçants qui s'inscrivent avec un code commercial (ex: <code>ALI226</code>) s'afficheront automatiquement ici.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-3 pt-1">
+                    {filteredAffiliates.map((commercial) => {
+                      const isDue = !commercial.currentWeekIsSettled && commercial.currentWeekCommissionDue > 0;
+                      const isExpanded = selectedAffiliate?.code === commercial.code;
+
+                      return (
+                        <div
+                          key={commercial.code}
+                          className="bg-slate-800/80 border border-slate-700/80 hover:border-slate-600 rounded-2xl p-3.5 sm:p-4 space-y-3 transition-all shadow-xs"
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                            {/* Titre / Code du commercial */}
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-600 to-amber-800 text-white font-black text-sm flex items-center justify-center font-mono shadow-xs shrink-0">
+                                {commercial.code.slice(0, 2)}
+                              </div>
+                              <div>
+                                <div className="flex items-center space-x-2">
+                                  <h4 className="font-extrabold text-white text-sm font-mono tracking-wider">
+                                    {commercial.code}
+                                  </h4>
+                                  {isDue ? (
+                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/40">
+                                      À verser ce Dimanche
+                                    </span>
+                                  ) : commercial.currentWeekIsSettled ? (
+                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
+                                      ✓ Réglé
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-700 text-slate-400">
+                                      0 F cette semaine
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[11px] text-slate-400">
+                                  {commercial.totalShopsReferred} boutique(s) rattachée(s) • {commercial.activeSubscribedShops} abonnement(s) actif(s)
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Montant de la commission pour la semaine */}
+                            <div className="flex items-center space-x-2 sm:space-x-3 self-end sm:self-auto">
+                              <div className="text-right">
+                                <span className="text-[10px] text-slate-400 uppercase font-bold block">Commission Dimanche</span>
+                                <span className={`text-base sm:text-lg font-black font-mono block ${isDue ? 'text-amber-400' : 'text-slate-300'}`}>
+                                  {commercial.currentWeekCommissionDue.toLocaleString('fr-FR')} FCFA
+                                </span>
+                              </div>
+
+                              {/* Bouton Action WhatsApp Relevé */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenAffiliateWhatsApp(commercial)}
+                                className="p-2 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] rounded-xl border border-[#25D366]/30 transition-all cursor-pointer"
+                                title="Envoyer le relevé de la semaine sur WhatsApp"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                              </button>
+
+                              {/* Bouton Régler ce dimanche */}
+                              {isDue && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSettleModalCommercial(commercial)}
+                                  className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs shadow-xs active:scale-95 transition-all cursor-pointer font-display"
+                                >
+                                  Régler ➔
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Accordéon Boutiques Rattachées */}
+                          <div className="border-t border-slate-700/60 pt-2.5 flex items-center justify-between text-xs">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedAffiliate(isExpanded ? null : commercial)}
+                              className="text-amber-400 hover:text-amber-300 font-bold flex items-center space-x-1 cursor-pointer"
+                            >
+                              <span>{isExpanded ? 'Masquer les boutiques' : `Voir les ${commercial.referredShops.length} boutique(s)`}</span>
+                              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                            </button>
+
+                            <span className="text-[11px] text-slate-400">
+                              Total historique gagné : <strong className="text-white font-mono">{commercial.totalCommissionAllTime.toLocaleString('fr-FR')} F</strong>
+                            </span>
+                          </div>
+
+                          {/* Détails déroulants des boutiques parrainées */}
+                          {isExpanded && (
+                            <div className="space-y-1.5 pt-1 border-t border-slate-700/40 animate-in fade-in">
+                              {commercial.referredShops.map((shop) => (
+                                <div
+                                  key={shop.id}
+                                  className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 flex items-center justify-between text-xs"
+                                >
+                                  <div className="space-y-0.5 min-w-0">
+                                    <div className="flex items-center space-x-1.5">
+                                      <span className="font-bold text-white truncate">{shop.name}</span>
+                                      {shop.isSubscribed ? (
+                                        <span className="px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded text-[9px] font-black uppercase font-mono">
+                                          Abonné (+{shop.commissionAmount} F)
+                                        </span>
+                                      ) : (
+                                        <span className="px-1.5 py-0.2 bg-slate-800 text-slate-400 rounded text-[9px] font-medium">
+                                          Essai / Inactif
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] text-slate-400 block font-mono">
+                                      📞 {shop.phone} {shop.city ? `• 📍 ${shop.city}` : ''}
+                                    </span>
+                                  </div>
+
+                                  <div className="text-right shrink-0 font-mono text-[11px]">
+                                    <span className={shop.isSubscribed ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
+                                      {shop.isSubscribed ? `+${shop.commissionAmount} F (15%)` : '0 F'}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* MODALE DE RÈGLEMENT DU DIMANCHE */}
+            {settleModalCommercial && (
+              <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
+                <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div className="flex items-center space-x-2 text-amber-400">
+                      <Wallet className="w-5 h-5" />
+                      <h3 className="font-black text-white text-sm sm:text-base font-display">
+                        Valider le Règlement du Dimanche
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSettleModalCommercial(null)}
+                      className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleConfirmSettle} className="space-y-3.5">
+                    {/* Récapitulatif montant */}
+                    <div className="bg-amber-950/30 border border-amber-500/30 rounded-2xl p-3.5 space-y-1 text-center">
+                      <span className="text-[11px] text-amber-300 font-bold uppercase tracking-wider block">
+                        Commission à verser à « {settleModalCommercial.code} »
+                      </span>
+                      <span className="text-2xl sm:text-3xl font-black text-amber-400 font-mono block">
+                        {settleModalCommercial.currentWeekCommissionDue.toLocaleString('fr-FR')} FCFA
+                      </span>
+                      <span className="text-[10px] text-slate-400 block">
+                        Correspondant à {settleModalCommercial.currentWeekPaidCount} abonnement(s) validé(s) cette semaine (15%)
+                      </span>
+                    </div>
+
+                    {/* Mode de règlement */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                        Mode de versement Mobile Money
+                      </label>
+                      <select
+                        value={settleMethod}
+                        onChange={(e) => setSettleMethod(e.target.value as any)}
+                        className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-white focus:border-amber-500 outline-none"
+                      >
+                        <option value="ORANGE_MONEY">🟠 Orange Money Burkina</option>
+                        <option value="MOOV_MONEY">🔵 Moov Money Burkina</option>
+                        <option value="WAVE">🌊 Wave</option>
+                        <option value="CASH">💵 Espèces (Remise directe)</option>
+                      </select>
+                    </div>
+
+                    {/* Référence ou numéro du transfert */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                        Numéro de transaction / Référence du dépôt (Optionnel)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ex: TXN_OM_12345678"
+                        value={settleTxRef}
+                        onChange={(e) => setSettleTxRef(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                      />
+                    </div>
+
+                    {/* Notes libres */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                        Notes & Remarques (Optionnel)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Virement envoyé sur le numéro 70123456"
+                        value={settleNotes}
+                        onChange={(e) => setSettleNotes(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                      />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center space-x-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setSettleModalCommercial(null)}
+                        className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSettling}
+                        className="flex-1 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl text-xs shadow-lg shadow-emerald-900/40 active:scale-98 transition-all flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {isSettling ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Enregistrement...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4" />
+                            <span>Confirmer le Règlement</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1575,6 +2036,16 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                 </span>
                 <span className="text-xs font-bold text-amber-300 block">
                   {selectedShop.formattedExpiresAt} ({selectedShop.daysRemaining} jour(s) restants)
+                </span>
+              </div>
+
+              <div className="bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50 space-y-1">
+                <span className="text-[10px] font-black uppercase text-slate-400 flex items-center space-x-1">
+                  <Users className="w-3 h-3 text-amber-400" />
+                  <span>Commercial / Parrain</span>
+                </span>
+                <span className="text-xs font-mono font-bold text-amber-300 block">
+                  {selectedShop.referralCode ? `🤝 ${selectedShop.referralCode}` : 'Inscription directe'}
                 </span>
               </div>
 

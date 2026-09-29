@@ -22,6 +22,7 @@ import {
   ChevronUp,
   FileText,
   Upload,
+  Users,
   X
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
@@ -45,6 +46,24 @@ export const OnboardingView: React.FC = () => {
   const [loginFailedAttempts, setLoginFailedAttempts] = useState(0);
   const [loginLockoutSeconds, setLoginLockoutSeconds] = useState(0);
 
+  // Champs Création d'espace
+  const [shopName, setShopName] = useState('');
+  const [shopDescription, setShopDescription] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+  const [city, setCity] = useState('Ouagadougou');
+  const [customCity, setCustomCity] = useState('');
+  const [pinCode, setPinCode] = useState('');
+  const [showPin, setShowPin] = useState(false);
+  const [ifu, setIfu] = useState('');
+  const [rccm, setRccm] = useState('');
+  const [logo, setLogo] = useState<string | null>(null);
+  const [showBusinessInfo, setShowBusinessInfo] = useState(false);
+  const [registerError, setRegisterError] = useState('');
+  const [duplicateAccountDetected, setDuplicateAccountDetected] = useState<{ exists: boolean; shopName?: string; phone?: string } | null>(null);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
+
   // Décompte anti-bruteforce pour la connexion
   useEffect(() => {
     if (loginLockoutSeconds <= 0) return;
@@ -61,22 +80,16 @@ export const OnboardingView: React.FC = () => {
     return () => clearInterval(interval);
   }, [loginLockoutSeconds]);
 
-  // Champs Création d'espace
-  const [shopName, setShopName] = useState('');
-  const [shopDescription, setShopDescription] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [city, setCity] = useState('Ouagadougou');
-  const [customCity, setCustomCity] = useState('');
-  const [pinCode, setPinCode] = useState('');
-  const [showPin, setShowPin] = useState(false);
-  const [ifu, setIfu] = useState('');
-  const [rccm, setRccm] = useState('');
-  const [logo, setLogo] = useState<string | null>(null);
-  const [showBusinessInfo, setShowBusinessInfo] = useState(false);
-  const [registerError, setRegisterError] = useState('');
-  const [duplicateAccountDetected, setDuplicateAccountDetected] = useState<{ exists: boolean; shopName?: string; phone?: string } | null>(null);
-  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
+  // Détection automatique du code d'affiliation / commercial depuis l'URL (?ref=CODE ou ?aff=CODE)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref') || params.get('aff') || params.get('code') || params.get('parrain');
+      if (ref) {
+        setReferralCode(ref.trim().toUpperCase());
+      }
+    }
+  }, []);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -206,6 +219,7 @@ export const OnboardingView: React.FC = () => {
         pinCode: pinCode.trim(),
         currency: 'FCFA',
         orangeMoneyNumber: phone.trim(),
+        referralCode: referralCode.trim().toUpperCase() || undefined,
         ifu: ifu.trim() || undefined,
         rccm: rccm.trim() || undefined,
         logo: logo || undefined
@@ -616,7 +630,26 @@ export const OnboardingView: React.FC = () => {
               </button>
             </div>
 
-            {/* 5. Email optionnel */}
+            {/* 5. Code Commercial / Parrain (Optionnel) */}
+            <div className="relative flex items-center">
+              <div className="absolute left-3.5 flex items-center pointer-events-none text-emerald-600">
+                <Users className="w-5 h-5" />
+              </div>
+              <input
+                type="text"
+                placeholder="Code Commercial / Parrain (Optionnel)"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase().replace(/\s/g, ''))}
+                className="w-full pl-12 pr-4 py-2.5 sm:py-3 bg-emerald-50/20 hover:bg-emerald-50/40 focus:bg-white border border-emerald-200/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl text-xs sm:text-sm font-bold tracking-wider text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal placeholder:tracking-normal"
+              />
+              {referralCode && (
+                <div className="absolute right-3 px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-black uppercase">
+                  Appliqué ✓
+                </div>
+              )}
+            </div>
+
+            {/* 6. Email optionnel */}
             <div className="relative flex items-center">
               <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400">
                 <Mail className="w-5 h-5" />

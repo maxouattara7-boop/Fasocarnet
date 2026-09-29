@@ -1,5 +1,14 @@
 import { db } from '../db';
-import { ShopProfile, LicenseKey, ExtendedAdminAnalytics, AdminBroadcastMessage, DeviceTelemetry, AdminDepositNumbers } from '../../types';
+import { 
+  ShopProfile, 
+  LicenseKey, 
+  ExtendedAdminAnalytics, 
+  AdminBroadcastMessage, 
+  DeviceTelemetry, 
+  AdminDepositNumbers,
+  CommercialAffiliateReport,
+  AffiliateSettlement
+} from '../../types';
 import { subscriptionService, SUBSCRIPTION_PLANS, DEFAULT_DEPOSIT_NUMBERS } from './subscriptionService';
 import { syncService } from './syncService';
 import { supabaseClient } from '../supabaseClient';
@@ -728,5 +737,245 @@ export const adminService = {
     }
 
     return updated;
+  },
+
+  /**
+   * Calcule le dimanche de clôture de la semaine en cours (Format YYYY-MM-DD)
+   */
+  getCurrentWeekSundayIso(): string {
+    const now = new Date();
+    const day = now.getDay(); // 0 = Dimanche, 1 = Lundi...
+    const distanceToSunday = (7 - day) % 7;
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() + distanceToSunday);
+    return sunday.toISOString().slice(0, 10);
+  },
+
+  /**
+   * Calcule le lundi de début de la semaine correspondant à un dimanche donné
+   */
+  getWeekMondayIso(sundayIso: string): string {
+    const d = new Date(sundayIso);
+    d.setDate(d.getDate() - 6);
+    return d.toISOString().slice(0, 10);
+  },
+
+  /**
+   * Récupère le rapport complet d'affiliation et des commissions de 15% par commercial
+   */
+  async getAffiliatesReports(targetSundayIso?: string): Promise<CommercialAffiliateReport[]> {
+    const cloudDb = await syncService.fetchRemoteDatabase();
+    const currentSunday = targetSundayIso || this.getCurrentWeekSundayIso();
+    const currentMonday = this.getWeekMondayIso(currentSunday);
+    const mondayStartTimestamp = new Date(`${currentMonday}T00:00:00.000Z`).getTime();
+    const sundayEndTimestamp = new Date(`${currentSunday}T23:59:59.999Z`).getTime();
+
+    // 1. Récupérer tous les règlements déjà effectués
+    const adminVault = (cloudDb['_admin_vault'] as any) || {};
+    const settlements: AffiliateSettlement[] = adminVault.affiliateSettlements || [];
+
+    // 2. Récupérer tous les paiements enregistrés
+    const paymentsMap: Record<string, any> = cloudDb['_payments'] || {};
+    const paymentsList = Object.values(paymentsMap).filter(p => p && p.status === 'PAID');
+
+    // 3. Récupérer toutes les boutiques enregistrées
+    const cloudShops = Object.values(cloudDb)
+      .map(d => d.profile)
+      .filter(p => this.isMerchantShop(p));
+    const localShops = (await db.shopProfiles.toArray())
+      .filter(p => this.isMerchantShop(p));
+
+    const shopsMap = new Map<string, ShopProfile>();
+    cloudShops.forEach(s => s && shopsMap.set(s.id, s));
+    localShops.forEach(s => s && shopsMap.set(s.id, s));
+    const allShops = Array.from(shopsMap.values());
+
+    // 4. Regrouper par code d'affiliation
+    const commercialMap = new Map<string, CommercialAffiliateReport>();
+
+    allShops.forEach(shop => {
+      const code = shop.referralCode?.trim().toUpperCase();
+      if (!code) return; // Non parrainé
+
+      if (!commercialMap.has(code)) {
+        commercialMap.set(code, {
+          code,
+          totalShopsReferred: 0,
+          activeSubscribedShops: 0,
+          totalRevenueGenerated: 0,
+          totalCommissionAllTime: 0,
+          currentWeekRevenue: 0,
+          currentWeekPaidCount: 0,
+          currentWeekCommissionDue: 0,
+          currentWeekIsSettled: false,
+          settlements: settlements.filter(s => s.affiliateCode === code),
+          referredShops: []
+        });
+      }
+
+      const report = commercialMap.get(code)!;
+      report.totalShopsReferred += 1;
+
+      const subInfo = subscriptionService.getSubscriptionInfo(shop);
+      const isSubscribed = subInfo.status === 'active';
+      let subPrice = 0;
+      if (shop.subscriptionPlan === 'annual') subPrice = 20000;
+      else if (shop.subscriptionPlan === 'semi-annual') subPrice = 10000;
+      else if (shop.subscriptionPlan === 'monthly' || isSubscribed) subPrice = 2000;
+
+      const commission = Math.round(subPrice * 0.15); // 15% (300 F pour 2000 F)
+
+      if (isSubscribed) {
+        report.activeSubscribedShops += 1;
+        report.totalRevenueGenerated += subPrice;
+        report.totalCommissionAllTime += commission;
+      }
+
+      report.referredShops.push({
+        id: shop.id,
+        name: shop.name,
+        phone: shop.phone,
+        ownerPhone: shop.ownerPhone,
+        city: shop.city,
+        createdAt: shop.createdAt,
+        isSubscribed,
+        subscriptionPlan: shop.subscriptionPlan,
+        subscriptionExpiresAt: shop.subscriptionExpiresAt,
+        subscriptionPrice: isSubscribed ? subPrice : 0,
+        commissionAmount: isSubscribed ? commission : 0
+      });
+    });
+
+    // 5. Calculer les performances spécifiques de la semaine en cours
+    commercialMap.forEach((report, code) => {
+      // Vérifier si cette semaine a déjà été réglée
+      const weekSettlement = settlements.find(
+        s => s.affiliateCode === code && s.weekEndingSunday === currentSunday
+      );
+      if (weekSettlement) {
+        report.currentWeekIsSettled = true;
+        report.currentWeekSettledAt = weekSettlement.settledAt;
+      }
+
+      // Parcourir les paiements de la semaine pour ce commercial
+      const commercialShopIds = new Set(report.referredShops.map(s => s.id));
+
+      let weekRev = 0;
+      let weekCount = 0;
+
+      paymentsList.forEach(p => {
+        if (p.shopId && commercialShopIds.has(p.shopId)) {
+          const paidTime = new Date(p.paidAt || p.updatedAt || p.createdAt).getTime();
+          if (paidTime >= mondayStartTimestamp && paidTime <= sundayEndTimestamp) {
+            weekRev += p.amount || 2000;
+            weekCount += 1;
+          }
+        }
+      });
+
+      // Si aucun log de paiement direct mais boutique activée durant la semaine
+      if (weekCount === 0) {
+        report.referredShops.forEach(s => {
+          if (s.isSubscribed) {
+            const regTime = new Date(s.createdAt).getTime();
+            if (regTime >= mondayStartTimestamp && regTime <= sundayEndTimestamp) {
+              weekRev += s.subscriptionPrice;
+              weekCount += 1;
+            }
+          }
+        });
+      }
+
+      report.currentWeekRevenue = weekRev;
+      report.currentWeekPaidCount = weekCount;
+      report.currentWeekCommissionDue = Math.round(weekRev * 0.15); // 15% (300 F / abonnement)
+    });
+
+    return Array.from(commercialMap.values()).sort((a, b) => b.totalRevenueGenerated - a.totalRevenueGenerated);
+  },
+
+  /**
+   * Enregistre le règlement des commissions du Dimanche pour un commercial
+   */
+  async settleAffiliateWeek(
+    affiliateCode: string,
+    weekEndingSunday: string,
+    amount: number,
+    paidSubscriptionsCount: number,
+    totalRevenue: number,
+    paymentMethod: 'ORANGE_MONEY' | 'MOOV_MONEY' | 'WAVE' | 'CASH' = 'ORANGE_MONEY',
+    transactionRef?: string,
+    notes?: string
+  ): Promise<AffiliateSettlement> {
+    const cleanCode = affiliateCode.trim().toUpperCase();
+    const settlement: AffiliateSettlement = {
+      id: `stl_${cleanCode}_${Date.now()}`,
+      affiliateCode: cleanCode,
+      weekEndingSunday,
+      paidSubscriptionsCount,
+      totalRevenueGenerated: totalRevenue,
+      commissionPaid: amount,
+      settledAt: new Date().toISOString(),
+      settledBy: 'Super Admin',
+      paymentMethod,
+      transactionRef: transactionRef?.trim() || undefined,
+      notes: notes?.trim() || undefined
+    };
+
+    const cloudDb = await syncService.fetchRemoteDatabase();
+    const adminVaultKey = '_admin_vault';
+    if (!cloudDb[adminVaultKey]) {
+      cloudDb[adminVaultKey] = {
+        profile: undefined as any,
+        sales: [],
+        customers: [],
+        products: [],
+        debts: [],
+        debtPayments: [],
+        licenses: [],
+        lastUpdatedAt: new Date().toISOString()
+      };
+    }
+
+    const currentVault = cloudDb[adminVaultKey] as any;
+    const existingSettlements: AffiliateSettlement[] = currentVault.affiliateSettlements || [];
+    const updatedSettlements = [
+      ...existingSettlements.filter(s => !(s.affiliateCode === cleanCode && s.weekEndingSunday === weekEndingSunday)),
+      settlement
+    ];
+
+    currentVault.affiliateSettlements = updatedSettlements;
+    currentVault.lastUpdatedAt = new Date().toISOString();
+    await syncService.pushRemoteDatabase(cloudDb);
+
+    return settlement;
+  },
+
+  /**
+   * Génère le lien WhatsApp avec le relevé officiel et bienveillant des 15% pour le commercial
+   */
+  getWhatsAppAffiliateStatementUrl(commercial: CommercialAffiliateReport, targetPhone?: string): string {
+    const cleanPhone = (targetPhone || commercial.phone || '').replace(/\D/g, '');
+    const phoneParam = cleanPhone.startsWith('226') ? cleanPhone : (cleanPhone ? `226${cleanPhone}` : '');
+
+    const currentSunday = this.getCurrentWeekSundayIso();
+    const currentMonday = this.getWeekMondayIso(currentSunday);
+
+    const message = `🌟 *RELEVÉ DE COMMISSIONS FASOCARNET (15%)* 🌟\n\n` +
+      `👤 *Commercial / Code* : *${commercial.code}*\n` +
+      `📅 *Période* : Semaine du ${currentMonday} au Dimanche ${currentSunday}\n\n` +
+      `📊 *BILAN HEBDOMADAIRE* :\n` +
+      `• Boutiques rattachées : *${commercial.totalShopsReferred}*\n` +
+      `• Abonnements validés cette semaine : *${commercial.currentWeekPaidCount}*\n` +
+      `• Chiffre d'affaires généré : *${commercial.currentWeekRevenue.toLocaleString('fr-FR')} FCFA*\n\n` +
+      `💰 *MONTANT DU BONUS À VERSER (15%)* :\n` +
+      `👉 *${commercial.currentWeekCommissionDue.toLocaleString('fr-FR')} FCFA* 👈\n` +
+      `_(Calculé à 300 FCFA par abonnement mensuel de 2000 FCFA)_\n\n` +
+      `🤝 Merci pour votre engagement et vos excellentes performances sur le terrain !\n` +
+      `L'équipe FasoCarnet.`;
+
+    return phoneParam 
+      ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
   }
 };

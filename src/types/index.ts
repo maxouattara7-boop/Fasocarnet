@@ -25,6 +25,7 @@ export interface ShopProfile {
   subscriptionStatus?: 'trial' | 'active' | 'grace' | 'expired';
   subscriptionExpiresAt?: string; // ISO string date d'expiration
   licenseKey?: string;
+  referralCode?: string; // Code d'affiliation / Code commercial (ex: ALI226)
   isSuspended?: boolean; // Verrouillage / Suspension à distance
   suspendedReason?: string;
   telemetry?: DeviceTelemetry;
@@ -291,5 +292,54 @@ export interface CustomInvoice {
   notes?: string; // Mentions particulières
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface AffiliateSettlement {
+  id: string;
+  affiliateCode: string;
+  weekEndingSunday: string; // Ex: '2026-10-04'
+  paidSubscriptionsCount: number;
+  totalRevenueGenerated: number;
+  commissionPaid: number; // 15% du CA généré
+  settledAt: string;
+  settledBy?: string;
+  paymentMethod?: 'ORANGE_MONEY' | 'MOOV_MONEY' | 'WAVE' | 'CASH';
+  transactionRef?: string;
+  notes?: string;
+}
+
+export interface CommercialAffiliateReport {
+  code: string;
+  name?: string;
+  phone?: string;
+  totalShopsReferred: number;
+  activeSubscribedShops: number;
+  totalRevenueGenerated: number;
+  totalCommissionAllTime: number;
+  
+  // Semaine en cours (Dimanche)
+  currentWeekRevenue: number;
+  currentWeekPaidCount: number;
+  currentWeekCommissionDue: number; // 15% (300 F / mois)
+  currentWeekIsSettled: boolean;
+  currentWeekSettledAt?: string;
+
+  // Historique des règlements
+  settlements: AffiliateSettlement[];
+  
+  // Boutiques rattachées
+  referredShops: Array<{
+    id: string;
+    name: string;
+    phone: string;
+    ownerPhone?: string;
+    city?: string;
+    createdAt: string;
+    isSubscribed: boolean;
+    subscriptionPlan?: string;
+    subscriptionExpiresAt?: string;
+    subscriptionPrice: number;
+    commissionAmount: number; // 15%
+  }>;
 }
 
