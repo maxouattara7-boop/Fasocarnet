@@ -1,12 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import 'fake-indexeddb/auto';
 import { adminService } from './adminService';
+import { syncService } from './syncService';
 import { db } from '../db';
 import { ShopProfile } from '../../types';
 
 describe('adminService', () => {
   beforeEach(async () => {
     localStorage.clear();
+    syncService.saveCloudDatabase({});
     await db.shopProfiles.clear();
     await db.licenses.clear();
     await db.sales.clear();
@@ -272,6 +274,109 @@ describe('adminService', () => {
 
     await adminService.deleteShop('shop_delete_test');
     expect(await db.shopProfiles.get('shop_delete_test')).toBeUndefined();
+  });
+
+  it('manually activates a shop account and sets active status with correct duration', async () => {
+    const shopToActivate: ShopProfile = {
+      id: 'shop_manual_act',
+      name: 'Alimentation du Faso',
+      phone: '70110022',
+      currency: 'FCFA',
+      isConfigured: true,
+      subscriptionStatus: 'trial',
+      isSuspended: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await db.shopProfiles.put(shopToActivate);
+
+    const activated = await adminService.activateShopManually('shop_manual_act', 3);
+    expect(activated.subscriptionStatus).toBe('active');
+    expect(activated.isSuspended).toBe(false);
+    expect(activated.subscriptionPlan).toBe('monthly');
+    expect(new Date(activated.subscriptionExpiresAt!).getTime()).toBeGreaterThan(Date.now() + 80 * 24 * 60 * 60 * 1000);
+  });
+
+  it('creates, manages commercial teams and aggregates performance tracking by affiliate code', async () => {
+    // 1. Boutiques parrainées par 2 commerciaux différents
+    const shopA: ShopProfile = {
+      id: 'shop_team_a',
+      name: 'Boutique Alpha',
+      phone: '70111111',
+      referralCode: 'ALI226',
+      subscriptionStatus: 'active',
+      subscriptionPlan: 'monthly',
+      currency: 'FCFA',
+      isConfigured: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    const shopB: ShopProfile = {
+      id: 'shop_team_b',
+      name: 'Boutique Beta',
+      phone: '70222222',
+      referralCode: 'MAX01',
+      subscriptionStatus: 'active',
+      subscriptionPlan: 'monthly',
+      currency: 'FCFA',
+      isConfigured: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    const shopC: ShopProfile = {
+      id: 'shop_team_c',
+      name: 'Boutique Gamma',
+      phone: '70333333',
+      referralCode: 'INDEP99',
+      subscriptionStatus: 'active',
+      subscriptionPlan: 'monthly',
+      currency: 'FCFA',
+      isConfigured: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await db.shopProfiles.bulkPut([shopA, shopB, shopC]);
+
+    // 2. Créer une équipe avec ALI226 et MAX01
+    const createdTeam = await adminService.saveCommercialTeam({
+      name: 'Équipe Ouaga Nord',
+      leaderName: 'Moussa SAWADOGO',
+      leaderPhone: '70123456',
+      zone: 'Ouagadougou Nord',
+      description: 'Secteurs 15 à 22',
+      affiliateCodes: ['ali226', 'MAX01']
+    });
+
+    expect(createdTeam.id).toBeDefined();
+    expect(createdTeam.name).toBe('Équipe Ouaga Nord');
+    expect(createdTeam.affiliateCodes).toEqual(['ALI226', 'MAX01']);
+
+    // 3. Calculer les rapports d'équipe
+    const { teamsReports, unassignedCommercials } = await adminService.getCommercialTeamsReports();
+    expect(teamsReports).toHaveLength(1);
+    const teamRep = teamsReports[0];
+    expect(teamRep.team.name).toBe('Équipe Ouaga Nord');
+    expect(teamRep.membersCount).toBe(2);
+    expect(teamRep.totalShopsReferred).toBe(2);
+    expect(teamRep.activeSubscribedShops).toBe(2);
+    expect(teamRep.totalRevenueGenerated).toBe(4000); // 2000 + 2000
+    expect(teamRep.totalCommissionAllTime).toBe(600); // 15% de 4000 = 600 F
+
+    // Vérifier commercial indépendant
+    expect(unassignedCommercials.some(c => c.code === 'INDEP99')).toBe(true);
+
+    // 4. Générer le lien WhatsApp pour le Chef d'équipe
+    const waTeamUrl = adminService.getWhatsAppTeamStatementUrl(teamRep);
+    expect(waTeamUrl).toContain('wa.me/22670123456');
+    expect(waTeamUrl).toContain('Moussa%20SAWADOGO');
+    expect(waTeamUrl).toContain('Ouaga%20Nord');
+    expect(waTeamUrl).toContain('ALI226');
+    expect(waTeamUrl).toContain('MAX01');
+
+    // 5. Supprimer l'équipe
+    await adminService.deleteCommercialTeam(createdTeam.id);
+    const allTeamsAfter = await adminService.getAllCommercialTeams();
+    expect(allTeamsAfter.find(t => t.id === createdTeam.id)).toBeUndefined();
   });
 });
 

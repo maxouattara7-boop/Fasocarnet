@@ -343,3 +343,29 @@ export interface CommercialAffiliateReport {
   }>;
 }
 
+export interface CommercialTeam {
+  id: string;
+  name: string;
+  leaderName?: string;
+  leaderPhone?: string;
+  zone?: string;
+  description?: string;
+  affiliateCodes: string[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CommercialTeamReport {
+  team: CommercialTeam;
+  membersCount: number;
+  totalShopsReferred: number;
+  activeSubscribedShops: number;
+  totalRevenueGenerated: number;
+  totalCommissionAllTime: number;
+  currentWeekRevenue: number;
+  currentWeekPaidCount: number;
+  currentWeekCommissionDue: number;
+  currentWeekIsSettled: boolean;
+  commercials: CommercialAffiliateReport[];
+}
+

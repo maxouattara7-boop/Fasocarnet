@@ -7,7 +7,9 @@ import {
   DeviceTelemetry, 
   AdminDepositNumbers,
   CommercialAffiliateReport,
-  AffiliateSettlement
+  AffiliateSettlement,
+  CommercialTeam,
+  CommercialTeamReport
 } from '../../types';
 import { subscriptionService, SUBSCRIPTION_PLANS, DEFAULT_DEPOSIT_NUMBERS } from './subscriptionService';
 import { syncService } from './syncService';
@@ -196,9 +198,16 @@ export const adminService = {
   },
 
   /**
+   * Active manuellement l'abonnement d'une boutique (Action Admin en cas de souci technique ou validation directe)
+   */
+  async activateShopManually(shopId: string, durationMonths: number = 1, _notes?: string): Promise<ShopProfile> {
+    return this.extendShopLicense(shopId, durationMonths, _notes);
+  },
+
+  /**
    * Prolonge manuellement la licence d'une boutique (Action Admin)
    */
-  async extendShopLicense(shopId: string, durationMonths: number): Promise<ShopProfile> {
+  async extendShopLicense(shopId: string, durationMonths: number, _notes?: string): Promise<ShopProfile> {
     const cloudDb = await syncService.fetchRemoteDatabase();
     let shop = await db.shopProfiles.get(shopId);
 
@@ -221,16 +230,30 @@ export const adminService = {
       subscriptionPlan: planId,
       subscriptionStatus: 'active',
       subscriptionExpiresAt: newExpiry.toISOString(),
+      isSuspended: false,
       updatedAt: new Date().toISOString()
     };
 
-    // Mettre à jour en local et sur le Cloud
+    // Mettre à jour en local dans IndexedDB
     await db.shopProfiles.put(updated);
-    if (cloudDb[shopId]) {
+
+    // Mettre à jour sur le Cloud
+    if (!cloudDb[shopId]) {
+      cloudDb[shopId] = {
+        profile: updated,
+        sales: [],
+        customers: [],
+        products: [],
+        debts: [],
+        debtPayments: [],
+        licenses: [],
+        lastUpdatedAt: new Date().toISOString()
+      };
+    } else {
       cloudDb[shopId].profile = updated;
       cloudDb[shopId].lastUpdatedAt = new Date().toISOString();
-      await syncService.pushRemoteDatabase(cloudDb);
     }
+    await syncService.pushRemoteDatabase(cloudDb);
 
     return updated;
   },
@@ -963,6 +986,262 @@ export const adminService = {
       `_(Calculé à 300 FCFA par abonnement mensuel de 2000 FCFA)_\n\n` +
       `🤝 Merci pour votre engagement et vos excellentes performances sur le terrain !\n` +
       `L'équipe FasoCarnet.`;
+
+    return phoneParam 
+      ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+  },
+
+  /**
+   * Récupère toutes les équipes de commerciaux enregistrées
+   */
+  async getAllCommercialTeams(): Promise<CommercialTeam[]> {
+    let teams: CommercialTeam[] = [];
+
+    // 1. Depuis le stockage local
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('fasocarnet_admin_commercial_teams');
+        if (raw) teams = JSON.parse(raw);
+      } catch {}
+    }
+
+    // 2. Depuis le Cloud Database
+    try {
+      const cloudDb = await syncService.fetchRemoteDatabase();
+      const adminVault = (cloudDb['_admin_vault'] as any) || {};
+      if (Array.isArray(adminVault.commercialTeams) && adminVault.commercialTeams.length > 0) {
+        teams = adminVault.commercialTeams;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('fasocarnet_admin_commercial_teams', JSON.stringify(teams));
+        }
+      }
+    } catch (e) {
+      console.warn('Erreur récupération équipes commerciales cloud:', e);
+    }
+
+    return teams;
+  },
+
+  /**
+   * Crée ou met à jour une équipe de commerciaux
+   */
+  async saveCommercialTeam(data: {
+    id?: string;
+    name: string;
+    leaderName?: string;
+    leaderPhone?: string;
+    zone?: string;
+    description?: string;
+    affiliateCodes: string[];
+  }): Promise<CommercialTeam> {
+    if (!data.name.trim()) throw new Error('Le nom de l\'équipe est obligatoire.');
+
+    const teams = await this.getAllCommercialTeams();
+    const cleanCodes = Array.from(new Set(
+      data.affiliateCodes
+        .map(c => c.trim().toUpperCase())
+        .filter(Boolean)
+    ));
+
+    const now = new Date().toISOString();
+    let team: CommercialTeam;
+
+    if (data.id) {
+      const existingIdx = teams.findIndex(t => t.id === data.id);
+      if (existingIdx === -1) throw new Error('Équipe introuvable.');
+      team = {
+        ...teams[existingIdx],
+        name: data.name.trim(),
+        leaderName: data.leaderName?.trim() || undefined,
+        leaderPhone: data.leaderPhone?.trim() || undefined,
+        zone: data.zone?.trim() || undefined,
+        description: data.description?.trim() || undefined,
+        affiliateCodes: cleanCodes,
+        updatedAt: now
+      };
+      teams[existingIdx] = team;
+    } else {
+      team = {
+        id: `team_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        name: data.name.trim(),
+        leaderName: data.leaderName?.trim() || undefined,
+        leaderPhone: data.leaderPhone?.trim() || undefined,
+        zone: data.zone?.trim() || undefined,
+        description: data.description?.trim() || undefined,
+        affiliateCodes: cleanCodes,
+        createdAt: now,
+        updatedAt: now
+      };
+      teams.push(team);
+    }
+
+    // Persister en local
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fasocarnet_admin_commercial_teams', JSON.stringify(teams));
+    }
+
+    // Persister sur le Cloud
+    try {
+      const cloudDb = await syncService.fetchRemoteDatabase();
+      const adminVaultKey = '_admin_vault';
+      if (!cloudDb[adminVaultKey]) {
+        cloudDb[adminVaultKey] = {
+          profile: undefined as any,
+          sales: [],
+          customers: [],
+          products: [],
+          debts: [],
+          debtPayments: [],
+          licenses: [],
+          lastUpdatedAt: now
+        };
+      }
+      (cloudDb[adminVaultKey] as any).commercialTeams = teams;
+      cloudDb[adminVaultKey].lastUpdatedAt = now;
+      await syncService.pushRemoteDatabase(cloudDb);
+    } catch (e) {
+      console.warn('Erreur sauvegarde équipe commerciale cloud:', e);
+    }
+
+    return team;
+  },
+
+  /**
+   * Supprime une équipe de commerciaux
+   */
+  async deleteCommercialTeam(teamId: string): Promise<void> {
+    const teams = await this.getAllCommercialTeams();
+    const updated = teams.filter(t => t.id !== teamId);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fasocarnet_admin_commercial_teams', JSON.stringify(updated));
+    }
+
+    try {
+      const cloudDb = await syncService.fetchRemoteDatabase();
+      const adminVaultKey = '_admin_vault';
+      if (cloudDb[adminVaultKey]) {
+        (cloudDb[adminVaultKey] as any).commercialTeams = updated;
+        cloudDb[adminVaultKey].lastUpdatedAt = new Date().toISOString();
+        await syncService.pushRemoteDatabase(cloudDb);
+      }
+    } catch (e) {
+      console.warn('Erreur suppression équipe commerciale cloud:', e);
+    }
+  },
+
+  /**
+   * Récupère le rapport complet des équipes et le suivi des performances par affiliation
+   */
+  async getCommercialTeamsReports(targetSundayIso?: string): Promise<{
+    teamsReports: CommercialTeamReport[];
+    unassignedCommercials: CommercialAffiliateReport[];
+  }> {
+    const [allCommercials, teams] = await Promise.all([
+      this.getAffiliatesReports(targetSundayIso),
+      this.getAllCommercialTeams()
+    ]);
+
+    const assignedCodes = new Set<string>();
+
+    const teamsReports: CommercialTeamReport[] = teams.map(team => {
+      const teamCodeSet = new Set(team.affiliateCodes.map(c => c.trim().toUpperCase()));
+      const teamCommercials: CommercialAffiliateReport[] = [];
+
+      // Trouver les commerciaux existants
+      allCommercials.forEach(comm => {
+        if (teamCodeSet.has(comm.code.trim().toUpperCase())) {
+          teamCommercials.push(comm);
+          assignedCodes.add(comm.code.trim().toUpperCase());
+        }
+      });
+
+      // Si un code est listé dans l'équipe mais n'a pas encore de boutique inscrite, créer un placeholder
+      team.affiliateCodes.forEach(code => {
+        const clean = code.trim().toUpperCase();
+        if (!teamCommercials.some(c => c.code.trim().toUpperCase() === clean)) {
+          teamCommercials.push({
+            code: clean,
+            totalShopsReferred: 0,
+            activeSubscribedShops: 0,
+            totalRevenueGenerated: 0,
+            totalCommissionAllTime: 0,
+            currentWeekRevenue: 0,
+            currentWeekPaidCount: 0,
+            currentWeekCommissionDue: 0,
+            currentWeekIsSettled: false,
+            settlements: [],
+            referredShops: []
+          });
+          assignedCodes.add(clean);
+        }
+      });
+
+      const totalShopsReferred = teamCommercials.reduce((sum, c) => sum + c.totalShopsReferred, 0);
+      const activeSubscribedShops = teamCommercials.reduce((sum, c) => sum + c.activeSubscribedShops, 0);
+      const totalRevenueGenerated = teamCommercials.reduce((sum, c) => sum + c.totalRevenueGenerated, 0);
+      const totalCommissionAllTime = teamCommercials.reduce((sum, c) => sum + c.totalCommissionAllTime, 0);
+      const currentWeekRevenue = teamCommercials.reduce((sum, c) => sum + c.currentWeekRevenue, 0);
+      const currentWeekPaidCount = teamCommercials.reduce((sum, c) => sum + c.currentWeekPaidCount, 0);
+      const currentWeekCommissionDue = teamCommercials.reduce((sum, c) => sum + c.currentWeekCommissionDue, 0);
+      const currentWeekIsSettled = teamCommercials.length > 0 && teamCommercials.every(c => c.currentWeekIsSettled || c.currentWeekCommissionDue === 0);
+
+      return {
+        team,
+        membersCount: team.affiliateCodes.length,
+        totalShopsReferred,
+        activeSubscribedShops,
+        totalRevenueGenerated,
+        totalCommissionAllTime,
+        currentWeekRevenue,
+        currentWeekPaidCount,
+        currentWeekCommissionDue,
+        currentWeekIsSettled,
+        commercials: teamCommercials.sort((a, b) => b.totalRevenueGenerated - a.totalRevenueGenerated)
+      };
+    });
+
+    const unassignedCommercials = allCommercials.filter(
+      c => !assignedCodes.has(c.code.trim().toUpperCase())
+    );
+
+    return {
+      teamsReports: teamsReports.sort((a, b) => b.totalRevenueGenerated - a.totalRevenueGenerated),
+      unassignedCommercials
+    };
+  },
+
+  /**
+   * Génère le lien WhatsApp avec le relevé de performance d'une équipe pour le Responsable
+   */
+  getWhatsAppTeamStatementUrl(teamReport: CommercialTeamReport): string {
+    const cleanPhone = (teamReport.team.leaderPhone || '').replace(/\D/g, '');
+    const phoneParam = cleanPhone.startsWith('226') ? cleanPhone : (cleanPhone ? `226${cleanPhone}` : '');
+
+    const currentSunday = this.getCurrentWeekSundayIso();
+    const currentMonday = this.getWeekMondayIso(currentSunday);
+
+    const membersBreakdown = teamReport.commercials.map(c => 
+      `• *${c.code}* : ${c.currentWeekPaidCount} abonnement(s) = *${c.currentWeekCommissionDue.toLocaleString('fr-FR')} F* (${c.activeSubscribedShops} abonnés actifs)`
+    ).join('\n');
+
+    const message = `🌟 *RELEVÉ HEBDOMADAIRE ÉQUIPE FASOCARNET (15%)* 🌟\n\n` +
+      `🏢 *Équipe* : *${teamReport.team.name}* ${teamReport.team.zone ? `(📍 ${teamReport.team.zone})` : ''}\n` +
+      `👑 *Responsable / Superviseur* : *${teamReport.team.leaderName || 'Non défini'}*\n` +
+      `📅 *Période* : Semaine du ${currentMonday} au Dimanche ${currentSunday}\n\n` +
+      `📊 *PERFORMANCES GLOBALES DE L'ÉQUIPE* :\n` +
+      `• Commerciaux actifs : *${teamReport.membersCount}*\n` +
+      `• Boutiques rattachées : *${teamReport.totalShopsReferred}*\n` +
+      `• Abonnements validés cette semaine : *${teamReport.currentWeekPaidCount}*\n` +
+      `• Chiffre d'affaires semaine : *${teamReport.currentWeekRevenue.toLocaleString('fr-FR')} FCFA*\n\n` +
+      `💰 *TOTAL COMMISSIONS À VERSER À L'ÉQUIPE (15%)* :\n` +
+      `👉 *${teamReport.currentWeekCommissionDue.toLocaleString('fr-FR')} FCFA* 👈\n` +
+      `_(Calculé à 300 FCFA par abonnement de 2000 FCFA)_\n\n` +
+      `📋 *Détail par Commercial* :\n` +
+      `${membersBreakdown || 'Aucune activité pour le moment'}\n\n` +
+      `🤝 Bravo à toute l'équipe pour ces résultats ! Rendez-vous au sommet 🚀\n` +
+      `Direction FasoCarnet.`;
 
     return phoneParam 
       ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`

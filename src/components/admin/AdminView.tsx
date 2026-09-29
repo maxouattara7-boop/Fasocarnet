@@ -4,11 +4,18 @@ import {
   MessageCircle, ArrowLeft, Eye, EyeOff, RefreshCw,
   BarChart3, Download, Users,
   MapPin, Send, CheckCircle2, Megaphone,
-  X, ChevronRight, Calendar, Phone, User, Building, FileText, Clock, Wallet
+  X, ChevronRight, Calendar, Phone, User, Building, FileText, Clock, Wallet,
+  Plus, Edit2, Zap
 } from 'lucide-react';
 import { adminService, AdminStats, ShopAdminDetails } from '../../db/services/adminService';
 import { syncService } from '../../db/services/syncService';
-import { ExtendedAdminAnalytics, AdminBroadcastMessage, CommercialAffiliateReport } from '../../types';
+import { 
+  ExtendedAdminAnalytics, 
+  AdminBroadcastMessage, 
+  CommercialAffiliateReport, 
+  CommercialTeam, 
+  CommercialTeamReport 
+} from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 
 interface AdminViewProps {
@@ -46,6 +53,25 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [analytics, setAnalytics] = useState<ExtendedAdminAnalytics | null>(null);
   const [shops, setShops] = useState<ShopAdminDetails[]>([]);
   const [affiliates, setAffiliates] = useState<CommercialAffiliateReport[]>([]);
+  const [teamsReports, setTeamsReports] = useState<CommercialTeamReport[]>([]);
+  const [unassignedCommercials, setUnassignedCommercials] = useState<CommercialAffiliateReport[]>([]);
+  const [affiliateSubTab, setAffiliateSubTab] = useState<'teams' | 'individual'>('teams');
+
+  // Modale création / édition d'équipe
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+  const [editingTeam, setEditingTeam] = useState<CommercialTeam | null>(null);
+  const [teamFormName, setTeamFormName] = useState('');
+  const [teamFormLeaderName, setTeamFormLeaderName] = useState('');
+  const [teamFormLeaderPhone, setTeamFormLeaderPhone] = useState('');
+  const [teamFormZone, setTeamFormZone] = useState('');
+  const [teamFormDescription, setTeamFormDescription] = useState('');
+  const [teamFormCodes, setTeamFormCodes] = useState<string[]>([]);
+  const [teamFormNewCodeInput, setTeamFormNewCodeInput] = useState('');
+  const [isSavingTeam, setIsSavingTeam] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<CommercialTeamReport | null>(null);
+  const [teamSuccessMsg, setTeamSuccessMsg] = useState('');
+  const [teamSearchQuery, setTeamSearchQuery] = useState('');
+
   const [selectedAffiliate, setSelectedAffiliate] = useState<CommercialAffiliateReport | null>(null);
   const [settleModalCommercial, setSettleModalCommercial] = useState<CommercialAffiliateReport | null>(null);
   const [settleMethod, setSettleMethod] = useState<'ORANGE_MONEY' | 'MOOV_MONEY' | 'WAVE' | 'CASH'>('ORANGE_MONEY');
@@ -169,18 +195,22 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const loadData = async () => {
     setIsRefreshing(true);
     try {
-      const [s, an, sh, bc, aff] = await Promise.all([
+      const [s, an, sh, bc, aff, teamsData] = await Promise.all([
         adminService.getAdminStats(),
         adminService.getExtendedAnalytics(),
         adminService.getAllShopsWithDetails(),
         adminService.getBroadcastMessage(),
-        adminService.getAffiliatesReports()
+        adminService.getAffiliatesReports(),
+        adminService.getCommercialTeamsReports()
       ]);
       setStats(s);
       setAnalytics(an);
       setShops(sh);
       setBroadcast(bc);
       setAffiliates(aff);
+      setTeamsReports(teamsData.teamsReports);
+      setUnassignedCommercials(teamsData.unassignedCommercials);
+
       if (bc) {
         setBroadcastTitle(bc.title);
         setBroadcastMessage(bc.message);
@@ -196,8 +226,100 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         const updatedAff = aff.find(item => item.code === selectedAffiliate.code);
         if (updatedAff) setSelectedAffiliate(updatedAff);
       }
+      // Mettre à jour selectedTeam si modal ouverte
+      if (selectedTeam) {
+        const updatedTeam = teamsData.teamsReports.find(t => t.team.id === selectedTeam.team.id);
+        if (updatedTeam) setSelectedTeam(updatedTeam);
+      }
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const handleOpenCreateTeamModal = () => {
+    setEditingTeam(null);
+    setTeamFormName('');
+    setTeamFormLeaderName('');
+    setTeamFormLeaderPhone('');
+    setTeamFormZone('');
+    setTeamFormDescription('');
+    setTeamFormCodes([]);
+    setTeamFormNewCodeInput('');
+    setIsTeamModalOpen(true);
+  };
+
+  const handleOpenEditTeamModal = (team: CommercialTeam) => {
+    setEditingTeam(team);
+    setTeamFormName(team.name);
+    setTeamFormLeaderName(team.leaderName || '');
+    setTeamFormLeaderPhone(team.leaderPhone || '');
+    setTeamFormZone(team.zone || '');
+    setTeamFormDescription(team.description || '');
+    setTeamFormCodes([...team.affiliateCodes]);
+    setTeamFormNewCodeInput('');
+    setIsTeamModalOpen(true);
+  };
+
+  const handleSaveTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!teamFormName.trim()) {
+      alert('Le nom de l\'équipe est obligatoire.');
+      return;
+    }
+    setIsSavingTeam(true);
+    try {
+      let finalCodes = [...teamFormCodes];
+      if (teamFormNewCodeInput.trim()) {
+        const extra = teamFormNewCodeInput.split(',').map(c => c.trim().toUpperCase()).filter(Boolean);
+        finalCodes = Array.from(new Set([...finalCodes, ...extra]));
+      }
+      await adminService.saveCommercialTeam({
+        id: editingTeam?.id,
+        name: teamFormName.trim(),
+        leaderName: teamFormLeaderName.trim() || undefined,
+        leaderPhone: teamFormLeaderPhone.trim() || undefined,
+        zone: teamFormZone.trim() || undefined,
+        description: teamFormDescription.trim() || undefined,
+        affiliateCodes: finalCodes
+      });
+      setTeamSuccessMsg(editingTeam ? `Équipe « ${teamFormName} » modifiée avec succès !` : `Équipe « ${teamFormName} » créée avec succès !`);
+      setIsTeamModalOpen(false);
+      await loadData();
+      setTimeout(() => setTeamSuccessMsg(''), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de l\'enregistrement de l\'équipe.');
+    } finally {
+      setIsSavingTeam(false);
+    }
+  };
+
+  const handleDeleteTeam = async (teamId: string, teamName: string) => {
+    if (confirm(`Voulez-vous vraiment supprimer l'équipe "${teamName}" ?\n\nLes commerciaux rattachés ne seront pas supprimés : ils redeviendront des commerciaux indépendants.`)) {
+      try {
+        await adminService.deleteCommercialTeam(teamId);
+        setTeamSuccessMsg(`Équipe « ${teamName} » supprimée.`);
+        await loadData();
+        setTimeout(() => setTeamSuccessMsg(''), 3000);
+      } catch (err: any) {
+        alert(err.message || 'Erreur lors de la suppression de l\'équipe.');
+      }
+    }
+  };
+
+  const handleOpenTeamWhatsApp = (teamReport: CommercialTeamReport) => {
+    const url = adminService.getWhatsAppTeamStatementUrl(teamReport);
+    window.open(url, '_blank');
+  };
+
+  const handleManualActivation = async (shopId: string, months: number = 1) => {
+    try {
+      const updated = await adminService.activateShopManually(shopId, months);
+      const planLabel = months >= 12 ? '1 an' : months >= 6 ? '6 mois' : months >= 3 ? '3 mois' : '1 mois';
+      setShopActionFeedback(`⚡ Abonnement de « ${updated.name} » activé manuellement avec succès pour ${planLabel} !`);
+      setTimeout(() => setShopActionFeedback(''), 4500);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de l\'activation manuelle.');
     }
   };
 
@@ -242,17 +364,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
       setAuthError('');
     } else {
       setAuthError('Mot de passe administrateur incorrect.');
-    }
-  };
-
-  const handleExtendShop = async (shopId: string, months: number) => {
-    try {
-      await adminService.extendShopLicense(shopId, months);
-      setShopActionFeedback(`Abonnement prolongé de +${months} mois avec succès !`);
-      setTimeout(() => setShopActionFeedback(''), 3500);
-      await loadData();
-    } catch (err: any) {
-      alert(err.message || 'Erreur lors de la prolongation.');
     }
   };
 
@@ -621,6 +732,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               </div>
             </div>
 
+            {/* Message de succès d'action boutique */}
+            {shopActionFeedback && (
+              <div className="p-3 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-bold rounded-2xl flex items-center space-x-2 animate-in fade-in shadow-lg">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{shopActionFeedback}</span>
+              </div>
+            )}
+
             {/* Liste épurée des boutiques (Nom, Date de création, Forfait en cours) */}
             {filteredShops.length === 0 ? (
               <div className="bg-slate-900 p-8 rounded-3xl text-center space-y-2 border border-slate-800">
@@ -645,6 +764,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                           <h4 className="font-black text-white text-sm sm:text-base group-hover:text-emerald-300 transition-colors break-words">
                             {shop.name}
                           </h4>
+                          {shop.referralCode && (
+                            <span className="px-2 py-0.2 bg-amber-500/15 text-amber-300 border border-amber-500/30 rounded-full text-[9px] font-mono font-bold">
+                              🤝 {shop.referralCode}
+                            </span>
+                          )}
                         </div>
                         <p className="text-[11px] text-slate-400 flex items-center space-x-1.5 mt-0.5">
                           <Calendar className="w-3 h-3 text-slate-500 shrink-0" />
@@ -659,6 +783,21 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                       </div>
 
                       <div className="flex items-center space-x-2 shrink-0">
+                        {/* Bouton d'activation manuelle rapide */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleManualActivation(shop.id, 1);
+                          }}
+                          className="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded-xl text-[10px] sm:text-xs font-black border border-emerald-500/30 transition-all flex items-center space-x-1 cursor-pointer font-display active:scale-95"
+                          title="Activer manuellement l'abonnement (+1 mois)"
+                        >
+                          <Zap className="w-3.5 h-3.5 text-amber-300" />
+                          <span className="hidden sm:inline">Activer</span>
+                          <span>+1m</span>
+                        </button>
+
                         <span className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider border ${badge.style}`}>
                           {badge.label}
                         </span>
@@ -822,7 +961,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
           </div>
         )}
 
-        {/* TAB AFFILIATION : GESTION DES COMMERCIAUX & COMMISSIONS (15% / 300 F) */}
+        {/* TAB AFFILIATION : GESTION DES COMMERCIAUX, ÉQUIPES & COMMISSIONS (15% / 300 F) */}
         {activeTab === 'affiliates' && (
           <div className="space-y-4 animate-in fade-in duration-150">
             {/* Bannière Récapitulative du Dimanche */}
@@ -890,220 +1029,788 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               );
             })()}
 
+            {/* Messages de retour */}
+            {teamSuccessMsg && (
+              <div className="p-3 bg-amber-950/70 border border-amber-500/50 text-amber-300 text-xs font-bold rounded-2xl flex items-center space-x-2 animate-in fade-in">
+                <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>{teamSuccessMsg}</span>
+              </div>
+            )}
             {affiliateSuccessMsg && (
-              <div className="p-3 bg-emerald-950/70 border border-emerald-500/50 text-emerald-300 text-xs font-bold rounded-xl flex items-center space-x-2 animate-in fade-in">
+              <div className="p-3 bg-emerald-950/70 border border-emerald-500/50 text-emerald-300 text-xs font-bold rounded-2xl flex items-center space-x-2 animate-in fade-in">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>{affiliateSuccessMsg}</span>
               </div>
             )}
 
-            {/* Barre de Recherche et Filtres */}
-            <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-800 space-y-3">
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            {/* SOUS-ONGLETS : ÉQUIPES VS INDIVIDUELS */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-slate-900 p-2.5 sm:p-3 rounded-2xl border border-slate-800">
+              <div className="flex space-x-1.5">
+                <button
+                  type="button"
+                  onClick={() => setAffiliateSubTab('teams')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-2 cursor-pointer font-display ${
+                    affiliateSubTab === 'teams'
+                      ? 'bg-amber-500 text-slate-950 shadow-md'
+                      : 'bg-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Building className="w-4 h-4" />
+                  <span>Équipes Commerciales ({teamsReports.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAffiliateSubTab('individual')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-2 cursor-pointer font-display ${
+                    affiliateSubTab === 'individual'
+                      ? 'bg-amber-500 text-slate-950 shadow-md'
+                      : 'bg-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Commerciaux Individuels ({affiliates.length})</span>
+                </button>
+              </div>
+
+              {affiliateSubTab === 'teams' && (
+                <button
+                  type="button"
+                  onClick={handleOpenCreateTeamModal}
+                  className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center space-x-1.5 shadow-md transition-all cursor-pointer font-display active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Créer une Équipe</span>
+                </button>
+              )}
+            </div>
+
+            {/* ========================================================= */}
+            {/* VUE 1 : GESTION DES ÉQUIPES COMMERCIALES & PERFORMANCES */}
+            {/* ========================================================= */}
+            {affiliateSubTab === 'teams' && (
+              <div className="space-y-3.5 animate-in fade-in duration-150">
+                {/* Barre de Recherche Équipes */}
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
-                    placeholder="Rechercher par code commercial (ex: ALI226)..."
-                    value={affiliateSearch}
-                    onChange={(e) => setAffiliateSearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                    placeholder="Rechercher une équipe par nom, zone, responsable ou code..."
+                    value={teamSearchQuery}
+                    onChange={(e) => setTeamSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
                   />
                 </div>
 
-                {/* Filtre d'état */}
-                <div className="flex items-center space-x-1.5 self-start sm:self-auto">
-                  <button
-                    type="button"
-                    onClick={() => setAffiliateFilter('all')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      affiliateFilter === 'all'
-                        ? 'bg-amber-600 text-white shadow-xs'
-                        : 'bg-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Tous ({affiliates.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAffiliateFilter('due')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      affiliateFilter === 'due'
-                        ? 'bg-amber-600 text-white shadow-xs'
-                        : 'bg-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    À verser ({affiliates.filter(a => !a.currentWeekIsSettled && a.currentWeekCommissionDue > 0).length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAffiliateFilter('settled')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      affiliateFilter === 'settled'
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'bg-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Réglés ({affiliates.filter(a => a.currentWeekIsSettled).length})
-                  </button>
-                </div>
-              </div>
+                {/* Liste des Équipes */}
+                {(() => {
+                  const filteredTeams = teamsReports.filter(tr => {
+                    const q = teamSearchQuery.toLowerCase();
+                    const inName = tr.team.name.toLowerCase().includes(q);
+                    const inLeader = (tr.team.leaderName || '').toLowerCase().includes(q);
+                    const inZone = (tr.team.zone || '').toLowerCase().includes(q);
+                    const inCodes = tr.team.affiliateCodes.some(c => c.toLowerCase().includes(q));
+                    return inName || inLeader || inZone || inCodes;
+                  });
 
-              {/* Liste des Commerciaux */}
-              {(() => {
-                const filteredAffiliates = affiliates.filter(a => {
-                  const matchQuery = a.code.toLowerCase().includes(affiliateSearch.toLowerCase()) ||
-                    (a.name && a.name.toLowerCase().includes(affiliateSearch.toLowerCase()));
-                  if (!matchQuery) return false;
-                  if (affiliateFilter === 'due') return !a.currentWeekIsSettled && a.currentWeekCommissionDue > 0;
-                  if (affiliateFilter === 'settled') return a.currentWeekIsSettled;
-                  return true;
-                });
-
-                if (filteredAffiliates.length === 0) {
-                  return (
-                    <div className="text-center py-10 text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl space-y-1">
-                      <Users className="w-8 h-8 text-slate-600 mx-auto mb-1 opacity-50" />
-                      <span className="font-bold text-slate-400 block">Aucun commercial trouvé</span>
-                      <p className="text-[11px]">
-                        Les commerçants qui s'inscrivent avec un code commercial (ex: <code>ALI226</code>) s'afficheront automatiquement ici.
-                      </p>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="space-y-3 pt-1">
-                    {filteredAffiliates.map((commercial) => {
-                      const isDue = !commercial.currentWeekIsSettled && commercial.currentWeekCommissionDue > 0;
-                      const isExpanded = selectedAffiliate?.code === commercial.code;
-
-                      return (
-                        <div
-                          key={commercial.code}
-                          className="bg-slate-800/80 border border-slate-700/80 hover:border-slate-600 rounded-2xl p-3.5 sm:p-4 space-y-3 transition-all shadow-xs"
+                  if (teamsReports.length === 0) {
+                    return (
+                      <div className="bg-slate-900 p-8 rounded-3xl text-center space-y-3 border border-slate-800">
+                        <Building className="w-12 h-12 text-slate-600 mx-auto" />
+                        <h4 className="font-bold text-sm text-slate-300">Aucune équipe commerciale créée</h4>
+                        <p className="text-xs text-slate-500 max-w-md mx-auto">
+                          Regroupez vos commerciaux en équipes (ex: Équipe Ouaga Nord, Bobo Centre) pour suivre leur performance collective et envoyer les relevés hebdomadaires aux chefs d'équipe.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleOpenCreateTeamModal}
+                          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl inline-flex items-center space-x-2 font-display cursor-pointer transition-all"
                         >
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                            {/* Titre / Code du commercial */}
-                            <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-600 to-amber-800 text-white font-black text-sm flex items-center justify-center font-mono shadow-xs shrink-0">
-                                {commercial.code.slice(0, 2)}
-                              </div>
-                              <div>
-                                <div className="flex items-center space-x-2">
-                                  <h4 className="font-extrabold text-white text-sm font-mono tracking-wider">
-                                    {commercial.code}
+                          <Plus className="w-4 h-4" />
+                          <span>Créer la première équipe</span>
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  if (filteredTeams.length === 0) {
+                    return (
+                      <div className="bg-slate-900 p-6 rounded-2xl text-center text-slate-500 text-xs border border-slate-800">
+                        Aucune équipe ne correspond à votre recherche « {teamSearchQuery} ».
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-3">
+                      {filteredTeams.map((teamReport) => {
+                        const { team } = teamReport;
+                        const isExpanded = selectedTeam?.team.id === team.id;
+                        const isDue = teamReport.currentWeekCommissionDue > 0 && !teamReport.currentWeekIsSettled;
+
+                        return (
+                          <div
+                            key={team.id}
+                            className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-3xl p-4 sm:p-5 space-y-3.5 transition-all shadow-sm"
+                          >
+                            {/* En-tête de la carte Équipe */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+                              <div className="space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 font-black text-xs flex items-center justify-center border border-amber-500/30">
+                                    <Building className="w-4 h-4" />
+                                  </div>
+                                  <h4 className="font-black text-white text-base font-display">
+                                    {team.name}
                                   </h4>
+                                  {team.zone && (
+                                    <span className="px-2.5 py-0.5 bg-slate-800 text-amber-300 border border-slate-700 rounded-full text-[10px] font-bold flex items-center space-x-1">
+                                      <MapPin className="w-3 h-3 text-amber-400" />
+                                      <span>{team.zone}</span>
+                                    </span>
+                                  )}
                                   {isDue ? (
                                     <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/40">
-                                      À verser ce Dimanche
+                                      À verser Dimanche
                                     </span>
-                                  ) : commercial.currentWeekIsSettled ? (
+                                  ) : teamReport.currentWeekIsSettled ? (
                                     <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
                                       ✓ Réglé
                                     </span>
                                   ) : (
-                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-700 text-slate-400">
+                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-800 text-slate-400">
                                       0 F cette semaine
                                     </span>
                                   )}
                                 </div>
-                                <span className="text-[11px] text-slate-400">
-                                  {commercial.totalShopsReferred} boutique(s) rattachée(s) • {commercial.activeSubscribedShops} abonnement(s) actif(s)
-                                </span>
+
+                                <p className="text-[11px] text-slate-400 flex flex-wrap items-center gap-x-2">
+                                  <span>👑 Responsable : <strong className="text-slate-200">{team.leaderName || 'Non assigné'}</strong></span>
+                                  {team.leaderPhone && (
+                                    <>
+                                      <span className="text-slate-600">•</span>
+                                      <span className="text-emerald-400 font-mono">📞 {team.leaderPhone}</span>
+                                    </>
+                                  )}
+                                  {team.description && (
+                                    <>
+                                      <span className="text-slate-600">•</span>
+                                      <span className="text-slate-400 italic">« {team.description} »</span>
+                                    </>
+                                  )}
+                                </p>
                               </div>
-                            </div>
 
-                            {/* Montant de la commission pour la semaine */}
-                            <div className="flex items-center space-x-2 sm:space-x-3 self-end sm:self-auto">
-                              <div className="text-right">
-                                <span className="text-[10px] text-slate-400 uppercase font-bold block">Commission Dimanche</span>
-                                <span className={`text-base sm:text-lg font-black font-mono block ${isDue ? 'text-amber-400' : 'text-slate-300'}`}>
-                                  {commercial.currentWeekCommissionDue.toLocaleString('fr-FR')} FCFA
-                                </span>
-                              </div>
-
-                              {/* Bouton Action WhatsApp Relevé */}
-                              <button
-                                type="button"
-                                onClick={() => handleOpenAffiliateWhatsApp(commercial)}
-                                className="p-2 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] rounded-xl border border-[#25D366]/30 transition-all cursor-pointer"
-                                title="Envoyer le relevé de la semaine sur WhatsApp"
-                              >
-                                <MessageCircle className="w-4 h-4" />
-                              </button>
-
-                              {/* Bouton Régler ce dimanche */}
-                              {isDue && (
+                              {/* Actions rapides sur l'équipe */}
+                              <div className="flex items-center space-x-2 self-end sm:self-auto">
                                 <button
                                   type="button"
-                                  onClick={() => setSettleModalCommercial(commercial)}
-                                  className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs shadow-xs active:scale-95 transition-all cursor-pointer font-display"
+                                  onClick={() => handleOpenTeamWhatsApp(teamReport)}
+                                  className="px-3 py-1.5 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] rounded-xl text-xs font-bold border border-[#25D366]/30 transition-all flex items-center space-x-1.5 cursor-pointer font-display"
+                                  title="Envoyer le relevé de l'équipe au Chef d'équipe sur WhatsApp"
                                 >
-                                  Régler ➔
+                                  <MessageCircle className="w-3.5 h-3.5" />
+                                  <span className="hidden sm:inline">WhatsApp Chef</span>
                                 </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditTeamModal(team)}
+                                  className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-all cursor-pointer"
+                                  title="Modifier l'équipe"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTeam(team.id, team.name)}
+                                  className="p-2 bg-red-950/40 hover:bg-red-900/80 text-red-400 hover:text-red-200 rounded-xl transition-all cursor-pointer"
+                                  title="Supprimer l'équipe"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Codes des commerciaux rattachés */}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider mr-1">
+                                Membres ({teamReport.membersCount}) :
+                              </span>
+                              {team.affiliateCodes.length === 0 ? (
+                                <span className="text-[11px] text-amber-400/80 italic">
+                                  Aucun commercial assigné. Cliquez sur Modifier pour ajouter des codes.
+                                </span>
+                              ) : (
+                                team.affiliateCodes.map(code => (
+                                  <span
+                                    key={code}
+                                    className="px-2.5 py-0.5 rounded-lg bg-slate-800 border border-slate-700 text-amber-300 font-mono text-[11px] font-bold"
+                                  >
+                                    {code}
+                                  </span>
+                                ))
                               )}
                             </div>
-                          </div>
 
-                          {/* Accordéon Boutiques Rattachées */}
-                          <div className="border-t border-slate-700/60 pt-2.5 flex items-center justify-between text-xs">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedAffiliate(isExpanded ? null : commercial)}
-                              className="text-amber-400 hover:text-amber-300 font-bold flex items-center space-x-1 cursor-pointer"
-                            >
-                              <span>{isExpanded ? 'Masquer les boutiques' : `Voir les ${commercial.referredShops.length} boutique(s)`}</span>
-                              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                            </button>
+                            {/* Grille KPIs de performance de l'équipe */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-center">
+                              <div className="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+                                <span className="text-[10px] text-slate-400 font-bold block">Boutiques Rattachées</span>
+                                <span className="text-base font-black text-white font-mono">{teamReport.totalShopsReferred}</span>
+                                <span className="text-[9px] text-emerald-400 block">{teamReport.activeSubscribedShops} abonnés actifs</span>
+                              </div>
 
-                            <span className="text-[11px] text-slate-400">
-                              Total historique gagné : <strong className="text-white font-mono">{commercial.totalCommissionAllTime.toLocaleString('fr-FR')} F</strong>
-                            </span>
-                          </div>
+                              <div className="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+                                <span className="text-[10px] text-slate-400 font-bold block">Abonnements Semaine</span>
+                                <span className="text-base font-black text-emerald-400 font-mono">{teamReport.currentWeekPaidCount}</span>
+                                <span className="text-[9px] text-slate-400 block">{teamReport.currentWeekRevenue.toLocaleString('fr-FR')} F CA</span>
+                              </div>
 
-                          {/* Détails déroulants des boutiques parrainées */}
-                          {isExpanded && (
-                            <div className="space-y-1.5 pt-1 border-t border-slate-700/40 animate-in fade-in">
-                              {commercial.referredShops.map((shop) => (
-                                <div
-                                  key={shop.id}
-                                  className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 flex items-center justify-between text-xs"
-                                >
-                                  <div className="space-y-0.5 min-w-0">
-                                    <div className="flex items-center space-x-1.5">
-                                      <span className="font-bold text-white truncate">{shop.name}</span>
-                                      {shop.isSubscribed ? (
-                                        <span className="px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded text-[9px] font-black uppercase font-mono">
-                                          Abonné (+{shop.commissionAmount} F)
-                                        </span>
-                                      ) : (
-                                        <span className="px-1.5 py-0.2 bg-slate-800 text-slate-400 rounded text-[9px] font-medium">
-                                          Essai / Inactif
-                                        </span>
+                              <div className="bg-gradient-to-br from-amber-950/40 to-slate-800 p-2.5 rounded-xl border border-amber-500/40 shadow-inner">
+                                <span className="text-[10px] text-amber-300 font-black block uppercase">Commission Dimanche (15%)</span>
+                                <span className="text-base font-black text-amber-400 font-mono">{teamReport.currentWeekCommissionDue.toLocaleString('fr-FR')} F</span>
+                                <span className="text-[9px] text-amber-300/80 block">300 F / abonnement</span>
+                              </div>
+
+                              <div className="bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/60">
+                                <span className="text-[10px] text-slate-400 font-bold block">CA Total Historique</span>
+                                <span className="text-base font-black text-slate-200 font-mono">{teamReport.totalRevenueGenerated.toLocaleString('fr-FR')} F</span>
+                                <span className="text-[9px] text-slate-500 block">Commissions : {teamReport.totalCommissionAllTime.toLocaleString('fr-FR')} F</span>
+                              </div>
+                            </div>
+
+                            {/* Accordéon pour voir le détail de chaque commercial dans l'équipe */}
+                            <div className="border-t border-slate-800 pt-2.5 flex items-center justify-between text-xs">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedTeam(isExpanded ? null : teamReport)}
+                                className="text-amber-400 hover:text-amber-300 font-bold flex items-center space-x-1.5 cursor-pointer font-display"
+                              >
+                                <span>{isExpanded ? 'Masquer les performances des membres' : `Voir le détail des ${teamReport.commercials.length} commercial(aux)`}</span>
+                                <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                              </button>
+                            </div>
+
+                            {/* Détail déroulant des membres de l'équipe */}
+                            {isExpanded && (
+                              <div className="space-y-2 pt-2 border-t border-slate-800 animate-in fade-in">
+                                {teamReport.commercials.length === 0 ? (
+                                  <p className="text-xs text-slate-500 italic text-center py-2">
+                                    Aucun commercial actif dans cette équipe.
+                                  </p>
+                                ) : (
+                                  teamReport.commercials.map((comm) => (
+                                    <div
+                                      key={comm.code}
+                                      className="p-3 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-2"
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-2">
+                                          <span className="font-mono font-black text-amber-300 text-xs px-2 py-0.5 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                                            {comm.code}
+                                          </span>
+                                          <span className="text-[11px] text-slate-400">
+                                            {comm.totalShopsReferred} boutique(s) • {comm.activeSubscribedShops} abonné(s)
+                                          </span>
+                                        </div>
+
+                                        <div className="text-right font-mono text-xs">
+                                          <span className="text-amber-400 font-black">
+                                            {comm.currentWeekCommissionDue.toLocaleString('fr-FR')} FCFA
+                                          </span>
+                                          <span className="text-[10px] text-slate-500 block">
+                                            ({comm.currentWeekPaidCount} cette semaine)
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      {/* Boutiques du commercial */}
+                                      {comm.referredShops.length > 0 && (
+                                        <div className="space-y-1 pt-1 border-t border-slate-900">
+                                          {comm.referredShops.map(sh => (
+                                            <div key={sh.id} className="flex items-center justify-between text-[10px] text-slate-300 pl-2">
+                                              <span>• {sh.name} {sh.city ? `(${sh.city})` : ''}</span>
+                                              <span className={sh.isSubscribed ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
+                                                {sh.isSubscribed ? `Abonné (+${sh.commissionAmount} F)` : 'Essai / Inactif'}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
                                       )}
                                     </div>
-                                    <span className="text-[10px] text-slate-400 block font-mono">
-                                      📞 {shop.phone} {shop.city ? `• 📍 ${shop.city}` : ''}
-                                    </span>
-                                  </div>
+                                  ))
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
 
-                                  <div className="text-right shrink-0 font-mono text-[11px]">
-                                    <span className={shop.isSubscribed ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
-                                      {shop.isSubscribed ? `+${shop.commissionAmount} F (15%)` : '0 F'}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                {/* Section Commerciaux Indépendants (Sans Équipe) */}
+                {unassignedCommercials.length > 0 && (
+                  <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-4 sm:p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2 text-slate-300">
+                        <User className="w-4 h-4 text-amber-400" />
+                        <h4 className="font-bold text-xs sm:text-sm font-display">
+                          Commerciaux Indépendants / Sans Équipe ({unassignedCommercials.length})
+                        </h4>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleOpenCreateTeamModal}
+                        className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg text-[11px] font-bold border border-amber-500/30 transition-all cursor-pointer"
+                      >
+                        + Créer une équipe pour ces codes
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {unassignedCommercials.map(comm => (
+                        <div
+                          key={comm.code}
+                          className="p-2 bg-slate-800/80 border border-slate-700/80 rounded-xl flex items-center space-x-2 text-xs"
+                        >
+                          <span className="font-mono font-black text-white">{comm.code}</span>
+                          <span className="text-[10px] text-slate-400">({comm.totalShopsReferred} bq.)</span>
+                          <span className="text-[10px] font-mono text-amber-400 font-bold">
+                            {comm.currentWeekCommissionDue > 0 ? `${comm.currentWeekCommissionDue} F` : '0 F'}
+                          </span>
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
-                );
-              })()}
-            </div>
+                )}
+              </div>
+            )}
+
+            {/* ========================================================= */}
+            {/* VUE 2 : LISTE INDIVIDUELLE DES COMMERCIAUX & RÈGLEMENTS */}
+            {/* ========================================================= */}
+            {affiliateSubTab === 'individual' && (
+              <div className="bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-800 space-y-3 animate-in fade-in duration-150">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Rechercher par code commercial (ex: ALI226)..."
+                      value={affiliateSearch}
+                      onChange={(e) => setAffiliateSearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                    />
+                  </div>
+
+                  {/* Filtre d'état */}
+                  <div className="flex items-center space-x-1.5 self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setAffiliateFilter('all')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        affiliateFilter === 'all'
+                          ? 'bg-amber-600 text-white shadow-xs'
+                          : 'bg-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Tous ({affiliates.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAffiliateFilter('due')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        affiliateFilter === 'due'
+                          ? 'bg-amber-600 text-white shadow-xs'
+                          : 'bg-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      À verser ({affiliates.filter(a => !a.currentWeekIsSettled && a.currentWeekCommissionDue > 0).length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAffiliateFilter('settled')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        affiliateFilter === 'settled'
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Réglés ({affiliates.filter(a => a.currentWeekIsSettled).length})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Liste des Commerciaux */}
+                {(() => {
+                  const filteredAffiliates = affiliates.filter(a => {
+                    const matchQuery = a.code.toLowerCase().includes(affiliateSearch.toLowerCase()) ||
+                      (a.name && a.name.toLowerCase().includes(affiliateSearch.toLowerCase()));
+                    if (!matchQuery) return false;
+                    if (affiliateFilter === 'due') return !a.currentWeekIsSettled && a.currentWeekCommissionDue > 0;
+                    if (affiliateFilter === 'settled') return a.currentWeekIsSettled;
+                    return true;
+                  });
+
+                  if (filteredAffiliates.length === 0) {
+                    return (
+                      <div className="text-center py-10 text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl space-y-1">
+                        <Users className="w-8 h-8 text-slate-600 mx-auto mb-1 opacity-50" />
+                        <span className="font-bold text-slate-400 block">Aucun commercial trouvé</span>
+                        <p className="text-[11px]">
+                          Les commerçants qui s'inscrivent avec un code commercial (ex: <code>ALI226</code>) s'afficheront automatiquement ici.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-3 pt-1">
+                      {filteredAffiliates.map((commercial) => {
+                        const isDue = !commercial.currentWeekIsSettled && commercial.currentWeekCommissionDue > 0;
+                        const isExpanded = selectedAffiliate?.code === commercial.code;
+                        const assignedTeam = teamsReports.find(tr => tr.team.affiliateCodes.includes(commercial.code));
+
+                        return (
+                          <div
+                            key={commercial.code}
+                            className="bg-slate-800/80 border border-slate-700/80 hover:border-slate-600 rounded-2xl p-3.5 sm:p-4 space-y-3 transition-all shadow-xs"
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                              {/* Titre / Code du commercial */}
+                              <div className="flex items-center space-x-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-600 to-amber-800 text-white font-black text-sm flex items-center justify-center font-mono shadow-xs shrink-0">
+                                  {commercial.code.slice(0, 2)}
+                                </div>
+                                <div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <h4 className="font-extrabold text-white text-sm font-mono tracking-wider">
+                                      {commercial.code}
+                                    </h4>
+                                    {assignedTeam ? (
+                                      <span className="px-2 py-0.2 bg-slate-900 border border-slate-700 text-amber-300 rounded text-[9px] font-bold">
+                                        🏢 {assignedTeam.team.name}
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-0.2 bg-slate-900 border border-slate-700 text-slate-400 rounded text-[9px]">
+                                        Indépendant
+                                      </span>
+                                    )}
+                                    {isDue ? (
+                                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/40">
+                                        À verser ce Dimanche
+                                      </span>
+                                    ) : commercial.currentWeekIsSettled ? (
+                                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
+                                        ✓ Réglé
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-700 text-slate-400">
+                                        0 F cette semaine
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="text-[11px] text-slate-400">
+                                    {commercial.totalShopsReferred} boutique(s) rattachée(s) • {commercial.activeSubscribedShops} abonnement(s) actif(s)
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Montant de la commission pour la semaine */}
+                              <div className="flex items-center space-x-2 sm:space-x-3 self-end sm:self-auto">
+                                <div className="text-right">
+                                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Commission Dimanche</span>
+                                  <span className={`text-base sm:text-lg font-black font-mono block ${isDue ? 'text-amber-400' : 'text-slate-300'}`}>
+                                    {commercial.currentWeekCommissionDue.toLocaleString('fr-FR')} FCFA
+                                  </span>
+                                </div>
+
+                                {/* Bouton Action WhatsApp Relevé */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAffiliateWhatsApp(commercial)}
+                                  className="p-2 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] rounded-xl border border-[#25D366]/30 transition-all cursor-pointer"
+                                  title="Envoyer le relevé de la semaine sur WhatsApp"
+                                >
+                                  <MessageCircle className="w-4 h-4" />
+                                </button>
+
+                                {/* Bouton Régler ce dimanche */}
+                                {isDue && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSettleModalCommercial(commercial)}
+                                    className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs shadow-xs active:scale-95 transition-all cursor-pointer font-display"
+                                  >
+                                    Régler ➔
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Accordéon Boutiques Rattachées */}
+                            <div className="border-t border-slate-700/60 pt-2.5 flex items-center justify-between text-xs">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedAffiliate(isExpanded ? null : commercial)}
+                                className="text-amber-400 hover:text-amber-300 font-bold flex items-center space-x-1 cursor-pointer"
+                              >
+                                <span>{isExpanded ? 'Masquer les boutiques' : `Voir les ${commercial.referredShops.length} boutique(s)`}</span>
+                                <ChevronRight className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                              </button>
+
+                              <span className="text-[11px] text-slate-400">
+                                Total historique gagné : <strong className="text-white font-mono">{commercial.totalCommissionAllTime.toLocaleString('fr-FR')} F</strong>
+                              </span>
+                            </div>
+
+                            {/* Détails déroulants des boutiques parrainées */}
+                            {isExpanded && (
+                              <div className="space-y-1.5 pt-1 border-t border-slate-700/40 animate-in fade-in">
+                                {commercial.referredShops.map((shop) => (
+                                  <div
+                                    key={shop.id}
+                                    className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 flex items-center justify-between text-xs"
+                                  >
+                                    <div className="space-y-0.5 min-w-0">
+                                      <div className="flex items-center space-x-1.5">
+                                        <span className="font-bold text-white truncate">{shop.name}</span>
+                                        {shop.isSubscribed ? (
+                                          <span className="px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded text-[9px] font-black uppercase font-mono">
+                                            Abonné (+{shop.commissionAmount} F)
+                                          </span>
+                                        ) : (
+                                          <span className="px-1.5 py-0.2 bg-slate-800 text-slate-400 rounded text-[9px] font-medium">
+                                            Essai / Inactif
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-[10px] text-slate-400 block font-mono">
+                                        📞 {shop.phone} {shop.city ? `• 📍 ${shop.city}` : ''}
+                                      </span>
+                                    </div>
+
+                                    <div className="text-right shrink-0 font-mono text-[11px]">
+                                      <span className={shop.isSubscribed ? 'text-emerald-400 font-bold' : 'text-slate-500'}>
+                                        {shop.isSubscribed ? `+${shop.commissionAmount} F (15%)` : '0 F'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* MODALE DE CRÉATION / MODIFICATION D'ÉQUIPE */}
+            {isTeamModalOpen && (
+              <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
+                <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 sm:p-6 w-full max-w-lg shadow-2xl space-y-4 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div className="flex items-center space-x-2 text-amber-400">
+                      <Building className="w-5 h-5" />
+                      <h3 className="font-black text-white text-sm sm:text-base font-display">
+                        {editingTeam ? 'Modifier l\'Équipe Commerciale' : 'Créer une Nouvelle Équipe Commerciale'}
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsTeamModalOpen(false)}
+                      className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSaveTeam} className="space-y-3.5">
+                    {/* Nom de l'équipe */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                        Nom de l'équipe *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ex: Équipe Ouaga Nord, Équipe Bobo Espoir"
+                        value={teamFormName}
+                        onChange={(e) => setTeamFormName(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                      />
+                    </div>
+
+                    {/* Responsable & Téléphone */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                          Nom du Responsable / Chef
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Moussa SAWADOGO"
+                          value={teamFormLeaderName}
+                          onChange={(e) => setTeamFormLeaderName(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                          Téléphone WhatsApp du Responsable
+                        </label>
+                        <input
+                          type="tel"
+                          placeholder="Ex: 70 12 34 56"
+                          value={teamFormLeaderPhone}
+                          onChange={(e) => setTeamFormLeaderPhone(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Zone & Description */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                          Zone / Ville d'intervention
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Ouagadougou, Bobo, Koudougou"
+                          value={teamFormZone}
+                          onChange={(e) => setTeamFormZone(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                          Description / Objectifs
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Marché central, Rood-Woko..."
+                          value={teamFormDescription}
+                          onChange={(e) => setTeamFormDescription(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Codes d'affiliation assignés */}
+                    <div className="space-y-2 pt-1 border-t border-slate-800">
+                      <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+                        Codes Commerciaux Rattachés à cette Équipe
+                      </label>
+
+                      {/* Tags des codes déjà ajoutés */}
+                      <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-slate-950 rounded-xl border border-slate-800">
+                        {teamFormCodes.length === 0 ? (
+                          <span className="text-[11px] text-slate-500 italic">
+                            Aucun code rattaché. Ajoutez-en ci-dessous ou cliquez sur les suggestions.
+                          </span>
+                        ) : (
+                          teamFormCodes.map(code => (
+                            <span
+                              key={code}
+                              className="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-mono font-bold flex items-center space-x-1"
+                            >
+                              <span>{code}</span>
+                              <button
+                                type="button"
+                                onClick={() => setTeamFormCodes(teamFormCodes.filter(c => c !== code))}
+                                className="hover:text-red-400 ml-1 cursor-pointer"
+                              >
+                                &times;
+                              </button>
+                            </span>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Saisie d'un nouveau code */}
+                      <div className="flex space-x-2">
+                        <input
+                          type="text"
+                          placeholder="Code commercial (ex: ALI226)"
+                          value={teamFormNewCodeInput}
+                          onChange={(e) => setTeamFormNewCodeInput(e.target.value.toUpperCase())}
+                          className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!teamFormNewCodeInput.trim()) return;
+                            const clean = teamFormNewCodeInput.trim().toUpperCase();
+                            if (!teamFormCodes.includes(clean)) {
+                              setTeamFormCodes([...teamFormCodes, clean]);
+                            }
+                            setTeamFormNewCodeInput('');
+                          }}
+                          className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-xl cursor-pointer transition-all"
+                        >
+                          + Ajouter
+                        </button>
+                      </div>
+
+                      {/* Suggestions des codes existants */}
+                      {affiliates.filter(a => !teamFormCodes.includes(a.code)).length > 0 && (
+                        <div className="space-y-1 pt-1">
+                          <span className="text-[10px] text-slate-400 font-bold block">
+                            Codes existants disponibles (cliquez pour ajouter) :
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {affiliates
+                              .filter(a => !teamFormCodes.includes(a.code))
+                              .map(a => (
+                                <button
+                                  key={a.code}
+                                  type="button"
+                                  onClick={() => setTeamFormCodes([...teamFormCodes, a.code])}
+                                  className="px-2 py-0.5 bg-slate-800 hover:bg-amber-600/30 hover:text-amber-200 text-slate-300 rounded text-[10px] font-mono border border-slate-700 cursor-pointer transition-colors"
+                                >
+                                  + {a.code}
+                                </button>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center space-x-2 pt-2 border-t border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setIsTeamModalOpen(false)}
+                        className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSavingTeam}
+                        className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs shadow-md active:scale-98 transition-all flex items-center justify-center space-x-1.5 cursor-pointer font-display disabled:opacity-50"
+                      >
+                        {isSavingTeam ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Enregistrement...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4" />
+                            <span>{editingTeam ? 'Enregistrer Modifications' : 'Créer l\'Équipe'}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
 
             {/* MODALE DE RÈGLEMENT DU DIMANCHE */}
             {settleModalCommercial && (
@@ -1723,34 +2430,59 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               </div>
             </div>
 
-            {/* Actions Super-Admin sur la boutique */}
+            {/* BLOC ACTIVATION MANUELLE EN CAS DE PROBLÈME TECHNIQUE OU PAIEMENT DIRECT */}
+            <div className="bg-gradient-to-br from-emerald-950/70 via-slate-900 to-slate-950 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-emerald-500/40 shadow-inner space-y-3">
+              <div className="flex items-start space-x-2.5 text-emerald-300">
+                <Zap className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-black text-xs sm:text-sm text-white font-display">
+                    Activation Manuelle Immédiate (Super-Admin)
+                  </h4>
+                  <p className="text-[11px] text-slate-400">
+                    Débloque ou active instantanément l'abonnement du commerçant en cas de difficulté technique après paiement ou pour un accord direct.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleManualActivation(selectedShop.id, 1)}
+                  className="p-2.5 bg-slate-800/90 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold rounded-xl border border-slate-700 hover:border-emerald-500 transition-all text-center cursor-pointer font-display shadow-xs"
+                >
+                  <span className="block font-black text-amber-300">+1 Mois</span>
+                  <span className="text-[10px] text-slate-400 block font-normal">2 000 FCFA</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleManualActivation(selectedShop.id, 3)}
+                  className="p-2.5 bg-slate-800/90 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold rounded-xl border border-slate-700 hover:border-emerald-500 transition-all text-center cursor-pointer font-display shadow-xs"
+                >
+                  <span className="block font-black text-amber-300">+3 Mois</span>
+                  <span className="text-[10px] text-slate-400 block font-normal">6 000 FCFA</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleManualActivation(selectedShop.id, 6)}
+                  className="p-2.5 bg-slate-800/90 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold rounded-xl border border-slate-700 hover:border-emerald-500 transition-all text-center cursor-pointer font-display shadow-xs"
+                >
+                  <span className="block font-black text-amber-300">+6 Mois</span>
+                  <span className="text-[10px] text-slate-400 block font-normal">10 000 FCFA</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleManualActivation(selectedShop.id, 12)}
+                  className="p-2.5 bg-slate-800/90 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold rounded-xl border border-slate-700 hover:border-emerald-500 transition-all text-center cursor-pointer font-display shadow-xs"
+                >
+                  <span className="block font-black text-emerald-300">+1 An (Promo)</span>
+                  <span className="text-[10px] text-slate-400 block font-normal">20 000 FCFA</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Actions complémentaires sur la boutique */}
             <div className="space-y-3 pt-2 border-t border-slate-800">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-                <div className="flex items-center space-x-1.5 flex-1">
-                  <span className="text-[11px] font-black uppercase text-slate-400 shrink-0 font-display">Prolonger :</span>
-                  <button
-                    type="button"
-                    onClick={() => handleExtendShop(selectedShop.id, 1)}
-                    className="flex-1 py-2 px-2 bg-slate-800 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl border border-slate-700 transition-all font-display cursor-pointer text-center"
-                  >
-                    +1 Mois
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleExtendShop(selectedShop.id, 6)}
-                    className="flex-1 py-2 px-2 bg-slate-800 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl border border-slate-700 transition-all font-display cursor-pointer text-center"
-                  >
-                    +6 Mois
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleExtendShop(selectedShop.id, 12)}
-                    className="flex-1 py-2 px-2 bg-slate-800 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl border border-slate-700 transition-all font-display cursor-pointer text-center"
-                  >
-                    +1 An
-                  </button>
-                </div>
-
                 <a
                   href={adminService.getWhatsAppReminderUrl(selectedShop)}
                   target="_blank"
@@ -1758,16 +2490,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                   className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center justify-center space-x-1.5 shadow-md transition-all cursor-pointer font-display shrink-0"
                 >
                   <MessageCircle className="w-4 h-4" />
-                  <span>Contacter WhatsApp</span>
+                  <span>Contacter le commerçant sur WhatsApp</span>
                 </a>
-              </div>
 
-              {/* Bouton de Suppression Définitive */}
-              <div className="pt-2 border-t border-slate-800/60 flex justify-end">
+                {/* Bouton de Suppression Définitive */}
                 <button
                   type="button"
                   onClick={() => handleDeleteShop(selectedShop.id, selectedShop.name)}
-                  className="w-full sm:w-auto px-4 py-2.5 bg-red-950/40 hover:bg-red-900/80 text-red-300 hover:text-red-100 text-xs font-bold rounded-xl border border-red-800/60 flex items-center justify-center space-x-2 transition-all cursor-pointer font-display"
+                  className="px-4 py-2.5 bg-red-950/40 hover:bg-red-900/80 text-red-300 hover:text-red-100 text-xs font-bold rounded-xl border border-red-800/60 flex items-center justify-center space-x-2 transition-all cursor-pointer font-display"
                 >
                   <Trash2 className="w-4 h-4 text-red-400" />
                   <span>Supprimer définitivement ce compte</span>
