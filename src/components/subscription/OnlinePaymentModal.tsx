@@ -242,19 +242,36 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
                 </div>
               </div>
 
-              {/* Résumé de l'opération */}
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1.5 text-xs">
+              {/* Résumé de l'opération & Opérateurs Burkina Faso */}
+              <div className="p-3.5 bg-gradient-to-br from-slate-50 to-emerald-50/40 rounded-xl border border-emerald-100 space-y-2 text-xs">
                 <div className="flex justify-between text-slate-600">
                   <span>Commerce :</span>
                   <span className="font-bold text-slate-900">{shopProfile.name || 'Ma Boutique'}</span>
                 </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Opérateurs supportés :</span>
-                  <span className="font-bold text-emerald-800">Orange • Moov • Wave • Carte</span>
+                
+                <div className="pt-1 border-t border-slate-200/60">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                    Moyens de Paiement Disponibles :
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    <span className="px-2 py-0.5 bg-orange-100 text-orange-900 font-extrabold text-[10px] rounded-md border border-orange-200">
+                      🟠 Orange Money BF
+                    </span>
+                    <span className="px-2 py-0.5 bg-blue-100 text-blue-900 font-extrabold text-[10px] rounded-md border border-blue-200">
+                      🔵 Moov Money BF
+                    </span>
+                    <span className="px-2 py-0.5 bg-sky-100 text-sky-900 font-extrabold text-[10px] rounded-md border border-sky-200">
+                      🌊 Wave
+                    </span>
+                    <span className="px-2 py-0.5 bg-slate-100 text-slate-800 font-extrabold text-[10px] rounded-md border border-slate-200">
+                      💳 Carte Bancaire
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-slate-900 font-extrabold pt-1.5 border-t border-slate-200">
+
+                <div className="flex justify-between text-slate-900 font-extrabold pt-1.5 border-t border-emerald-200/60">
                   <span>Montant total :</span>
-                  <span className="text-emerald-700 text-sm">{selectedPlan.price.toLocaleString('fr-FR')} FCFA</span>
+                  <span className="text-emerald-700 text-sm font-black">{selectedPlan.price.toLocaleString('fr-FR')} FCFA</span>
                 </div>
               </div>
 
@@ -270,7 +287,7 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
 
               <div className="flex items-center justify-center space-x-1 text-[10px] text-slate-500 text-center">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>Paiement sécurisé crypté SSL • Activation 100% automatique</span>
+                <span>Paiement sécurisé crypté SSL • Déblocage 100% automatique</span>
               </div>
             </div>
           )}

@@ -26,6 +26,12 @@ const SHOP_AUTH_SECRET_SEED = process.env.SHOP_AUTH_SECRET_SEED || 'FASO_CARNET_
 const PAYTECH_API_KEY = process.env.PAYTECH_API_KEY || '';
 const PAYTECH_API_SECRET = process.env.PAYTECH_API_SECRET || '';
 const PAYTECH_ENV = process.env.PAYTECH_ENV || 'test';
+
+// Configuration LigdiCash (Burkina Faso 🇧🇫 Orange Money & Moov Money)
+const LIGDICASH_API_KEY = process.env.LIGDICASH_API_KEY || '';
+const LIGDICASH_API_TOKEN = process.env.LIGDICASH_API_TOKEN || '';
+const LIGDICASH_PLATFORM = process.env.LIGDICASH_PLATFORM || 'live';
+
 const SERVER_BASE_URL = process.env.SERVER_BASE_URL || `http://localhost:${PORT}`;
 
 const SUBSCRIPTION_PLANS_CONFIG = {
@@ -461,6 +467,188 @@ app.post('/api/payments/paytech/simulate-payment-success', (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
+});
+
+// 5. Initialiser une demande de paiement LigdiCash (Orange Money BF / Moov BF)
+app.post('/api/payments/ligdicash/request-payment', async (req, res) => {
+  try {
+    const { shopId, planId, shopName, shopPhone, successRedirectUrl, cancelRedirectUrl } = req.body;
+
+    if (!shopId || !planId) {
+      return res.status(400).json({ success: false, message: 'shopId et planId sont requis.' });
+    }
+
+    const plan = SUBSCRIPTION_PLANS_CONFIG[planId];
+    if (!plan) {
+      return res.status(400).json({ success: false, message: 'Plan d\'abonnement invalide.' });
+    }
+
+    const refCommand = `lgd_${shopId}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const db = loadDatabase();
+    if (!db['_payments']) db['_payments'] = {};
+
+    const paymentRecord = {
+      refCommand,
+      gateway: 'ligdicash',
+      shopId,
+      shopName: shopName || 'Commerce FasoCarnet',
+      shopPhone: shopPhone || '',
+      planId: plan.id,
+      planName: plan.name,
+      durationMonths: plan.durationMonths,
+      amount: plan.price,
+      currency: 'XOF',
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    db['_payments'][refCommand] = paymentRecord;
+    saveDatabase(db);
+
+    // Si les clés LigdiCash sont configurées
+    if (LIGDICASH_API_KEY && LIGDICASH_API_TOKEN) {
+      const callbackUrl = `${SERVER_BASE_URL}/api/payments/ligdicash/ipn`;
+      const returnUrl = successRedirectUrl || `${SERVER_BASE_URL}/?payment_status=success&ref=${refCommand}`;
+      const cancelUrl = cancelRedirectUrl || `${SERVER_BASE_URL}/?payment_status=cancel&ref=${refCommand}`;
+
+      const nameParts = (shopName || 'Commerce FasoCarnet').trim().split(' ');
+      const firstName = nameParts[0] || 'Client';
+      const lastName = nameParts.slice(1).join(' ') || 'FasoCarnet';
+      const cleanPhone = (shopPhone || '').replace(/\D/g, '') || '22670000000';
+
+      const payload = {
+        commande: {
+          amount: plan.price,
+          currency: 'XOF',
+          description: `Abonnement FasoCarnet ${plan.name} (${shopName || shopId})`,
+          customer: shopName || 'Client FasoCarnet',
+          customer_firstname: firstName,
+          customer_lastname: lastName,
+          customer_email: 'paiement@fasocarnet.app',
+          customer_phone: cleanPhone,
+          custom_data: {
+            shop_id: shopId,
+            plan_id: plan.id,
+            duration_months: plan.durationMonths,
+            ref_command: refCommand
+          },
+          callback_url: callbackUrl,
+          return_url: returnUrl,
+          cancel_url: cancelUrl
+        }
+      };
+
+      const endpoint = LIGDICASH_PLATFORM === 'test' 
+        ? 'https://api.ligdicash.com/payin' 
+        : 'https://client.ligdicash.com/api/v01/payin';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Apikey': LIGDICASH_API_KEY,
+          'Authorization': `Bearer ${LIGDICASH_API_TOKEN}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      if (data && (data.response_code === '00' || data.token || data.response_text)) {
+        const redirectUrl = data.response_text || data.redirect_url || `https://client.ligdicash.com/pay/${data.token}`;
+        paymentRecord.token = data.token;
+        paymentRecord.redirectUrl = redirectUrl;
+        db['_payments'][refCommand] = paymentRecord;
+        saveDatabase(db);
+
+        return res.json({
+          success: true,
+          gateway: 'ligdicash',
+          redirectUrl,
+          token: data.token,
+          refCommand
+        });
+      }
+    }
+
+    // Fallback simulation / Sandbox test
+    return res.json({
+      success: true,
+      gateway: 'ligdicash',
+      mode: 'sandbox_simulation',
+      refCommand,
+      amount: plan.price,
+      planName: plan.name,
+      message: 'Demande LigdiCash prête pour validation.'
+    });
+  } catch (error) {
+    console.error('[LigdiCash] Erreur request-payment:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors de l\'initialisation LigdiCash.', error: error.message });
+  }
+});
+
+// 6. Webhook IPN LigdiCash
+app.post('/api/payments/ligdicash/ipn', (req, res) => {
+  try {
+    const payload = req.body || {};
+    console.log('[LigdiCash IPN] Notification reçue :', payload);
+
+    const refCommand = payload.custom_data?.ref_command || payload.ref_command || payload.token;
+    const isSuccess = payload.status === 'completed' || payload.response_code === '00';
+
+    if (!refCommand) {
+      return res.status(400).json({ status: 'failed', message: 'Missing ref_command' });
+    }
+
+    const db = loadDatabase();
+    const payment = db['_payments']?.[refCommand] || Object.values(db['_payments'] || {}).find(p => p.token === payload.token);
+
+    if (payment && isSuccess) {
+      payment.status = 'PAID';
+      payment.paidAt = new Date().toISOString();
+      payment.rawIpn = payload;
+
+      const shopId = payment.shopId || payload.custom_data?.shop_id;
+      const durationMonths = payment.durationMonths || payload.custom_data?.duration_months || 1;
+      const planId = payment.planId || payload.custom_data?.plan_id || 'monthly';
+
+      if (shopId) {
+        if (!db[shopId]) db[shopId] = {};
+        const shop = db[shopId];
+        const currentExpiry = shop.subscriptionExpiresAt || shop.expiresAt || null;
+        const newExpiry = calculateNewExpirationDate(currentExpiry, durationMonths);
+
+        db[shopId] = {
+          ...shop,
+          isLicensed: true,
+          subscriptionStatus: 'active',
+          subscriptionPlan: planId,
+          subscriptionExpiresAt: newExpiry,
+          updatedAt: new Date().toISOString(),
+          lastUpdatedAt: new Date().toISOString()
+        };
+        console.log(`[LigdiCash IPN] ✅ Boutique « ${shopId} » activée jusqu'au ${newExpiry}`);
+      }
+
+      saveDatabase(db);
+    }
+
+    return res.status(200).json({ status: 'success' });
+  } catch (error) {
+    console.error('[LigdiCash IPN] Erreur:', error);
+    return res.status(500).json({ status: 'error' });
+  }
+});
+
+// 7. Route universelle de création de session (priorité LigdiCash BF > PayTech)
+app.post('/api/payments/create-session', async (req, res) => {
+  if (LIGDICASH_API_KEY && LIGDICASH_API_TOKEN) {
+    req.url = '/api/payments/ligdicash/request-payment';
+    return app._router.handle(req, res);
+  }
+  req.url = '/api/payments/paytech/request-payment';
+  return app._router.handle(req, res);
 });
 
 // 5. Servir l'application Web & fichiers statiques (Landing page, PWA, dist.zip, version.json)
