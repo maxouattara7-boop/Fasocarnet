@@ -6,6 +6,8 @@ import { customersService } from '../../db/services/customersService';
 import { useAppStore } from '../../store/appStore';
 import { formatCurrency } from '../../utils/formatters';
 import { generateCustomInvoiceWhatsAppMessage, printCustomInvoice } from '../../utils/customInvoiceRenderer';
+import { downloadOrShareCustomInvoicePdf } from '../../utils/customInvoicePdfGenerator';
+import { getLegalArreteMention } from '../../utils/numberToWords';
 import { openWhatsApp } from '../../utils/whatsapp';
 import { 
   X, 
@@ -21,7 +23,10 @@ import {
   Edit3, 
   ArrowLeft,
   Package,
-  Layers
+  Layers,
+  Download,
+  FileDown,
+  Loader2
 } from 'lucide-react';
 
 interface CustomInvoiceModalProps {
@@ -65,6 +70,7 @@ export const CustomInvoiceModal: React.FC<CustomInvoiceModalProps> = ({
   // Suggestions
   const [productSearch, setProductSearch] = useState('');
   const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
+  const [generatingPdfDocId, setGeneratingPdfDocId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -274,6 +280,44 @@ export const CustomInvoiceModal: React.FC<CustomInvoiceModalProps> = ({
         phone: saved.clientPhone || '',
         message: msg
       });
+    }
+  };
+
+  const handleDownloadPdf = async (docToDownload?: CustomInvoice) => {
+    let targetDoc = docToDownload;
+    if (!targetDoc) {
+      const saved = await handleSaveDoc();
+      if (!saved) return;
+      targetDoc = saved;
+    }
+
+    setGeneratingPdfDocId(targetDoc.id || 'editor');
+    try {
+      await downloadOrShareCustomInvoicePdf(targetDoc, shopProfile || undefined, { directShare: false });
+    } catch (err) {
+      console.error('Erreur téléchargement PDF:', err);
+      alert('Impossible de générer le fichier PDF.');
+    } finally {
+      setGeneratingPdfDocId(null);
+    }
+  };
+
+  const handleSharePdf = async (docToShare?: CustomInvoice) => {
+    let targetDoc = docToShare;
+    if (!targetDoc) {
+      const saved = await handleSaveDoc();
+      if (!saved) return;
+      targetDoc = saved;
+    }
+
+    setGeneratingPdfDocId(targetDoc.id || 'editor');
+    try {
+      await downloadOrShareCustomInvoicePdf(targetDoc, shopProfile || undefined, { directShare: true });
+    } catch (err) {
+      console.error('Erreur partage PDF:', err);
+      alert('Impossible de partager le document PDF.');
+    } finally {
+      setGeneratingPdfDocId(null);
     }
   };
 
@@ -496,8 +540,34 @@ export const CustomInvoiceModal: React.FC<CustomInvoiceModalProps> = ({
                       </div>
 
                       {/* Barre d'actions */}
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                        <div className="flex items-center space-x-1">
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                        <div className="flex items-center space-x-1 flex-wrap gap-y-1">
+                          <button
+                            type="button"
+                            disabled={generatingPdfDocId === doc.id}
+                            onClick={() => handleDownloadPdf(doc)}
+                            className="p-1.5 text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer flex items-center space-x-1 text-xs font-bold"
+                            title="Télécharger le document PDF A4"
+                          >
+                            {generatingPdfDocId === doc.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                            ) : (
+                              <FileDown className="w-3.5 h-3.5 text-emerald-700" />
+                            )}
+                            <span className="text-[11px]">PDF</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={generatingPdfDocId === doc.id}
+                            onClick={() => handleSharePdf(doc)}
+                            className="p-1.5 text-slate-700 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer flex items-center space-x-1 text-xs font-bold"
+                            title="Partager le document PDF"
+                          >
+                            <Share2 className="w-3.5 h-3.5 text-blue-600" />
+                            <span className="text-[11px]">Partager</span>
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => printCustomInvoice(doc, shopProfile || undefined)}
@@ -505,7 +575,7 @@ export const CustomInvoiceModal: React.FC<CustomInvoiceModalProps> = ({
                             title="Imprimer format A4"
                           >
                             <Printer className="w-3.5 h-3.5" />
-                            <span className="text-[11px]">Imprimer A4</span>
+                            <span className="text-[11px]">Imprimer</span>
                           </button>
 
                           <button
@@ -518,10 +588,9 @@ export const CustomInvoiceModal: React.FC<CustomInvoiceModalProps> = ({
                               });
                             }}
                             className="p-1.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer flex items-center space-x-1 text-xs font-bold"
-                            title="Envoyer sur WhatsApp"
+                            title="Envoyer le résumé texte sur WhatsApp"
                           >
-                            <Share2 className="w-3.5 h-3.5 text-emerald-600" />
-                            <span className="text-[11px]">WhatsApp</span>
+                            <span className="text-[11px] text-emerald-700 font-bold">💬 WA</span>
                           </button>
                         </div>
 
@@ -906,39 +975,72 @@ export const CustomInvoiceModal: React.FC<CustomInvoiceModalProps> = ({
                     {formatCurrency(totalAmount)}
                   </span>
                 </div>
+
+                {/* Mention légale d'arrêté obligatoire */}
+                <div className="mt-2.5 pt-2.5 border-t border-white/10 text-emerald-200 text-[11px] leading-relaxed bg-white/5 p-2.5 rounded-xl border border-white/10 font-sans">
+                  <span className="font-extrabold block text-[9px] uppercase tracking-wider text-emerald-400 mb-0.5">
+                    Mention légale d'arrêté :
+                  </span>
+                  « {getLegalArreteMention(docType, totalAmount).fullMention} »
+                </div>
               </div>
 
             </div>
 
             {/* Barre de boutons d'action */}
-            <div className="p-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+            <div className="p-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => setViewMode('LIST')}
-                className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition-colors cursor-pointer"
               >
                 Annuler
               </button>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5 flex-wrap gap-y-1.5 justify-end">
                 <button
                   type="button"
-                  onClick={handleSaveAndShareWhatsApp}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-xs transition-all cursor-pointer font-display"
-                  title="Enregistrer et envoyer sur WhatsApp"
+                  disabled={generatingPdfDocId === 'editor' || generatingPdfDocId === editingId}
+                  onClick={() => handleDownloadPdf()}
+                  className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1 shadow-xs transition-all cursor-pointer font-display"
+                  title="Enregistrer et télécharger en PDF A4"
+                >
+                  {generatingPdfDocId === 'editor' || (editingId && generatingPdfDocId === editingId) ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>Télécharger PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={generatingPdfDocId === 'editor' || generatingPdfDocId === editingId}
+                  onClick={() => handleSharePdf()}
+                  className="px-3 py-2 bg-blue-700 hover:bg-blue-800 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1 shadow-xs transition-all cursor-pointer font-display"
+                  title="Enregistrer et partager le PDF"
                 >
                   <Share2 className="w-3.5 h-3.5" />
-                  <span>WhatsApp</span>
+                  <span>Partager PDF</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleSaveAndPrint}
-                  className="px-3.5 py-2 bg-teal-700 hover:bg-teal-800 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-xs transition-all cursor-pointer font-display"
+                  className="px-3 py-2 bg-slate-700 hover:bg-slate-800 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1 shadow-xs transition-all cursor-pointer font-display"
                   title="Enregistrer et imprimer format A4"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  <span>Imprimer A4</span>
+                  <span>Imprimer</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveAndShareWhatsApp}
+                  className="px-3 py-2 bg-teal-700 hover:bg-teal-800 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1 shadow-xs transition-all cursor-pointer font-display"
+                  title="Enregistrer et envoyer sur WhatsApp"
+                >
+                  <span className="text-[11px]">💬 WhatsApp</span>
                 </button>
 
                 <button
@@ -947,7 +1049,7 @@ export const CustomInvoiceModal: React.FC<CustomInvoiceModalProps> = ({
                     const res = await handleSaveDoc();
                     if (res) setViewMode('LIST');
                   }}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shadow-xs transition-all cursor-pointer font-display"
+                  className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1 shadow-xs transition-all cursor-pointer font-display"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Enregistrer</span>

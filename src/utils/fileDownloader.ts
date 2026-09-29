@@ -202,3 +202,102 @@ export async function downloadOrShareImage(params: {
     return { success: false, method: 'failed', error: err?.message };
   }
 }
+
+/**
+ * Sauvegarde et/ou partage un fichier PDF (Facture, Devis, Bilan) sur Android ou le Web
+ */
+export async function downloadOrSharePdfBlob(params: {
+  fileName: string;
+  blob: Blob;
+  base64Data?: string;
+  title?: string;
+  text?: string;
+  directShare?: boolean;
+}): Promise<FileActionResult> {
+  const { fileName, blob, base64Data, title = 'Document PDF', text = 'Votre document', directShare = false } = params;
+
+  // 1. Capacitor Filesystem / Share sur Android APK
+  if (Capacitor.isPluginAvailable('Filesystem')) {
+    try {
+      let b64 = base64Data;
+      if (!b64) {
+        const reader = new FileReader();
+        b64 = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => {
+            const res = reader.result as string;
+            resolve(res.split(',')[1] || res);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      const writeResult = await Filesystem.writeFile({
+        path: fileName,
+        data: b64,
+        directory: Directory.Documents,
+        recursive: true
+      });
+
+      // Également dans le Cache pour partage immédiat
+      await Filesystem.writeFile({
+        path: fileName,
+        data: b64,
+        directory: Directory.Cache
+      });
+
+      if (Capacitor.isPluginAvailable('Share')) {
+        await Share.share({
+          title,
+          text,
+          url: writeResult.uri,
+          dialogTitle: directShare ? `Partager ${fileName} sur WhatsApp / Email` : `Enregistrer ${fileName}`
+        });
+      }
+
+      return { success: true, method: 'native' };
+    } catch (err: any) {
+      if (err?.name === 'AbortError' || err?.message?.includes('canceled')) {
+        return { success: true, method: 'native' };
+      }
+      console.warn('[Downloader] Erreur native Filesystem/Share PDF:', err);
+    }
+  }
+
+  // 2. Web Share API avec fichier réel PDF
+  if (typeof navigator !== 'undefined' && navigator.share) {
+    try {
+      const file = new File([blob], fileName, { type: 'application/pdf' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title,
+          text
+        });
+        return { success: true, method: 'web-share' };
+      }
+    } catch (shareErr: any) {
+      if (shareErr?.name === 'AbortError') {
+        return { success: true, method: 'web-share' };
+      }
+      console.warn('[Downloader] navigator.share PDF non disponible:', shareErr);
+    }
+  }
+
+  // 3. Téléchargement direct standard (PC / Web / Navigateur)
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    return { success: true, method: 'download' };
+  } catch (err: any) {
+    console.error('[Downloader] Échec téléchargement PDF web:', err);
+    return { success: false, method: 'failed', error: err?.message };
+  }
+}
+

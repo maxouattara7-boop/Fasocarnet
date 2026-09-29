@@ -1,5 +1,6 @@
 import { CustomInvoice, ShopProfile } from '../types';
 import { formatCurrency } from './formatters';
+import { getLegalArreteMention } from './numberToWords';
 
 /**
  * Génère le message texte formaté pour le partage WhatsApp d'une Facture ou d'un Devis
@@ -50,6 +51,10 @@ export function generateCustomInvoiceWhatsAppMessage(
   }
 
   lines.push(`👉 *TOTAL NET À PAYER : ${formatCurrency(invoice.totalAmount)}*`);
+  
+  // Mention Légale d'Arrêté
+  const arrete = getLegalArreteMention(invoice.type, invoice.totalAmount);
+  lines.push(`📜 _${arrete.fullMention}_`);
   lines.push('────────────────────────');
 
   // Coordonnées de paiement
@@ -391,6 +396,11 @@ export function generateCustomInvoiceHtml(
         </tr>
       ` : ''}
     </table>
+  </div>
+
+  <!-- MENTION LÉGALE D'ARRÊTÉ DU MONTANT -->
+  <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #047857; padding: 10px 14px; margin-bottom: 22px; border-radius: 6px; font-size: 12px; color: #1e293b; font-weight: 600;">
+    📜 ${getLegalArreteMention(invoice.type, invoice.totalAmount).fullMention}
   </div>
 
   <!-- NOTES / MENTIONS SPÉCIALES -->
