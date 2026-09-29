@@ -48,10 +48,8 @@ export const syncService = {
       try {
         const supaData = await supabaseClient.fetchAllShops();
         if (supaData && Object.keys(supaData).length > 0) {
-          const localCache = this.getCloudDatabase();
-          const merged = { ...localCache, ...supaData };
-          this.saveCloudDatabase(merged);
-          return merged;
+          this.saveCloudDatabase(supaData);
+          return supaData;
         }
       } catch (err) {
         console.warn('[Sync] Fallback depuis Supabase:', err);
@@ -69,11 +67,8 @@ export const syncService = {
       if (res.ok) {
         const data = await res.json();
         if (data && typeof data === 'object') {
-          // Fusionner avec le cache local
-          const localCache = this.getCloudDatabase();
-          const merged = { ...localCache, ...data };
-          this.saveCloudDatabase(merged);
-          return merged;
+          this.saveCloudDatabase(data);
+          return data;
         }
       }
     } catch {
@@ -85,7 +80,7 @@ export const syncService = {
   /**
    * Envoie la base Cloud vers Supabase et/ou le serveur central
    */
-  async pushRemoteDatabase(data: Record<string, CloudShopData>): Promise<void> {
+  async pushRemoteDatabase(data: Record<string, CloudShopData>, replace: boolean = false): Promise<void> {
     this.saveCloudDatabase(data);
 
     // 1. Sync Supabase si configuré
@@ -103,13 +98,53 @@ export const syncService = {
       const timeoutId = setTimeout(() => controller.abort(), 3000);
       await fetch(`${getApiBaseUrl()}/api/cloud/db`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(replace ? { 'x-replace-db': 'true', 'x-admin-key': 'faso_carnet_admin_secret_2026' } : {})
+        },
         body: JSON.stringify(data),
         signal: controller.signal
       });
       clearTimeout(timeoutId);
     } catch {
       // Hors-ligne, synchronisé dès le retour du réseau
+    }
+  },
+
+  /**
+   * Supprime définitivement une boutique sur le Cloud (REST API + Supabase + Cache local)
+   */
+  async deleteRemoteShop(shopId: string): Promise<void> {
+    // 1. Nettoyer le cache local
+    const localDb = this.getCloudDatabase();
+    if (localDb[shopId]) {
+      delete localDb[shopId];
+      this.saveCloudDatabase(localDb);
+    }
+    if (inMemoryCloudDb[shopId]) {
+      delete inMemoryCloudDb[shopId];
+    }
+
+    // 2. Supprimer de Supabase si configuré
+    if (supabaseClient.isConfigured()) {
+      await supabaseClient.deleteShop(shopId).catch(() => {});
+    }
+
+    // 3. Appel DELETE REST API sur le serveur
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      await fetch(`${getApiBaseUrl()}/api/cloud/shops/${shopId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': 'faso_carnet_admin_secret_2026'
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+    } catch (err) {
+      console.warn('[Sync] Erreur suppression distante shop:', err);
     }
   },
 

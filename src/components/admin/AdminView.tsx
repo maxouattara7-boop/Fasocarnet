@@ -1,26 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Store, Crown, Key, Lock, LogOut, Search, Plus, Copy, Check, Trash2,
-  MessageCircle, ArrowLeft, Sparkles, Eye, EyeOff, RefreshCw,
-  BarChart3, Smartphone, Download, Users,
-  MapPin, Send, CheckCircle2, Megaphone, Wallet, Database,
-  X, ChevronRight, Calendar, Phone, User, Building, FileText, Clock
+  Store, Crown, Lock, LogOut, Search, Copy, Check, Trash2,
+  MessageCircle, ArrowLeft, Eye, EyeOff, RefreshCw,
+  BarChart3, Download, Users,
+  MapPin, Send, CheckCircle2, Megaphone,
+  X, ChevronRight, Calendar, Phone, User, Building, FileText, Clock, Wallet
 } from 'lucide-react';
 import { adminService, AdminStats, ShopAdminDetails } from '../../db/services/adminService';
 import { syncService } from '../../db/services/syncService';
-import { LicenseKey, ExtendedAdminAnalytics, AdminBroadcastMessage, CommercialAffiliateReport } from '../../types';
+import { ExtendedAdminAnalytics, AdminBroadcastMessage, CommercialAffiliateReport } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 
 interface AdminViewProps {
   onClose: () => void;
 }
 
-type AdminTab = 'shops' | 'analytics' | 'affiliates' | 'licenses' | 'broadcast' | 'whatsapp' | 'security';
+type AdminTab = 'shops' | 'analytics' | 'affiliates' | 'broadcast' | 'whatsapp';
 
 const getInitialAdminTab = (): AdminTab => {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('fasocarnet_admin_tab');
-    if (saved === 'shops' || saved === 'analytics' || saved === 'affiliates' || saved === 'licenses' || saved === 'broadcast' || saved === 'whatsapp' || saved === 'security') {
+    if (saved === 'shops' || saved === 'analytics' || saved === 'affiliates' || saved === 'broadcast' || saved === 'whatsapp') {
       return saved as AdminTab;
     }
   }
@@ -33,6 +33,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
   const [activeTab, setActiveTabState] = useState<AdminTab>(getInitialAdminTab);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   const setActiveTab = (tab: AdminTab) => {
     if (typeof window !== 'undefined') {
@@ -55,19 +56,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [affiliateFilter, setAffiliateFilter] = useState<'all' | 'due' | 'settled'>('all');
   const [affiliateSuccessMsg, setAffiliateSuccessMsg] = useState('');
 
-  const [licenses, setLicenses] = useState<LicenseKey[]>([]);
   const [broadcast, setBroadcast] = useState<AdminBroadcastMessage | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'trial' | 'expired'>('all');
   const [selectedShop, setSelectedShop] = useState<ShopAdminDetails | null>(null);
   const [shopActionFeedback, setShopActionFeedback] = useState<string>('');
 
-  const [genPlan, setGenPlan] = useState<'monthly' | 'semi-annual' | 'annual'>('monthly');
-  const [genCount, setGenCount] = useState<number>(1);
-  const [genNotes, setGenNotes] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [broadcastTitle, setBroadcastTitle] = useState('');
@@ -75,14 +70,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [broadcastType, setBroadcastType] = useState<'info' | 'promo'>('info');
   const [isSavingBroadcast, setIsSavingBroadcast] = useState(false);
   const [broadcastSuccess, setBroadcastSuccess] = useState('');
-
-  // Deposit Numbers (Orange, Moov, Wave)
-  const [depositOrange, setDepositOrange] = useState('72990310');
-  const [depositMoov, setDepositMoov] = useState('03901590');
-  const [depositWave, setDepositWave] = useState('72990310');
-  const [depositMerchant, setDepositMerchant] = useState('Maxime OUATTARA');
-  const [isSavingDeposit, setIsSavingDeposit] = useState(false);
-  const [depositSuccessMsg, setDepositSuccessMsg] = useState('');
 
   const handleExportAllShopsJson = () => {
     const allData = syncService.getCloudDatabase();
@@ -182,31 +169,22 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const loadData = async () => {
     setIsRefreshing(true);
     try {
-      const [s, an, sh, l, bc, dep, aff] = await Promise.all([
+      const [s, an, sh, bc, aff] = await Promise.all([
         adminService.getAdminStats(),
         adminService.getExtendedAnalytics(),
         adminService.getAllShopsWithDetails(),
-        adminService.getAllLicenses(),
         adminService.getBroadcastMessage(),
-        adminService.getDepositNumbers(),
         adminService.getAffiliatesReports()
       ]);
       setStats(s);
       setAnalytics(an);
       setShops(sh);
-      setLicenses(l);
       setBroadcast(bc);
       setAffiliates(aff);
       if (bc) {
         setBroadcastTitle(bc.title);
         setBroadcastMessage(bc.message);
         setBroadcastType(bc.type === 'promo' ? 'promo' : 'info');
-      }
-      if (dep) {
-        setDepositOrange(dep.orangeMoney || '');
-        setDepositMoov(dep.moovMoney || '');
-        setDepositWave(dep.wave || '');
-        setDepositMerchant(dep.merchantName || '');
       }
       // Mettre à jour selectedShop si modal ouverte
       if (selectedShop) {
@@ -257,25 +235,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
     window.open(url, '_blank');
   };
 
-  const handleSaveDepositNumbers = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingDeposit(true);
-    try {
-      await adminService.saveDepositNumbers({
-        orangeMoney: depositOrange.trim(),
-        moovMoney: depositMoov.trim(),
-        wave: depositWave.trim(),
-        merchantName: depositMerchant.trim()
-      });
-      setDepositSuccessMsg('Numéros de dépôt Mobile Money mis à jour et synchronisés avec succès !');
-      setTimeout(() => setDepositSuccessMsg(''), 3500);
-    } catch (err: any) {
-      alert(err.message || 'Erreur lors de la mise à jour des numéros de dépôt.');
-    } finally {
-      setIsSavingDeposit(false);
-    }
-  };
-
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (adminService.verifyPassword(passwordInput)) {
@@ -298,7 +257,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   };
 
   const handleDeleteShop = async (shopId: string, shopName: string) => {
-    if (confirm(`⚠️ ATTENTION ACTION IRRÉVERSIBLE ⚠️\n\nVoulez-vous vraiment supprimer définitivement le compte de la boutique "${shopName}" ?\n\nToutes les données (ventes, dettes, clients, profil) seront définitivement effacées.`)) {
+    if (confirm(`⚠️ ATTENTION ACTION IRRÉVERSIBLE ⚠️\n\nVoulez-vous vraiment supprimer définitivement le compte de la boutique "${shopName}" ?\n\nToutes les données (ventes, dettes, clients, profil) seront définitivement effacées du serveur Cloud.`)) {
       try {
         await adminService.deleteShop(shopId);
         setSelectedShop(null);
@@ -307,33 +266,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         alert(err.message || 'Erreur lors de la suppression de la boutique.');
       }
     }
-  };
-
-  const handleGenerateKeys = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsGenerating(true);
-    try {
-      await adminService.generateLicenseKeys(genPlan, genCount, genNotes);
-      setGenNotes('');
-      await loadData();
-    } catch (err: any) {
-      alert(err.message || 'Erreur lors de la génération.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleDeleteLicense = async (id: string) => {
-    if (confirm('Supprimer cette clé de licence ?')) {
-      await adminService.deleteLicense(id);
-      await loadData();
-    }
-  };
-
-  const handleCopyCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedKey(code);
-    setTimeout(() => setCopiedKey(null), 2000);
   };
 
   const handleExportCsv = async () => {
@@ -519,7 +451,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
           </div>
         </div>
 
-        <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+        <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0 flex-wrap justify-end">
           <button
             type="button"
             onClick={loadData}
@@ -533,6 +465,26 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
 
           <button
             type="button"
+            onClick={handleExportAllShopsJson}
+            className="px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1 sm:space-x-1.5 transition-all cursor-pointer"
+            title="Télécharger une sauvegarde complète de toutes les boutiques au format JSON"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">Sauvegarde JSON</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsPasswordModalOpen(true)}
+            className="px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1 sm:space-x-1.5 transition-all cursor-pointer"
+            title="Modifier le mot de passe Super-Admin"
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">PIN Admin</span>
+          </button>
+
+          <button
+            type="button"
             onClick={onClose}
             className="px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1 sm:space-x-1.5 transition-all cursor-pointer"
           >
@@ -542,9 +494,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         </div>
       </header>
 
-      {/* Navigation tabs responsives */}
+      {/* Navigation tabs responsives (5 Onglets Optimisés) */}
       <div className="max-w-6xl w-full mx-auto p-3 sm:p-5 md:p-6 space-y-4 flex-1 pb-16">
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-1 sm:gap-2 bg-slate-900/90 backdrop-blur p-1 sm:p-1.5 rounded-2xl border border-slate-800 shadow-lg">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5 sm:gap-2 bg-slate-900/90 backdrop-blur p-1 sm:p-1.5 rounded-2xl border border-slate-800 shadow-lg">
           <button
             type="button"
             onClick={() => setActiveTab('shops')}
@@ -586,19 +538,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
 
           <button
             type="button"
-            onClick={() => setActiveTab('licenses')}
-            className={`py-2 px-1 sm:px-2 rounded-xl text-[10px] sm:text-xs font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all cursor-pointer ${
-              activeTab === 'licenses'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-            }`}
-          >
-            <Key className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-            <span className="truncate">Licences ({licenses.length})</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setActiveTab('broadcast')}
             className={`py-2 px-1 sm:px-2 rounded-xl text-[10px] sm:text-xs font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all cursor-pointer ${
               activeTab === 'broadcast'
@@ -621,19 +560,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
           >
             <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
             <span className="truncate">Relances</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('security')}
-            className={`py-2 px-1 sm:px-2 rounded-xl text-[10px] sm:text-xs font-bold flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-1.5 transition-all cursor-pointer ${
-              activeTab === 'security'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-            }`}
-          >
-            <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-            <span className="truncate">Sécurité</span>
           </button>
         </div>
 
@@ -1292,153 +1218,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
           </div>
         )}
 
-        {/* TAB 3 : GÉNÉRATEUR DE LICENCES */}
-        {activeTab === 'licenses' && (
-          <div className="space-y-4 animate-in fade-in duration-150">
-            <form onSubmit={handleGenerateKeys} className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm">
-              <div className="flex items-center space-x-2 text-emerald-400 border-b border-slate-800 pb-3">
-                <Sparkles className="w-5 h-5" />
-                <h3 className="font-bold text-xs sm:text-sm text-white font-display">Générateur de Clés Prépayées</h3>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-                <div>
-                  <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
-                    Formule / Durée
-                  </label>
-                  <select
-                    value={genPlan}
-                    onChange={(e: any) => setGenPlan(e.target.value)}
-                    className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-bold text-white outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-                  >
-                    <option value="monthly">1 Mois (2 000 FCFA)</option>
-                    <option value="semi-annual">6 Mois (10 000 FCFA)</option>
-                    <option value="annual">1 An (20 000 FCFA)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
-                    Quantité de clés
-                  </label>
-                  <select
-                    value={genCount}
-                    onChange={(e) => setGenCount(parseInt(e.target.value) || 1)}
-                    className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-bold text-white outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-                  >
-                    <option value={1}>1 Clé</option>
-                    <option value={5}>5 Clés (Lot)</option>
-                    <option value={10}>10 Clés (Lot)</option>
-                    <option value={25}>25 Clés (Distributeur)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
-                    Note / Destinataire (Optionnel)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Paiement OM 70123456"
-                    value={genNotes}
-                    onChange={(e) => setGenNotes(e.target.value)}
-                    className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isGenerating}
-                className="w-full py-3 sm:py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl sm:rounded-2xl shadow-lg shadow-emerald-600/20 active:scale-98 transition-all flex items-center justify-center space-x-2 text-xs font-display cursor-pointer disabled:opacity-50"
-              >
-                <Plus className="w-4 h-4" />
-                <span>{isGenerating ? 'Génération en cours...' : '⚡ Générer les Clés d\'Activation'}</span>
-              </button>
-            </form>
-
-            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-3 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-800 pb-3">
-                <h3 className="font-bold text-xs sm:text-sm text-white font-display">
-                  Clés Créées ({licenses.length})
-                </h3>
-                <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium">
-                  {licenses.filter(l => !l.isUsed).length} disponible(s) • {licenses.filter(l => l.isUsed).length} utilisée(s)
-                </span>
-              </div>
-
-              {licenses.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 text-xs">
-                  Aucune clé générée pour le moment.
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto divide-y divide-slate-800">
-                  {licenses.map((lic) => {
-                    const waShareUrl = adminService.getWhatsAppDispatchUrl(lic);
-
-                    return (
-                      <div key={lic.id} className="pt-2.5 pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                        <div className="space-y-0.5">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-mono font-black text-emerald-400 text-xs sm:text-sm tracking-wider">
-                              {lic.code}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase font-display ${
-                              lic.isUsed 
-                                ? 'bg-slate-800 text-slate-400' 
-                                : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            }`}>
-                              {lic.isUsed ? 'Utilisée' : 'Disponible'}
-                            </span>
-                          </div>
-
-                          <span className="text-[11px] text-slate-400 block">
-                            {lic.durationDays} jours • {formatCurrency(lic.price)} 
-                            {lic.notes && ` • Note: ${lic.notes}`}
-                            {lic.isUsed && lic.usedByShopName && ` • Utilisée par: ${lic.usedByShopName}`}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center space-x-1.5 self-start sm:self-center">
-                          <button
-                            type="button"
-                            onClick={() => handleCopyCode(lic.code)}
-                            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1 transition-all cursor-pointer"
-                            title="Copier le code"
-                          >
-                            {copiedKey === lic.code ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                            <span>{copiedKey === lic.code ? 'Copié !' : 'Copier'}</span>
-                          </button>
-
-                          <a
-                            href={waShareUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center space-x-1 shadow-sm transition-all cursor-pointer"
-                            title="Partager au client sur WhatsApp"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            <span>WhatsApp</span>
-                          </a>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteLicense(lic.id)}
-                            className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-950/40 rounded-xl transition-all cursor-pointer"
-                            title="Supprimer cette clé de licence"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* TAB 4 : ANNONCES & BROADCAST */}
         {activeTab === 'broadcast' && (
           <div className="space-y-4 animate-in fade-in duration-150">
@@ -1730,212 +1509,71 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
           </div>
         )}
 
-        {/* TAB 6 : SÉCURITÉ & DÉPÔTS MOBILE MONEY */}
-        {activeTab === 'security' && (
-          <div className="space-y-6 animate-in fade-in duration-150">
-            {/* COMPTES DE DÉPÔT MOBILE MONEY */}
-            <div className="bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-800 shadow-sm space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
-                <div className="flex items-center space-x-2.5 text-amber-400">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                    <Wallet className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm sm:text-base text-white font-display">
-                      Numéros de Dépôt Mobile Money (Abonnements & Licences)
-                    </h3>
-                    <p className="text-[11px] text-slate-400">
-                      Ces numéros sont affichés à tous les commerçants lors du paiement de leur abonnement.
-                    </p>
-                  </div>
+        {/* MODALE CHANGEMENT DE PIN ADMIN */}
+        {isPasswordModalOpen && (
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center space-x-2 text-amber-400">
+                  <Lock className="w-5 h-5" />
+                  <h3 className="font-bold text-sm text-white font-display">Modifier le PIN Super-Admin</h3>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPasswordModalOpen(false);
+                    setPasswordSuccess('');
+                    setNewPassword('');
+                  }}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              <form onSubmit={handleSaveDepositNumbers} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
-                  {/* Orange Money */}
-                  <div className="bg-slate-800/60 p-3.5 sm:p-4 rounded-2xl border border-slate-700/80 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-black uppercase tracking-wider text-orange-400 font-display flex items-center space-x-1.5">
-                        <Smartphone className="w-3.5 h-3.5" />
-                        <span>Orange Money</span>
-                      </label>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                        Burkina Faso
-                      </span>
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: 72990310"
-                      value={depositOrange}
-                      onChange={(e) => setDepositOrange(e.target.value)}
-                      className="w-full p-2.5 sm:p-3 bg-slate-900 border border-slate-700 rounded-xl text-sm font-black text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-orange-500"
-                    />
-                    <p className="text-[10px] text-slate-400">Numéro pour les dépôts et transferts Orange Money.</p>
-                  </div>
-
-                  {/* Moov Money */}
-                  <div className="bg-slate-800/60 p-3.5 sm:p-4 rounded-2xl border border-slate-700/80 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-black uppercase tracking-wider text-blue-400 font-display flex items-center space-x-1.5">
-                        <Smartphone className="w-3.5 h-3.5" />
-                        <span>Moov Money</span>
-                      </label>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                        Burkina Faso
-                      </span>
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: 03901590"
-                      value={depositMoov}
-                      onChange={(e) => setDepositMoov(e.target.value)}
-                      className="w-full p-2.5 sm:p-3 bg-slate-900 border border-slate-700 rounded-xl text-sm font-black text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="text-[10px] text-slate-400">Numéro pour les dépôts et transferts Moov Money.</p>
-                  </div>
-
-                  {/* Wave */}
-                  <div className="bg-slate-800/60 p-3.5 sm:p-4 rounded-2xl border border-slate-700/80 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-black uppercase tracking-wider text-cyan-400 font-display flex items-center space-x-1.5">
-                        <Smartphone className="w-3.5 h-3.5" />
-                        <span>Wave</span>
-                      </label>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                        Burkina Faso
-                      </span>
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: 72990310"
-                      value={depositWave}
-                      onChange={(e) => setDepositWave(e.target.value)}
-                      className="w-full p-2.5 sm:p-3 bg-slate-900 border border-slate-700 rounded-xl text-sm font-black text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-cyan-500"
-                    />
-                    <p className="text-[10px] text-slate-400">Numéro pour les transferts et paiements Wave.</p>
-                  </div>
-                </div>
-
-                {/* Nom du titulaire */}
-                <div className="bg-slate-800/40 p-3.5 sm:p-4 rounded-2xl border border-slate-700/60 space-y-2">
-                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-300 font-display flex items-center space-x-1.5">
-                    <Users className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Nom du Titulaire des Comptes</span>
+              <form onSubmit={handleChangePassword} className="space-y-3.5">
+                <div>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1 font-display">
+                    Nouveau Mot de Passe / Code PIN
                   </label>
                   <input
-                    type="text"
+                    type="password"
                     required
-                    placeholder="Ex: Maxime OUATTARA"
-                    value={depositMerchant}
-                    onChange={(e) => setDepositMerchant(e.target.value)}
-                    className="w-full p-2.5 sm:p-3 bg-slate-900 border border-slate-700 rounded-xl text-sm font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Entrez le nouveau PIN administrateur"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-xs font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-amber-500"
                   />
-                  <p className="text-[10px] text-slate-400">
-                    Ce nom rassure le commerçant pour qu'il vérifie l'identité du destinataire avant de valider le transfert.
-                  </p>
                 </div>
 
-                {depositSuccessMsg && (
-                  <div className="p-3 bg-emerald-950/60 border border-emerald-800 rounded-2xl flex items-center space-x-2 text-xs font-bold text-emerald-300 animate-in fade-in duration-150">
+                {passwordSuccess && (
+                  <p className="text-xs text-emerald-400 font-semibold bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-800/50 flex items-center space-x-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>{depositSuccessMsg}</span>
-                  </div>
+                    <span>{passwordSuccess}</span>
+                  </p>
                 )}
 
-                <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2">
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsPasswordModalOpen(false);
+                      setPasswordSuccess('');
+                      setNewPassword('');
+                    }}
+                    className="w-1/2 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                  >
+                    Fermer
+                  </button>
                   <button
                     type="submit"
-                    disabled={isSavingDeposit}
-                    className="w-full sm:w-auto px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl sm:rounded-2xl text-xs sm:text-sm shadow-md transition-all font-display flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+                    className="w-1/2 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs shadow-md transition-all font-display cursor-pointer"
                   >
-                    <Wallet className="w-4 h-4" />
-                    <span>{isSavingDeposit ? 'Enregistrement en cours...' : 'Enregistrer & Synchroniser les Numéros'}</span>
+                    Enregistrer PIN
                   </button>
                 </div>
               </form>
             </div>
-
-            {/* ÉTAT DU CLOUD & SAUVEGARDE GLOBALE */}
-            <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-800 shadow-sm space-y-3.5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
-                <div className="flex items-center space-x-2.5 text-emerald-400">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-                    <Database className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xs sm:text-sm text-white font-display">Synchronisation Cloud & Sauvegarde</h3>
-                    <p className="text-[10px] text-slate-400">Base de données PostgreSQL sécurisée en temps réel</p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleExportAllShopsJson}
-                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display"
-                  title="Télécharger une sauvegarde complète de toutes les boutiques au format JSON"
-                >
-                  <Download className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Sauvegarde Globale (.json)</span>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Base de Données Cloud</span>
-                  <span className="flex items-center space-x-1.5 text-emerald-400 font-bold">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>PostgreSQL Supabase (En ligne)</span>
-                  </span>
-                </div>
-
-                <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Chiffrement & Sécurité</span>
-                  <span className="flex items-center space-x-1.5 text-emerald-400 font-bold">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>SSL 256-bit Sécurisé</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* MOT DE PASSE SUPER-ADMIN */}
-            <form onSubmit={handleChangePassword} className="bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-800 space-y-4 shadow-sm max-w-xl">
-              <div className="flex items-center space-x-2 text-emerald-400 border-b border-slate-800 pb-3">
-                <Lock className="w-5 h-5" />
-                <h3 className="font-bold text-xs sm:text-sm text-white font-display">Changer le Mot de Passe Super-Admin</h3>
-              </div>
-
-              <div>
-                <label className="block text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider mb-1.5 font-display">
-                  Nouveau Mot de Passe Administrateur
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Entrez le nouveau mot de passe secret"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full p-2.5 sm:p-3 bg-slate-800 border border-slate-700 rounded-xl sm:rounded-2xl text-xs font-semibold text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              {passwordSuccess && (
-                <p className="text-xs text-emerald-400 font-semibold bg-emerald-950/40 p-2.5 rounded-2xl border border-emerald-800/50">
-                  {passwordSuccess}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                className="w-full py-3 sm:py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl sm:rounded-2xl text-xs shadow-md transition-all font-display cursor-pointer"
-              >
-                Mettre à jour le mot de passe
-              </button>
-            </form>
           </div>
         )}
       </div>

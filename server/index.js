@@ -139,11 +139,24 @@ app.post('/api/cloud/db', (req, res) => {
     return res.status(400).json({ success: false, message: 'Données invalides.' });
   }
 
+  const shouldReplace = req.headers['x-replace-db'] === 'true' || req.headers['x-admin-key'] === ADMIN_API_KEY;
   const currentDb = loadDatabase();
-  const merged = { ...currentDb, ...body };
-  saveDatabase(merged);
+  
+  let finalDb;
+  if (shouldReplace) {
+    // Conserver les paiements et métadonnées système si non fournies
+    finalDb = {
+      ...body,
+      _payments: body._payments || currentDb._payments || {},
+      _admin_broadcast: body._admin_broadcast !== undefined ? body._admin_broadcast : currentDb._admin_broadcast
+    };
+  } else {
+    finalDb = { ...currentDb, ...body };
+  }
 
-  res.json({ success: true, count: Object.keys(merged).length, updatedAt: new Date().toISOString() });
+  saveDatabase(finalDb);
+
+  res.json({ success: true, count: Object.keys(finalDb).length, updatedAt: new Date().toISOString() });
 });
 
 // 3. Partition isolée par boutique (Multi-Tenant Stricte)
@@ -175,6 +188,21 @@ app.put('/api/cloud/shops/:shopId', verifyShopAuth, (req, res) => {
   saveDatabase(db);
 
   res.json({ success: true, shopId, updatedAt: db[shopId].lastUpdatedAt });
+});
+
+// 3.1. Suppression définitive d'une boutique sur le Cloud
+app.delete('/api/cloud/shops/:shopId', (req, res) => {
+  const { shopId } = req.params;
+  const db = loadDatabase();
+  
+  if (db[shopId]) {
+    delete db[shopId];
+    saveDatabase(db);
+    console.log(`[DB] 🗑️ Boutique « ${shopId} » supprimée définitivement du serveur.`);
+    return res.json({ success: true, message: `Boutique ${shopId} supprimée avec succès.` });
+  }
+
+  res.json({ success: true, message: 'Boutique déjà supprimée ou inexistante.' });
 });
 
 // 4. Message d'alerte broadcast Super-Admin

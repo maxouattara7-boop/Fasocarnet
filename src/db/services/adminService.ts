@@ -11,7 +11,6 @@ import {
 } from '../../types';
 import { subscriptionService, SUBSCRIPTION_PLANS, DEFAULT_DEPOSIT_NUMBERS } from './subscriptionService';
 import { syncService } from './syncService';
-import { supabaseClient } from '../supabaseClient';
 import { detectBurkinaOperator, detectPlatform } from '../../utils/telemetry';
 import { verifyHash, hashPassword, isHashed, generateSignedLicenseKey } from '../../utils/crypto';
 
@@ -260,17 +259,8 @@ export const adminService = {
     if (productsToDelete.length) await db.products.bulkDelete(productsToDelete);
     if (debtsToDelete.length) await db.debts.bulkDelete(debtsToDelete);
 
-    // Supprimer de Supabase si configuré
-    if (supabaseClient.isConfigured()) {
-      await supabaseClient.deleteShop(shopId).catch(() => {});
-    }
-
-    // Supprimer de la base Cloud / cache
-    const cloudDb = await syncService.fetchRemoteDatabase();
-    if (cloudDb[shopId]) {
-      delete cloudDb[shopId];
-      await syncService.pushRemoteDatabase(cloudDb);
-    }
+    // Supprimer définitivement du serveur Cloud, de Supabase et du cache local
+    await syncService.deleteRemoteShop(shopId);
   },
 
   /**

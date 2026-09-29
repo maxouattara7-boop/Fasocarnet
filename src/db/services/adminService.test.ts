@@ -256,6 +256,24 @@ describe('adminService', () => {
     const updatedAli = updatedReports.find(r => r.code === 'ALI226');
     expect(updatedAli?.currentWeekIsSettled).toBe(true);
   });
+
+  it('permanently deletes a shop and its local and cloud database records', async () => {
+    const shopToDelete: ShopProfile = {
+      id: 'shop_delete_test',
+      name: 'Boutique à Supprimer',
+      phone: '70999999',
+      currency: 'FCFA',
+      isConfigured: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await db.shopProfiles.put(shopToDelete);
+    expect(await db.shopProfiles.get('shop_delete_test')).toBeDefined();
+
+    await adminService.deleteShop('shop_delete_test');
+    expect(await db.shopProfiles.get('shop_delete_test')).toBeUndefined();
+  });
 });
+
 
 
