@@ -541,23 +541,28 @@ export const SettingsView: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-md mx-auto p-3.5 sm:p-4 space-y-3 pb-28">
+    <div className="max-w-7xl mx-auto p-3.5 sm:p-6 lg:p-8 pb-28 lg:pb-12 space-y-6">
       {/* En-tête titre */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2 text-emerald-900">
-          <Store className="w-5 h-5 text-emerald-700" />
-          <h2 className="text-base sm:text-lg font-extrabold">Paramètres</h2>
+        <div className="flex items-center space-x-3 text-slate-900">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shadow-inner">
+            <Store className="w-5 h-5 text-emerald-700" />
+          </div>
+          <div>
+            <h2 className="text-base sm:text-lg font-black font-display">Paramètres & Configuration</h2>
+            <p className="text-xs text-slate-500 font-medium">Gestion du commerce, des articles, de la licence et des paiements</p>
+          </div>
         </div>
         {savedSuccess && (
-          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full flex items-center space-x-1 animate-in fade-in">
-            <Check className="w-3 h-3" />
-            <span>Enregistré !</span>
+          <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full flex items-center space-x-1 animate-in fade-in shadow-xs">
+            <Check className="w-3.5 h-3.5" />
+            <span>Modifications enregistrées !</span>
           </span>
         )}
       </div>
 
       {/* SÉLECTEUR DE RUBRIQUES (4 TABS MODERNES) */}
-      <div className="grid grid-cols-4 gap-1 bg-gray-200/80 p-1 rounded-xl">
+      <div className="grid grid-cols-4 lg:flex lg:justify-start gap-2 bg-slate-200/80 p-1.5 rounded-2xl shadow-2xs">
         {tabs.map((tab) => {
           const isActive = activeSubTab === tab.id;
           return (
@@ -565,21 +570,21 @@ export const SettingsView: React.FC = () => {
               key={tab.id}
               type="button"
               onClick={() => setActiveSubTab(tab.id)}
-              className={`py-1.5 px-1 rounded-lg text-xs font-bold flex flex-col items-center justify-center space-y-0.5 transition-all ${
+              className={`py-2 px-3 sm:px-4 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-white text-emerald-800 shadow-xs'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white text-emerald-800 shadow-xs font-black'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <div className="relative flex items-center justify-center">
                 {tab.icon}
                 {tab.badge !== undefined && (
-                  <span className={`absolute -top-1.5 -right-2.5 text-[8px] font-black text-white px-1 py-0.2 rounded-full leading-tight ${tab.badgeColor || 'bg-emerald-500'}`}>
+                  <span className={`absolute -top-2 -right-3 text-[9px] font-black text-white px-1.5 py-0.2 rounded-full leading-tight ${tab.badgeColor || 'bg-emerald-500'}`}>
                     {tab.badge}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] leading-none mt-0.5">{tab.label}</span>
+              <span className="font-display">{tab.label}</span>
             </button>
           );
         })}
@@ -589,15 +594,16 @@ export const SettingsView: React.FC = () => {
       {/* RUBRIQUE 1 : BOUTIQUE (Identité, Sécurité, Sauvegarde)   */}
       {/* ======================================================== */}
       {activeSubTab === 'shop' && (
-        <div className="space-y-3 animate-in fade-in duration-150">
-          {/* Identité du Commerce */}
-          <form onSubmit={handleSaveProfile} className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-100 shadow-xs space-y-2.5">
-            <div className="flex items-center space-x-2 text-emerald-900 border-b border-slate-100 pb-2">
-              <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
-                <Store className="w-3.5 h-3.5" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start animate-in fade-in duration-150">
+          <div className="space-y-4">
+            {/* Identité du Commerce */}
+            <form onSubmit={handleSaveProfile} className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
+              <div className="flex items-center space-x-2.5 text-emerald-900 border-b border-slate-100 pb-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
+                  <Store className="w-4 h-4" />
+                </div>
+                <h3 className="font-extrabold text-xs sm:text-sm tracking-tight font-display">Identité du Commerce</h3>
               </div>
-              <h3 className="font-extrabold text-xs tracking-tight">Identité du Commerce</h3>
-            </div>
 
             <div>
               <label className="block text-[9px] font-bold uppercase text-slate-600 tracking-wider mb-0.5">
@@ -810,9 +816,12 @@ export const SettingsView: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
 
+        {/* COLONNE DROITE : SÉCURITÉ, SONS, SAUVEGARDE & SESSION */}
+        <div className="space-y-4">
           {/* Code PIN de Verrouillage */}
-          <form onSubmit={handleSaveProfile} className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-100 shadow-xs space-y-2.5">
+          <form onSubmit={handleSaveProfile} className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
             <div className="flex items-center space-x-2 text-emerald-900 border-b border-slate-100 pb-2">
               <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
                 <KeyRound className="w-3.5 h-3.5" />
@@ -1073,13 +1082,14 @@ export const SettingsView: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowLogoutModal(true)}
-              className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-xs active:scale-98 transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
+              className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl text-xs shadow-xs active:scale-98 transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Se Déconnecter de l'Espace</span>
             </button>
           </div>
         </div>
+      </div>
       )}
 
       {/* ======================================================== */}

@@ -1,30 +1,63 @@
 import React, { useState } from 'react';
-import { useAppStore } from '../../store/appStore';
-import { ShieldCheck, Lock, Cloud, CloudOff, RefreshCw, HelpCircle, FileText } from 'lucide-react';
+import { useAppStore, ActiveTab } from '../../store/appStore';
+import { ShieldCheck, Lock, Cloud, CloudOff, RefreshCw, HelpCircle, FileText, Calculator, BookOpen, BarChart3, Settings } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { HelpGuideModal } from '../common/HelpGuideModal';
 import { CustomInvoiceModal } from '../invoices/CustomInvoiceModal';
 
 export const Header: React.FC = () => {
-  const { shopProfile, setIsLocked, isOnline, isSyncing, syncNow } = useAppStore();
+  const { shopProfile, setIsLocked, isOnline, isSyncing, syncNow, activeTab, setActiveTab } = useAppStore();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
 
+  const desktopNavItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
+    { id: 'pos', label: 'Caisse Tactile', icon: <Calculator className="w-4 h-4" /> },
+    { id: 'debts', label: 'Carnet de Dettes', icon: <BookOpen className="w-4 h-4" /> },
+    { id: 'reports', label: 'Bilan & Ventes', icon: <BarChart3 className="w-4 h-4" /> },
+    { id: 'settings', label: 'Ma Boutique', icon: <Settings className="w-4 h-4" /> },
+  ];
+
   return (
     <>
-      <header className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white px-3.5 py-2.5 shadow-md sticky top-0 z-30 border-b border-emerald-700/40 backdrop-blur-md">
-        <div className="max-w-md mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2.5 min-w-0 flex-1">
+      <header className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white px-3.5 sm:px-6 py-2.5 sm:py-3 shadow-md sticky top-0 z-30 border-b border-emerald-700/40 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          
+          {/* Logo & Nom de la boutique */}
+          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
             <Logo size="sm" showText={false} />
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0">
               <span className="text-[10px] text-emerald-200/90 font-semibold block leading-tight truncate">
                 Bienvenue dans votre espace
               </span>
-              <h1 className="font-extrabold text-xs sm:text-sm leading-tight truncate text-white tracking-tight font-display">
+              <h1 className="font-extrabold text-xs sm:text-base leading-tight truncate text-white tracking-tight font-display">
                 {shopProfile?.name || 'FasoCarnet'}
               </h1>
             </div>
           </div>
+
+          {/* Navigation Bureau Desktop (Visible sur tablette et PC) */}
+          <nav className="hidden md:flex items-center space-x-1.5 bg-emerald-950/50 p-1 rounded-2xl border border-emerald-700/40 shadow-inner">
+            {desktopNavItems.map((item) => {
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveTab(item.id)}
+                  className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center space-x-2 transition-all cursor-pointer font-display ${
+                    isActive
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-md shadow-emerald-500/20 font-black scale-102'
+                      : 'text-emerald-200 hover:text-white hover:bg-emerald-800/40'
+                  }`}
+                >
+                  <span className={isActive ? 'text-slate-950' : 'text-emerald-300'}>
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
 
           <div className="flex items-center space-x-1.5 flex-shrink-0">
             {/* Bouton Factures & Devis Libres */}

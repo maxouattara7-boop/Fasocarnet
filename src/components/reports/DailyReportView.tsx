@@ -298,202 +298,256 @@ export const DailyReportView: React.FC = () => {
   const isPositiveFlow = netFlow >= 0;
 
   return (
-    <div className="max-w-md mx-auto p-3.5 sm:p-4 space-y-3 pb-28">
-      {/* Barre Supérieure : Période + Bouton Nouvelle Dépense */}
-      <div className="flex items-center justify-between gap-2">
-        {/* Onglets Période : Jour vs Mois */}
-        <div className="flex-1 flex items-center p-1 bg-slate-100 rounded-xl sm:rounded-2xl gap-1 text-xs font-bold shadow-2xs">
-          <button
-            type="button"
-            onClick={() => setReportPeriod('day')}
-            className={`flex-1 py-2 rounded-lg sm:rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
-              reportPeriod === 'day'
-                ? 'bg-emerald-600 text-white shadow-xs font-black'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Jour</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setReportPeriod('month')}
-            className={`flex-1 py-2 rounded-lg sm:rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
-              reportPeriod === 'month'
-                ? 'bg-emerald-600 text-white shadow-xs font-black'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <CalendarDays className="w-3.5 h-3.5" />
-            <span>Mois</span>
-          </button>
-        </div>
-
-        {/* Bouton Nouvelle Dépense */}
-        <button
-          type="button"
-          onClick={() => setIsNewExpenseModalOpen(true)}
-          className="py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl sm:rounded-2xl shadow-md shadow-rose-600/20 active:scale-98 transition-all flex items-center space-x-1.5 cursor-pointer shrink-0"
-          title="Enregistrer une sortie de caisse ou dépense"
-        >
-          <PlusCircle className="w-4 h-4 stroke-[2.5]" />
-          <span>+ Dépense</span>
-        </button>
-      </div>
-
-      {/* Sélecteur de date / mois */}
-      <div className="flex items-center justify-between bg-white p-2.5 rounded-2xl border border-slate-100 shadow-xs">
-        <div className="flex items-center space-x-2 text-slate-700">
-          <Calendar className="w-4 h-4 text-emerald-600 stroke-[2.2]" />
-          <span className="text-xs font-black font-display">
-            {reportPeriod === 'day' ? 'Jour choisi :' : 'Mois choisi :'}
-          </span>
-        </div>
-
-        {reportPeriod === 'day' ? (
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer"
-          />
-        ) : (
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer"
-          />
-        )}
-      </div>
-
-      {/* CARTE 1 : CHIFFRE D'AFFAIRES ENCAISSÉ */}
-      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-md space-y-1.5 border border-emerald-700/50">
-        <div className="flex items-center justify-between text-emerald-300 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider font-display">
-          <div className="flex items-center space-x-1.5">
-            <BarChart3 className="w-4 h-4 stroke-[2.5]" />
-            <span>{reportPeriod === 'day' ? 'Total Encaissé du Jour' : 'Total Encaissé du Mois'}</span>
-          </div>
-          <span className="bg-emerald-700/70 px-2 py-0.5 rounded-md text-[10px] font-extrabold">
-            {summary?.salesCount || 0} vente{summary?.salesCount && summary.salesCount > 1 ? 's' : ''}
-          </span>
-        </div>
-
-        <div className="text-2xl sm:text-3xl font-black text-white tracking-tight font-display drop-shadow-xs">
-          {formatCurrency(summary?.totalSales || 0)}
-        </div>
-
-        <p className="text-[10px] text-emerald-200/80 font-medium">
-          {reportPeriod === 'day' 
-            ? `Chiffre d'affaires net pour le ${formatDateLabel(selectedDate)}`
-            : `Chiffre d'affaires net pour ${formatMonthLabel(selectedMonth)}`}
-        </p>
-      </div>
-
-      {/* CARTE 2 : BÉNÉFICE COMMERCIAL & MARGE BRUTE */}
-      <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-emerald-950 text-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-indigo-700/40 shadow-md space-y-2">
-        <div className="flex items-center justify-between text-indigo-300 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider font-display">
-          <div className="flex items-center space-x-1.5">
-            <TrendingUp className="w-4 h-4 text-emerald-400 stroke-[2.5]" />
-            <span>Marge Commerciale & Bénéfice</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsProfitDetailsOpen(!isProfitDetailsOpen)}
-            className="text-[10px] bg-indigo-900/80 hover:bg-indigo-800 text-indigo-200 px-2 py-0.5 rounded-md font-bold flex items-center space-x-1 transition-colors cursor-pointer"
-          >
-            <span>{isProfitDetailsOpen ? 'Masquer' : 'Détails'}</span>
-            {isProfitDetailsOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          </button>
-        </div>
-
-        <div className="flex items-baseline justify-between flex-wrap gap-2">
-          <div>
-            <span className="text-[10px] text-slate-400 font-medium block">Marge Brute (Ventes − Coût d'achat)</span>
-            <div className="text-xl sm:text-2xl font-black text-emerald-400 font-display">
-              +{formatCurrency(summary?.grossProfit || 0)}
+    <div className="max-w-7xl mx-auto p-3.5 sm:p-6 lg:p-8 pb-28 lg:pb-12 space-y-6">
+      {/* Barre Supérieure : Titre, Période, Sélecteur de date et Boutons d'Action */}
+      <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        {/* Titre & Période */}
+        <div className="flex items-center justify-between lg:justify-start gap-4 flex-wrap">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shadow-inner">
+              <BarChart3 className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-black text-slate-900 font-display">Bilan & Trésorerie</h2>
+              <p className="text-xs text-slate-500 font-medium">
+                {reportPeriod === 'day' ? formatDateLabel(selectedDate) : formatMonthLabel(selectedMonth)}
+              </p>
             </div>
           </div>
 
-          <div className="text-right">
-            <span className="text-[10px] text-slate-400 font-medium block">Bénéfice Net (après dépenses)</span>
-            <div className={`text-xl sm:text-2xl font-black font-display ${
+          {/* Onglets Période : Jour vs Mois */}
+          <div className="flex items-center p-1 bg-slate-100 rounded-2xl gap-1 text-xs font-bold shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setReportPeriod('day')}
+              className={`px-3.5 py-2 rounded-xl flex items-center space-x-1.5 transition-all cursor-pointer ${
+                reportPeriod === 'day'
+                  ? 'bg-emerald-600 text-white shadow-xs font-black'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Jour</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setReportPeriod('month')}
+              className={`px-3.5 py-2 rounded-xl flex items-center space-x-1.5 transition-all cursor-pointer ${
+                reportPeriod === 'month'
+                  ? 'bg-emerald-600 text-white shadow-xs font-black'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+              <span>Mois</span>
+            </button>
+          </div>
+
+          {/* Sélecteur de date / mois */}
+          <div>
+            {reportPeriod === 'day' ? (
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer"
+              />
+            ) : (
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Boutons d'Action Rapides */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Bouton Historique Approvisionnements */}
+          <button
+            type="button"
+            onClick={() => setIsSuppliesHistoryModalOpen(true)}
+            className="py-2.5 px-3.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold text-xs rounded-2xl flex items-center space-x-1.5 transition-all cursor-pointer"
+            title="Consulter l'historique des achats et réapprovisionnements"
+          >
+            <PackagePlus className="w-4 h-4 text-emerald-600" />
+            <span className="hidden sm:inline">Approvisionnements</span>
+          </button>
+
+          {/* Bouton Export Excel */}
+          {reportPeriod === 'month' && (
+            <button
+              type="button"
+              disabled={isExportingExcel}
+              onClick={handleExportExcel}
+              className="py-2.5 px-3.5 bg-emerald-700 hover:bg-emerald-600 text-white font-extrabold text-xs rounded-2xl flex items-center space-x-1.5 shadow-xs active:scale-98 transition-all cursor-pointer font-display disabled:opacity-50"
+              title="Exporter en Excel"
+            >
+              {isExportingExcel ? (
+                <Loader2 className="w-4 h-4 animate-spin text-amber-300" />
+              ) : (
+                <FileSpreadsheet className="w-4 h-4 text-amber-300" />
+              )}
+              <span>Excel (.csv)</span>
+            </button>
+          )}
+
+          {/* Bouton Nouvelle Dépense */}
+          <button
+            type="button"
+            onClick={() => setIsNewExpenseModalOpen(true)}
+            className="py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-2xl shadow-md shadow-rose-600/20 active:scale-98 transition-all flex items-center space-x-1.5 cursor-pointer font-display"
+            title="Enregistrer une sortie de caisse ou dépense"
+          >
+            <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+            <span>+ Dépense</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ======================================================== */}
+      {/* 4 CARTES KPI SYNTHÉTIQUES EN GRILLE RESPONSIVE           */}
+      {/* ======================================================== */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        
+        {/* CARTE 1 : CHIFFRE D'AFFAIRES ENCAISSÉ */}
+        <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-5 rounded-3xl shadow-md space-y-2 border border-emerald-700/50 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-emerald-300 text-[11px] font-bold uppercase tracking-wider font-display">
+            <div className="flex items-center space-x-1.5">
+              <BarChart3 className="w-4 h-4 stroke-[2.5]" />
+              <span>{reportPeriod === 'day' ? 'CA du Jour' : 'CA du Mois'}</span>
+            </div>
+            <span className="bg-emerald-700/70 px-2 py-0.5 rounded-lg text-[10px] font-extrabold">
+              {summary?.salesCount || 0} vente{summary?.salesCount && summary.salesCount > 1 ? 's' : ''}
+            </span>
+          </div>
+
+          <div className="my-1">
+            <div className="text-2xl sm:text-3xl font-black text-white tracking-tight font-display drop-shadow-xs">
+              {formatCurrency(summary?.totalSales || 0)}
+            </div>
+            <p className="text-[10px] text-emerald-200/80 font-medium mt-0.5">
+              Total net encaissé (hors crédits impayés)
+            </p>
+          </div>
+        </div>
+
+        {/* CARTE 2 : BÉNÉFICE COMMERCIAL & MARGE BRUTE */}
+        <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-emerald-950 text-white p-5 rounded-3xl border border-indigo-700/40 shadow-md space-y-2 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-indigo-300 text-[11px] font-bold uppercase tracking-wider font-display">
+            <div className="flex items-center space-x-1.5">
+              <TrendingUp className="w-4 h-4 text-emerald-400 stroke-[2.5]" />
+              <span>Bénéfice Net</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsProfitDetailsOpen(!isProfitDetailsOpen)}
+              className="text-[10px] bg-indigo-900/80 hover:bg-indigo-800 text-indigo-200 px-2 py-0.5 rounded-lg font-bold flex items-center space-x-1 transition-colors cursor-pointer"
+            >
+              <span>{isProfitDetailsOpen ? 'Masquer' : 'Marge'}</span>
+              {isProfitDetailsOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+          </div>
+
+          <div className="my-1">
+            <div className={`text-2xl sm:text-3xl font-black font-display ${
               (summary?.netProfit || 0) >= 0 ? 'text-amber-300' : 'text-rose-400'
             }`}>
               {(summary?.netProfit || 0) >= 0 ? `+${formatCurrency(summary?.netProfit || 0)}` : `-${formatCurrency(Math.abs(summary?.netProfit || 0))}`}
             </div>
-          </div>
-        </div>
-
-        {isProfitDetailsOpen && (
-          <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 gap-2 text-xs animate-in fade-in duration-150">
-            <div className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800">
-              <span className="text-[10px] text-slate-400 block font-medium">Coût d'Achat Marchandises</span>
-              <span className="font-extrabold text-slate-200 font-display">{formatCurrency(summary?.totalCostOfGoodsSold || 0)}</span>
-            </div>
-            <div className="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800">
-              <span className="text-[10px] text-slate-400 block font-medium">Dépenses Exploitation</span>
-              <span className="font-extrabold text-rose-300 font-display">{formatCurrency(summary?.totalExpenses || 0)}</span>
+            <div className="text-[10px] text-slate-300/80 font-medium mt-0.5">
+              Marge brute : <strong className="text-emerald-400">+{formatCurrency(summary?.grossProfit || 0)}</strong>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* CARTE 3 : TRÉSORERIE NETTE RÉELLE (ENCAISSEMENTS - DÉPENSES) */}
-      <div className={`p-4 rounded-2xl sm:rounded-3xl border shadow-xs transition-all ${
-        isPositiveFlow 
-          ? 'bg-gradient-to-br from-teal-900 to-emerald-950 text-white border-teal-700/40' 
-          : 'bg-gradient-to-br from-rose-950 to-slate-900 text-white border-rose-800/40'
-      }`}>
-        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider font-display text-slate-300">
-          <div className="flex items-center space-x-1.5">
-            {isPositiveFlow ? <TrendingUp className="w-4 h-4 text-emerald-400" /> : <TrendingDown className="w-4 h-4 text-rose-400" />}
-            <span>Trésorerie Nette Réelle</span>
-          </div>
-          <span className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${isPositiveFlow ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
-            {isPositiveFlow ? 'Solde Positif' : 'Déficit'}
-          </span>
-        </div>
-
-        <div className="text-xl sm:text-2xl font-black tracking-tight font-display mt-1">
-          {isPositiveFlow ? `+ ${formatCurrency(netFlow)}` : `- ${formatCurrency(Math.abs(netFlow))}`}
-        </div>
-
-        <p className="text-[10px] text-slate-300/80 font-medium mt-0.5">
-          Calcul : (Total Encaissé {formatCurrency(summary?.totalSales || 0)} + Dettes Récupérées {formatCurrency(summary?.totalRecoveredDebts || 0)}) − Dépenses {formatCurrency(summary?.totalExpenses || 0)}
-        </p>
-      </div>
-
-      {/* Bouton Historique des Approvisionnements */}
-      <button
-        type="button"
-        onClick={() => setIsSuppliesHistoryModalOpen(true)}
-        className="w-full py-2.5 px-3 bg-white hover:bg-slate-50 active:bg-slate-100 border border-slate-200 rounded-2xl font-bold text-xs text-slate-800 flex items-center justify-between shadow-2xs transition-all cursor-pointer group"
-      >
-        <div className="flex items-center space-x-2 text-slate-700">
-          <PackagePlus className="w-4 h-4 text-emerald-600" />
-          <span className="font-extrabold font-display">Historique des Approvisionnements & Achats</span>
-        </div>
-        <span className="text-[11px] font-extrabold text-emerald-700 group-hover:underline">Consulter →</span>
-      </button>
-
-      {/* Bouton d'exportation Excel pour le Bilan Mensuel */}
-      {reportPeriod === 'month' && (
-        <button
-          type="button"
-          disabled={isExportingExcel}
-          onClick={handleExportExcel}
-          className="w-full py-3.5 px-4 bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-white rounded-2xl font-black text-xs flex items-center justify-center space-x-2 shadow-md active:scale-98 transition-all cursor-pointer font-display disabled:opacity-50"
-        >
-          {isExportingExcel ? (
-            <Loader2 className="w-4 h-4 text-amber-300 animate-spin" />
-          ) : (
-            <FileSpreadsheet className="w-4 h-4 text-amber-300" />
+          {isProfitDetailsOpen && (
+            <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 gap-2 text-xs animate-in fade-in duration-150">
+              <div className="bg-slate-900/70 p-2 rounded-xl border border-slate-800">
+                <span className="text-[9px] text-slate-400 block">Coût Achat</span>
+                <span className="font-extrabold text-slate-200 text-xs">{formatCurrency(summary?.totalCostOfGoodsSold || 0)}</span>
+              </div>
+              <div className="bg-slate-900/70 p-2 rounded-xl border border-slate-800">
+                <span className="text-[9px] text-slate-400 block">Dépenses</span>
+                <span className="font-extrabold text-rose-300 text-xs">{formatCurrency(summary?.totalExpenses || 0)}</span>
+              </div>
+            </div>
           )}
-          <span>{isExportingExcel ? 'Génération du fichier...' : '📥 Télécharger le Bilan Mensuel Excel (.csv / .xlsx)'}</span>
-        </button>
-      )}
+        </div>
+
+        {/* CARTE 3 : TRÉSORERIE NETTE RÉELLE (ENCAISSEMENTS - DÉPENSES) */}
+        <div className={`p-5 rounded-3xl border shadow-md flex flex-col justify-between transition-all ${
+          isPositiveFlow 
+            ? 'bg-gradient-to-br from-teal-900 to-emerald-950 text-white border-teal-700/40' 
+            : 'bg-gradient-to-br from-rose-950 to-slate-900 text-white border-rose-800/40'
+        }`}>
+          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider font-display text-slate-300">
+            <div className="flex items-center space-x-1.5">
+              {isPositiveFlow ? <TrendingUp className="w-4 h-4 text-emerald-400" /> : <TrendingDown className="w-4 h-4 text-rose-400" />}
+              <span>Trésorerie Réelle</span>
+            </div>
+            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold ${isPositiveFlow ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
+              {isPositiveFlow ? 'Solde +' : 'Déficit'}
+            </span>
+          </div>
+
+          <div className="my-1">
+            <div className="text-2xl sm:text-3xl font-black tracking-tight font-display">
+              {isPositiveFlow ? `+ ${formatCurrency(netFlow)}` : `- ${formatCurrency(Math.abs(netFlow))}`}
+            </div>
+            <p className="text-[10px] text-slate-300/80 font-medium mt-0.5 truncate">
+              Encaissements ({formatCurrency((summary?.totalSales || 0) + (summary?.totalRecoveredDebts || 0))}) − Dépenses ({formatCurrency(summary?.totalExpenses || 0)})
+            </p>
+          </div>
+        </div>
+
+        {/* CARTE 4 : DÉPENSES & SORTIES DE CAISSE */}
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-md flex flex-col justify-between space-y-2">
+          <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider font-display">
+            <div className="flex items-center space-x-1.5 text-rose-700">
+              <TrendingDown className="w-4 h-4" />
+              <span>Dépenses Globales</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsExpensesDetailsOpen(!isExpensesDetailsOpen)}
+              className="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-lg font-bold flex items-center space-x-1 cursor-pointer"
+            >
+              <span>{isExpensesDetailsOpen ? 'Masquer' : 'Détails'}</span>
+              {isExpensesDetailsOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+          </div>
+
+          <div className="my-1">
+            <div className="text-2xl sm:text-3xl font-black text-rose-700 font-display">
+              -{formatCurrency(summary?.totalExpenses || 0)}
+            </div>
+            <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+              {expensesList.length} sortie(s) de caisse enregistrée(s)
+            </p>
+          </div>
+
+          {isExpensesDetailsOpen && (
+            <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-1.5 text-[10px] animate-in fade-in">
+              <div className="bg-slate-50 p-1.5 rounded-lg">
+                <span className="text-slate-400 block">Espèces</span>
+                <span className="font-bold text-rose-700">{formatCurrency(summary?.cashExpenses || 0)}</span>
+              </div>
+              <div className="bg-slate-50 p-1.5 rounded-lg">
+                <span className="text-slate-400 block">Mobile</span>
+                <span className="font-bold text-rose-700">{formatCurrency((summary?.orangeMoneyExpenses || 0) + (summary?.moovMoneyExpenses || 0) + (summary?.waveExpenses || 0))}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ======================================================== */}
+      {/* SECTION INTERMÉDIAIRE : DÉTAIL DES MODES & ENCOURS DETTES */}
+      {/* ======================================================== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
       {/* BLOC 3 : ENCAISSEMENTS CASH & MOBILE MONEY (DÉROULANT) */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
@@ -675,84 +729,101 @@ export const DailyReportView: React.FC = () => {
           </div>
         </div>
       </div>
+    </div>
 
       {/* SECTION HISTORIQUE AVEC DOUBLE ONGLET : VENTES vs DÉPENSES */}
-      <div className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-xs space-y-3">
+      <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
         {/* Sélecteur d'onglet d'historique */}
-        <div className="flex items-center p-1 bg-slate-100 rounded-xl gap-1 text-xs font-bold">
-          <button
-            type="button"
-            onClick={() => setHistoryTab('sales')}
-            className={`flex-1 py-1.5 rounded-lg flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
-              historyTab === 'sales'
-                ? 'bg-white text-emerald-800 shadow-xs font-black'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <ShoppingBag className="w-3.5 h-3.5" />
-            <span>Ventes ({salesList.length})</span>
-          </button>
+        <div className="flex items-center justify-between flex-wrap gap-3 border-b border-slate-100 pb-4">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
+              <ShoppingBag className="w-4 h-4" />
+            </div>
+            <h3 className="font-extrabold text-sm text-slate-900 font-display">Journal des Opérations</h3>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => setHistoryTab('expenses')}
-            className={`flex-1 py-1.5 rounded-lg flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
-              historyTab === 'expenses'
-                ? 'bg-white text-rose-800 shadow-xs font-black'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <TrendingDown className="w-3.5 h-3.5" />
-            <span>Dépenses ({expensesList.length})</span>
-          </button>
+          <div className="flex items-center p-1 bg-slate-100 rounded-2xl gap-1 text-xs font-bold shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setHistoryTab('sales')}
+              className={`px-4 py-2 rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer ${
+                historyTab === 'sales'
+                  ? 'bg-white text-emerald-800 shadow-xs font-black'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>Ventes ({salesList.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setHistoryTab('expenses')}
+              className={`px-4 py-2 rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer ${
+                historyTab === 'expenses'
+                  ? 'bg-white text-rose-800 shadow-xs font-black'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <TrendingDown className="w-3.5 h-3.5" />
+              <span>Dépenses ({expensesList.length})</span>
+            </button>
+          </div>
         </div>
 
         {/* Contenu de l'onglet Ventes */}
         {historyTab === 'sales' && (
           <div>
             {salesList.length === 0 ? (
-              <div className="py-6 text-center text-slate-400 space-y-1">
-                <ShoppingBag className="w-8 h-8 text-slate-300 mx-auto" />
-                <p className="text-xs font-semibold">Aucune vente pour cette sélection</p>
+              <div className="py-12 text-center text-slate-400 space-y-2">
+                <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-xs font-bold text-slate-600">Aucune vente enregistrée pour cette sélection</p>
+                <p className="text-[11px] text-slate-400">Les transactions validées à la caisse apparaîtront ici.</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto pr-1">
+              <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto pr-1">
                 {salesList.map((sale) => (
-                  <div key={sale.id} className={`py-2.5 flex items-center justify-between text-xs ${sale.isCancelled ? 'opacity-60 bg-red-50/20 px-2 rounded-xl my-1' : ''}`}>
-                    <div className="min-w-0 pr-2">
-                      <div className="flex items-center space-x-1.5 flex-wrap">
-                        <span className={`font-bold text-xs truncate font-display ${sale.isCancelled ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
+                  <div key={sale.id} className={`py-3 flex items-center justify-between text-xs hover:bg-slate-50/80 px-2.5 rounded-2xl transition-colors ${sale.isCancelled ? 'opacity-60 bg-red-50/30' : ''}`}>
+                    <div className="min-w-0 pr-3">
+                      <div className="flex items-center space-x-2 flex-wrap">
+                        <span className={`font-black text-xs sm:text-sm font-display ${sale.isCancelled ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
                           {sale.isPartialCredit 
                             ? `Vente Partielle : ${sale.customerName || 'Client'}` 
                             : sale.isCredit 
                             ? `Crédit : ${sale.customerName || 'Client'}` 
                             : `Vente ${sale.paymentMethod}`}
                         </span>
-                        {sale.isCancelled && (
-                          <span className="bg-red-100 text-red-800 text-[9px] font-black px-1.5 py-0.2 rounded-md border border-red-200">
+                        {sale.isCancelled ? (
+                          <span className="bg-red-100 text-red-800 text-[9px] font-black px-2 py-0.5 rounded-md border border-red-200">
                             ANNULÉE
+                          </span>
+                        ) : (
+                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${
+                            sale.isCredit ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {sale.paymentMethod}
                           </span>
                         )}
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{formatDateTime(sale.createdAt)}</div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">{formatDateTime(sale.createdAt)}</div>
                       {sale.isCancelled && sale.cancelReason && (
-                        <div className="text-[10px] text-red-600 italic mt-0.5">
+                        <div className="text-[11px] text-red-600 italic mt-0.5">
                           Motif : {sale.cancelReason}
                         </div>
                       )}
                       {sale.isPartialCredit && (
-                        <div className="text-[10px] text-indigo-700 font-semibold mt-0.5">
+                        <div className="text-[11px] text-indigo-700 font-semibold mt-0.5">
                           Acompte : {formatCurrency(sale.paidAmount || 0)} • Dette : {formatCurrency(sale.creditAmount || 0)}
                         </div>
                       )}
                       {sale.items && sale.items.length > 0 && (
-                        <div className="text-[10px] text-slate-500 truncate mt-0.5">
+                        <div className="text-[11px] text-slate-500 truncate mt-0.5">
                           {sale.items.map(it => `${it.description} (x${it.quantity})`).join(', ')}
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center space-x-2 flex-shrink-0">
-                      <div className={`font-black font-display text-xs sm:text-sm ${
+                    <div className="flex items-center space-x-3 flex-shrink-0">
+                      <div className={`font-black font-display text-sm sm:text-base ${
                         sale.isCancelled 
                           ? 'text-slate-400 line-through' 
                           : sale.isCredit 
@@ -765,10 +836,10 @@ export const DailyReportView: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleOpenCancelSale(sale)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                          title="Annuler cette vente"
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                          title="Annuler cette vente et remettre en stock"
                         >
-                          <RotateCcw className="w-3.5 h-3.5" />
+                          <RotateCcw className="w-4 h-4" />
                         </button>
                       )}
                     </div>

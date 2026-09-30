@@ -11,7 +11,22 @@ import { Product, Sale, SaleItem } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 import { triggerHaptic, triggerDoubleHaptic } from '../../utils/haptics';
 import { soundEffects } from '../../utils/soundEffects';
-import { ArrowRight, ShoppingCart, Package, Calculator, Search, X, ChevronDown, Barcode, Camera, Check, Sparkles, Tag } from 'lucide-react';
+import { 
+  ArrowRight, 
+  ShoppingCart, 
+  Package, 
+  Calculator, 
+  Search, 
+  X, 
+  ChevronDown, 
+  Barcode, 
+  Camera, 
+  Check, 
+  Sparkles, 
+  Tag, 
+  Trash2, 
+  Keyboard
+} from 'lucide-react';
 import { evaluatePosExpression, formatPosExpressionDisplay } from '../../utils/calculator';
 
 export const PosView: React.FC = () => {
@@ -28,6 +43,7 @@ export const PosView: React.FC = () => {
   const [isArticlePickerOpen, setIsArticlePickerOpen] = useState(false);
   const [productForQuantity, setProductForQuantity] = useState<Product | null>(null);
   const [articleSearch, setArticleSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Scanner Code-Barres
   const [isBarcodeScannerOpen, setIsBarcodeScannerOpen] = useState(false);
@@ -45,30 +61,53 @@ export const PosView: React.FC = () => {
   useEffect(() => {
     loadProducts();
 
-    // Écouteur global pour douchettes laser USB / Bluetooth
+    // Écouteur global pour douchettes laser USB / Bluetooth & raccourcis clavier
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Si l'utilisateur est en train de taper dans un champ de texte de recherche ou modale, ne pas intercepter
+      // Si l'utilisateur tape dans un champ de saisie texte, ne pas intercepter
       const activeTag = (document.activeElement as HTMLElement)?.tagName;
-      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return;
+      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
 
       const now = Date.now();
       const interval = now - lastKeyTimeRef.current;
       lastKeyTimeRef.current = now;
 
+      // Détection douchette laser (caractères consécutifs très rapides)
       if (e.key === 'Enter') {
         if (barcodeBufferRef.current.length >= 3 && interval < 150) {
           e.preventDefault();
           const scannedCode = barcodeBufferRef.current.trim();
           barcodeBufferRef.current = '';
           handleBarcodeScanned(scannedCode);
+          return;
         } else {
           barcodeBufferRef.current = '';
         }
-      } else if (e.key.length === 1) {
-        if (interval > 150) {
-          barcodeBufferRef.current = '';
-        }
+      } else if (e.key.length === 1 && interval < 150) {
         barcodeBufferRef.current += e.key;
+      } else if (interval >= 150) {
+        barcodeBufferRef.current = e.key.length === 1 ? e.key : '';
+      }
+
+      // Raccourcis clavier physiques pour la caisse
+      if (e.key >= '0' && e.key <= '9') {
+        e.preventDefault();
+        setAmountStr((prev) => (prev === '0' ? e.key : prev + e.key));
+      } else if (e.key === '+') {
+        e.preventDefault();
+        setAmountStr((prev) => {
+          if (prev === '0' || prev.trim().endsWith('+')) return prev;
+          return prev + ' + ';
+        });
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        setAmountStr((prev) => {
+          if (prev.endsWith(' + ')) return prev.slice(0, -3);
+          if (prev.length <= 1) return '0';
+          return prev.slice(0, -1);
+        });
+      } else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        handleClear();
       }
     };
 
@@ -90,6 +129,19 @@ export const PosView: React.FC = () => {
     setSelectedItems([]);
     setDiscount(null);
     setLastScannedFeedback(null);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    const itemToRemove = selectedItems[index];
+    if (!itemToRemove) return;
+    triggerHaptic(30);
+
+    const updated = selectedItems.filter((_, i) => i !== index);
+    setSelectedItems(updated);
+
+    // Recalculer le montant total à partir des articles restants
+    const newItemsTotal = updated.reduce((sum, it) => sum + it.unitPrice * it.quantity, 0);
+    setAmountStr(newItemsTotal > 0 ? newItemsTotal.toString() : '0');
   };
 
   const handleSelectProduct = (productId: string) => {
@@ -283,192 +335,435 @@ export const PosView: React.FC = () => {
 
   const hasCalculation = /[+]/.test(amountStr);
 
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(articleSearch.toLowerCase())
-  );
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch = p.name.toLowerCase().includes(articleSearch.toLowerCase()) || (p.barcode && p.barcode.toLowerCase().includes(articleSearch.toLowerCase()));
+    if (!matchesSearch) return false;
+    if (selectedCategory === 'in_stock') return (p.stockQuantity ?? 0) > 0;
+    if (selectedCategory === 'out_of_stock') return (p.stockQuantity ?? 0) <= 0;
+    if (selectedCategory === 'low_stock') return (p.stockQuantity ?? 0) > 0 && (p.stockQuantity ?? 0) <= (p.minStockAlert ?? 5);
+    return true;
+  });
 
   return (
-    <div className="max-w-lg mx-auto p-3.5 sm:p-4 space-y-3 sm:space-y-3.5 pb-24">
-      {/* Écran d'affichage du montant, de la remise et du calcul */}
-      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-4 sm:p-4.5 rounded-2xl shadow-lg flex flex-col justify-between min-h-[118px] sm:min-h-[125px] border border-emerald-700/50">
-        <div className="flex items-center justify-between text-emerald-300 text-[11px] font-bold tracking-wider uppercase">
-          <div className="flex items-center space-x-1.5">
-            {hasCalculation ? (
-              <Calculator className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            ) : (
-              <ShoppingCart className="w-3.5 h-3.5" />
-            )}
-            <span>{hasCalculation ? 'Total Additionné' : 'Montant à Encaisser'}</span>
-          </div>
-          {discount && discount.calculatedAmount > 0 ? (
-            <button
-              type="button"
-              onClick={() => setIsDiscountModalOpen(true)}
-              className="bg-amber-400 hover:bg-amber-300 text-amber-950 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide flex items-center space-x-1 transition-all"
-            >
-              <Tag className="w-3 h-3" />
-              <span>Remise -{formatCurrency(discountAmount)}</span>
-            </button>
-          ) : (
-            <span className="bg-emerald-700/70 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide">FCFA</span>
-          )}
-        </div>
-
-        <div className="text-right mt-1">
-          {/* Formule de calcul si addition en cours */}
-          {hasCalculation && (
-            <div className="text-[11px] sm:text-xs font-semibold text-amber-300 bg-amber-950/40 px-2 py-0.5 rounded-md inline-block max-w-full truncate mb-0.5 border border-amber-500/30">
-              {formatPosExpressionDisplay(amountStr)} {/[+]\s*$/.test(amountStr) ? '...' : '='}
-            </div>
-          )}
-
-          {/* Affichage du sous-total barré si remise active */}
-          {discount && discount.calculatedAmount > 0 && (
-            <div className="text-xs font-semibold text-emerald-300/80 line-through">
-              {formatCurrency(subtotalAmount)}
-            </div>
-          )}
-
-          <div className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white drop-shadow-xs truncate leading-tight">
-            {formatCurrency(finalPayableAmount).replace(' FCFA', '')}
-          </div>
-
-          <div className="text-[10px] text-emerald-300/80 mt-0.5">
-            {discount && discount.calculatedAmount > 0 ? (
-              <span className="font-bold text-amber-300">
-                Remise appliquée : -{formatCurrency(discountAmount)} ({discount.type === 'PERCENT' ? `${discount.value}%` : 'Montant fixe'})
-              </span>
-            ) : selectedItems.length > 0 ? (
-              <span className="font-medium text-amber-300 truncate block">
-                {selectedItems.map((it) => `${it.description}${it.quantity > 1 ? ` (x${it.quantity})` : ''}`).join(' • ')}
-              </span>
-            ) : (
-              'Francs CFA (XOF)'
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Notification Toast de scan rapide */}
+    <div className="max-w-7xl mx-auto p-3.5 sm:p-6 lg:p-8 pb-28 lg:pb-12 space-y-6">
+      {/* Toast de Notification */}
       {scanToast && (
-        <div className="bg-emerald-900 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-lg flex items-center justify-between animate-in fade-in slide-in-from-top duration-200 border border-emerald-500/40">
-          <div className="flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
+        <div className="bg-emerald-900 text-white text-xs sm:text-sm font-bold px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between animate-in fade-in slide-in-from-top duration-200 border border-emerald-500/40">
+          <div className="flex items-center space-x-2.5">
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 animate-spin" />
             <span>{scanToast}</span>
           </div>
-          <span className="text-[10px] bg-emerald-700/80 px-1.5 py-0.5 rounded font-mono">Ajouté</span>
+          <span className="text-[11px] bg-emerald-700/80 px-2.5 py-1 rounded-lg font-mono">Ajouté</span>
         </div>
       )}
 
-      {/* BARRE D'ACTIONS RAPIDES : SCANNER, REMISE & ARTICLES */}
-      <div className="flex items-center space-x-1.5 overflow-x-auto pb-0.5 scrollbar-none">
-        {/* Bouton Scanner Caméra Code-Barres */}
-        <button
-          type="button"
-          onClick={() => setIsBarcodeScannerOpen(true)}
-          className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shrink-0 shadow-xs active:scale-95 transition-all cursor-pointer"
-          title="Scanner un code-barres avec la caméra ou douchette"
-        >
-          <Camera className="w-3.5 h-3.5 text-white" />
-          <span>Scanner</span>
-        </button>
+      {/* DISPOSITION RESPONSIVE : 2 COLONNES SUR GRAND ÉCRAN (LG/XL) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+        
+        {/* ======================================================== */}
+        {/* COLONNE GAUCHE (DESKTOP) : CATALOGUE D'ARTICLES & RECHERCHE */}
+        {/* ======================================================== */}
+        <div className="hidden lg:block lg:col-span-7 space-y-4">
+          {/* Barre supérieure du Catalogue */}
+          <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shadow-inner">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-extrabold text-slate-900 font-display">Catalogue d'Articles</h2>
+                  <p className="text-xs text-slate-500 font-medium">{products.length} article(s) enregistrés</p>
+                </div>
+              </div>
 
-        {/* Bouton Remise (% ou FCFA) */}
-        <button
-          type="button"
-          onClick={() => {
-            triggerHaptic(30);
-            setIsDiscountModalOpen(true);
-          }}
-          className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shrink-0 shadow-xs active:scale-95 transition-all cursor-pointer ${
-            discount && discount.calculatedAmount > 0
-              ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-500 font-black'
-              : 'bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 text-white'
-          }`}
-          title="Appliquer une remise en % ou FCFA"
-        >
-          <Tag className="w-3.5 h-3.5 text-amber-300" />
-          <span>{discount && discount.calculatedAmount > 0 ? `Remise (-${formatCurrency(discountAmount)})` : 'Remise'}</span>
-        </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBarcodeScannerOpen(true)}
+                  className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black flex items-center space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
+                  title="Scanner un code-barres"
+                >
+                  <Camera className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Scanner Code-Barres</span>
+                </button>
+              </div>
+            </div>
 
-        {/* Bouton catalogue complet */}
-        {products.length > 0 && (
+            {/* Barre de Recherche & Filtres */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Rechercher par nom d'article ou code-barres..."
+                  value={articleSearch}
+                  onChange={(e) => setArticleSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                />
+                {articleSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setArticleSearch('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-full"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filtres de Stock */}
+              <div className="flex items-center bg-slate-100 p-1 rounded-2xl gap-1 text-[11px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('all')}
+                  className={`px-3 py-1.5 rounded-xl transition-all ${
+                    selectedCategory === 'all'
+                      ? 'bg-white text-emerald-800 shadow-xs font-extrabold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Tous ({products.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('in_stock')}
+                  className={`px-3 py-1.5 rounded-xl transition-all ${
+                    selectedCategory === 'in_stock'
+                      ? 'bg-white text-emerald-800 shadow-xs font-extrabold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  En stock
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory('low_stock')}
+                  className={`px-3 py-1.5 rounded-xl transition-all ${
+                    selectedCategory === 'low_stock'
+                      ? 'bg-white text-amber-700 shadow-xs font-extrabold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Stock Faible
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Grille des Articles */}
+          {filteredProducts.length === 0 ? (
+            <div className="bg-white p-10 rounded-3xl text-center space-y-3 border border-slate-200/80 shadow-xs">
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
+                <Package className="w-7 h-7" />
+              </div>
+              <h3 className="font-extrabold text-sm text-slate-800">Aucun article trouvé</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                {articleSearch 
+                  ? `Aucun article ne correspond à "${articleSearch}".` 
+                  : "Ajoutez des articles dans votre catalogue depuis l'onglet Boutique ou en scannant un code-barres."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 xl:grid-cols-3 gap-3.5 max-h-[580px] overflow-y-auto pr-1">
+              {filteredProducts.map((prod) => {
+                const stock = prod.stockQuantity ?? 0;
+                const isZeroStock = stock <= 0;
+                const isLowStock = stock > 0 && stock <= (prod.minStockAlert ?? 5);
+
+                return (
+                  <button
+                    key={prod.id}
+                    type="button"
+                    onClick={() => {
+                      if (isZeroStock) {
+                        setScanToast(`⚠️ "${prod.name}" est épuisé (0 unité). Réapprovisionnez l'article.`);
+                        triggerHaptic(60);
+                        return;
+                      }
+                      handleSelectProduct(prod.id);
+                    }}
+                    className={`bg-white p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all group shadow-2xs hover:shadow-md cursor-pointer ${
+                      isZeroStock
+                        ? 'border-red-200 bg-red-50/20 opacity-70 cursor-not-allowed'
+                        : isLowStock
+                        ? 'border-amber-200 hover:border-amber-400'
+                        : 'border-slate-200/80 hover:border-emerald-500 hover:bg-emerald-50/30'
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-1.5">
+                        <div className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center shadow-xs shrink-0 font-display ${
+                          isZeroStock
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          {prod.name.charAt(0).toUpperCase()}
+                        </div>
+
+                        <span
+                          className={`text-[9px] font-black px-2 py-0.5 rounded-md border shrink-0 ${
+                            isZeroStock
+                              ? 'bg-red-100 text-red-800 border-red-200'
+                              : isLowStock
+                              ? 'bg-amber-100 text-amber-800 border-amber-200'
+                              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          }`}
+                        >
+                          {isZeroStock ? 'Épuisé (0)' : `Stock: ${stock}`}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="font-extrabold text-xs text-slate-900 group-hover:text-emerald-800 line-clamp-2 leading-tight">
+                          {prod.name}
+                        </h4>
+                        {prod.barcode && (
+                          <p className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">{prod.barcode}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between mt-2">
+                      <span className="text-xs font-black text-emerald-700 font-display">
+                        {formatCurrency(prod.price)}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg transition-colors ${
+                        isZeroStock
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white'
+                      }`}>
+                        {isZeroStock ? 'Épuisé' : '+ Ajouter'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Guide des raccourcis clavier */}
+          <div className="bg-slate-900 text-slate-300 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between text-xs">
+            <div className="flex items-center space-x-2 text-amber-400">
+              <Keyboard className="w-4 h-4" />
+              <span className="font-bold">Raccourcis clavier physiques activés :</span>
+            </div>
+            <div className="flex items-center space-x-3 text-[11px] font-mono">
+              <span><kbd className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-white">0-9</kbd> Montant</span>
+              <span><kbd className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-white">+</kbd> Addition</span>
+              <span><kbd className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-white">Entrée</kbd> Encaisser</span>
+              <span><kbd className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-white">Échap / C</kbd> Effacer</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ======================================================== */}
+        {/* COLONNE DROITE (DESKTOP) / UNIQUE (MOBILE) : CAISSE & CLAVIER */}
+        {/* ======================================================== */}
+        <div className="lg:col-span-5 space-y-3.5 lg:sticky lg:top-6">
+          {/* Écran d'affichage du montant, de la remise et du calcul */}
+          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-4 sm:p-5 rounded-3xl shadow-xl flex flex-col justify-between min-h-[125px] sm:min-h-[135px] border border-emerald-700/50">
+            <div className="flex items-center justify-between text-emerald-300 text-[11px] font-bold tracking-wider uppercase">
+              <div className="flex items-center space-x-1.5">
+                {hasCalculation ? (
+                  <Calculator className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                ) : (
+                  <ShoppingCart className="w-3.5 h-3.5" />
+                )}
+                <span>{hasCalculation ? 'Total Additionné' : 'Montant à Encaisser'}</span>
+              </div>
+              {discount && discount.calculatedAmount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setIsDiscountModalOpen(true)}
+                  className="bg-amber-400 hover:bg-amber-300 text-amber-950 px-2.5 py-0.5 rounded-lg text-[10px] font-black tracking-wide flex items-center space-x-1 transition-all cursor-pointer"
+                >
+                  <Tag className="w-3 h-3" />
+                  <span>Remise -{formatCurrency(discountAmount)}</span>
+                </button>
+              ) : (
+                <span className="bg-emerald-700/70 px-2.5 py-0.5 rounded-lg text-[10px] font-black tracking-wide">FCFA (XOF)</span>
+              )}
+            </div>
+
+            <div className="text-right mt-1">
+              {/* Formule de calcul si addition en cours */}
+              {hasCalculation && (
+                <div className="text-[11px] sm:text-xs font-semibold text-amber-300 bg-amber-950/40 px-2.5 py-0.5 rounded-lg inline-block max-w-full truncate mb-0.5 border border-amber-500/30">
+                  {formatPosExpressionDisplay(amountStr)} {/[+]\s*$/.test(amountStr) ? '...' : '='}
+                </div>
+              )}
+
+              {/* Affichage du sous-total barré si remise active */}
+              {discount && discount.calculatedAmount > 0 && (
+                <div className="text-xs font-semibold text-emerald-300/80 line-through">
+                  {formatCurrency(subtotalAmount)}
+                </div>
+              )}
+
+              <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white drop-shadow-sm truncate leading-tight font-display">
+                {formatCurrency(finalPayableAmount).replace(' FCFA', '')}
+              </div>
+
+              <div className="text-[11px] text-emerald-200/80 mt-1">
+                {discount && discount.calculatedAmount > 0 ? (
+                  <span className="font-bold text-amber-300">
+                    Remise appliquée : -{formatCurrency(discountAmount)} ({discount.type === 'PERCENT' ? `${discount.value}%` : 'Montant fixe'})
+                  </span>
+                ) : selectedItems.length > 0 ? (
+                  <span className="font-semibold text-amber-300 truncate block">
+                    {selectedItems.length} article(s) dans le panier en cours
+                  </span>
+                ) : (
+                  'Francs CFA — Saisissez un montant ou choisissez des articles'
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* DÉTAIL DU PANIER EN COURS (SI ARTICLES CHOISIS) */}
+          {selectedItems.length > 0 && (
+            <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2 animate-in fade-in">
+              <div className="flex items-center justify-between text-xs font-extrabold text-slate-800 border-b border-slate-100 pb-2">
+                <div className="flex items-center space-x-1.5">
+                  <ShoppingCart className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Panier ({selectedItems.length} article{selectedItems.length > 1 ? 's' : ''})</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="text-[10px] text-red-600 hover:text-red-700 font-bold flex items-center space-x-1 cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Vider</span>
+                </button>
+              </div>
+
+              <div className="max-h-36 overflow-y-auto divide-y divide-slate-100 pr-1 space-y-1">
+                {selectedItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between py-1.5 text-xs">
+                    <div className="min-w-0 flex-1 pr-2">
+                      <p className="font-bold text-slate-900 truncate">{item.description}</p>
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        {item.quantity} x {formatCurrency(item.unitPrice)}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <span className="font-extrabold text-emerald-700 font-display">
+                        {formatCurrency(item.unitPrice * item.quantity)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(idx)}
+                        className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        title="Retirer cet article"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* BARRE D'ACTIONS RAPIDES : SCANNER, REMISE & ARTICLES (MOBILE / DESKTOP) */}
+          <div className="flex items-center space-x-2 overflow-x-auto pb-0.5 scrollbar-none">
+            {/* Bouton Scanner Caméra Code-Barres */}
+            <button
+              type="button"
+              onClick={() => setIsBarcodeScannerOpen(true)}
+              className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shrink-0 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
+              title="Scanner un code-barres avec la caméra ou douchette"
+            >
+              <Camera className="w-3.5 h-3.5 text-white" />
+              <span>Scanner</span>
+            </button>
+
+            {/* Bouton Remise (% ou FCFA) */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(30);
+                setIsDiscountModalOpen(true);
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shrink-0 shadow-xs active:scale-95 transition-all cursor-pointer font-display ${
+                discount && discount.calculatedAmount > 0
+                  ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-500 font-black'
+                  : 'bg-slate-800 hover:bg-slate-700 text-white'
+              }`}
+              title="Appliquer une remise en % ou FCFA"
+            >
+              <Tag className="w-3.5 h-3.5 text-amber-300" />
+              <span>{discount && discount.calculatedAmount > 0 ? `Remise (-${formatCurrency(discountAmount)})` : 'Remise'}</span>
+            </button>
+
+            {/* Bouton catalogue complet (Visible surtout sur mobile) */}
+            {products.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setArticleSearch('');
+                  setIsArticlePickerOpen(true);
+                }}
+                className="lg:hidden px-3.5 py-2 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shrink-0 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
+                title="Ouvrir le catalogue d'articles"
+              >
+                <Package className="w-3.5 h-3.5 text-amber-300" />
+                <span>Articles ({products.length})</span>
+                <ChevronDown className="w-3 h-3 text-emerald-200" />
+              </button>
+            )}
+
+            {/* Puces des articles fréquents en 1-tap direct (Sur mobile) */}
+            <div className="lg:hidden flex items-center space-x-1.5">
+              {products.slice(0, 6).map((prod) => (
+                <button
+                  key={prod.id}
+                  type="button"
+                  onClick={() => handleSelectProduct(prod.id)}
+                  className={`px-2.5 py-1.5 bg-white hover:bg-emerald-50/70 text-slate-800 border rounded-xl text-xs font-semibold flex items-center space-x-1.5 shrink-0 shadow-2xs active:scale-95 transition-all cursor-pointer ${
+                    typeof prod.stockQuantity === 'number' && prod.stockQuantity <= 0
+                      ? 'border-red-300 bg-red-50/30'
+                      : typeof prod.stockQuantity === 'number' && prod.stockQuantity <= (prod.minStockAlert ?? 5)
+                      ? 'border-amber-300 bg-amber-50/20'
+                      : 'border-slate-200 hover:border-emerald-400'
+                  }`}
+                >
+                  <span className="font-extrabold text-slate-900">{prod.name}</span>
+                  <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                    {formatCurrency(prod.price).replace(' FCFA', '')}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Clavier tactile avec touche + et vibreur */}
+          <div className="bg-white p-3.5 sm:p-4 rounded-3xl shadow-xs border border-slate-200/80">
+            <Keypad
+              value={amountStr}
+              onChange={setAmountStr}
+              onClear={handleClear}
+            />
+          </div>
+
+          {/* Bouton d'encaissement principal */}
           <button
             type="button"
-            onClick={() => {
-              setArticleSearch('');
-              setIsArticlePickerOpen(true);
-            }}
-            className="px-2.5 py-1.5 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shrink-0 shadow-xs active:scale-95 transition-all cursor-pointer"
-            title="Ouvrir le catalogue d'articles"
-          >
-            <Package className="w-3.5 h-3.5 text-amber-300" />
-            <span>Articles ({products.length})</span>
-            <ChevronDown className="w-3 h-3 text-emerald-200" />
-          </button>
-        )}
-
-        {/* Puces des articles fréquents en 1-tap direct */}
-        {products.slice(0, 8).map((prod) => (
-          <button
-            key={prod.id}
-            type="button"
-            onClick={() => handleSelectProduct(prod.id)}
-            className={`px-2.5 py-1.5 bg-white hover:bg-emerald-50/70 active:bg-emerald-100 text-slate-800 border rounded-xl text-xs font-semibold flex items-center space-x-2 shrink-0 shadow-2xs active:scale-95 transition-all group cursor-pointer ${
-              typeof prod.stockQuantity === 'number' && prod.stockQuantity <= 0
-                ? 'border-red-300 bg-red-50/30'
-                : typeof prod.stockQuantity === 'number' && prod.stockQuantity <= (prod.minStockAlert ?? 5)
-                ? 'border-amber-300 bg-amber-50/20'
-                : 'border-emerald-200 hover:border-emerald-400'
+            disabled={finalPayableAmount <= 0}
+            onClick={handleOpenPayment}
+            className={`w-full py-4 sm:py-5 rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg shadow-xl flex items-center justify-center space-x-2 transition-all cursor-pointer font-display ${
+              finalPayableAmount > 0
+                ? 'bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white shadow-emerald-700/30 active:scale-98'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
             }`}
           >
-            <div className="w-5 h-5 rounded-lg bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center justify-center shrink-0">
-              {prod.name.charAt(0).toUpperCase()}
-            </div>
-            <span className="font-extrabold text-slate-900">{prod.name}</span>
-            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200/80">
-              {formatCurrency(prod.price).replace(' FCFA', '')}
-            </span>
-            {typeof prod.stockQuantity === 'number' && (
-              <span
-                className={`text-[9px] font-black px-1.5 py-0.5 rounded-md border ${
-                  prod.stockQuantity <= 0
-                    ? 'bg-red-100 text-red-800 border-red-200'
-                    : prod.stockQuantity <= (prod.minStockAlert ?? 5)
-                    ? 'bg-amber-100 text-amber-800 border-amber-200'
-                    : 'bg-slate-100 text-slate-700 border-slate-200'
-                }`}
-              >
-                {prod.stockQuantity <= 0 ? '0' : `Qté: ${prod.stockQuantity}`}
-              </span>
-            )}
+            <span>ENCAISSER ({formatCurrency(finalPayableAmount)})</span>
+            <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
           </button>
-        ))}
+        </div>
       </div>
-
-      {/* Clavier tactile avec touche + et vibreur */}
-      <div className="bg-white p-3 sm:p-3.5 rounded-2xl shadow-xs border border-gray-100">
-        <Keypad
-          value={amountStr}
-          onChange={setAmountStr}
-          onClear={handleClear}
-        />
-      </div>
-
-      {/* Bouton d'encaissement principal */}
-      <button
-        type="button"
-        disabled={finalPayableAmount <= 0}
-        onClick={handleOpenPayment}
-        className={`w-full py-4 sm:py-4.5 rounded-2xl font-black text-base sm:text-lg shadow-lg flex items-center justify-center space-x-2 transition-all cursor-pointer ${
-          finalPayableAmount > 0
-            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30 active:scale-98'
-            : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
-        }`}
-      >
-        <span>ENCAISSER ({formatCurrency(finalPayableAmount)})</span>
-        <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
-      </button>
 
       {/* Modal de sélection de mode de paiement */}
       <PaymentModal
@@ -502,18 +797,18 @@ export const PosView: React.FC = () => {
         onConfirm={handleConfirmQuantity}
       />
 
-      {/* Modal de Sélection Rapide d'Articles du Catalogue */}
+      {/* Modal de Sélection Rapide d'Articles du Catalogue (sur Mobile) */}
       {isArticlePickerOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-          <div className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl max-h-[80vh] flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-200 border border-slate-100">
-            <div className="px-4 py-3.5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-emerald-800 to-teal-900 text-white">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-8 h-8 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center text-emerald-200 shadow-inner">
+          <div className="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-200 border border-slate-100">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-emerald-800 to-teal-900 text-white">
+              <div className="flex items-center space-x-3">
+                <div className="w-9 h-9 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center text-emerald-200 shadow-inner">
                   <Package className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-black text-xs tracking-tight text-white font-display">Catalogue d'Articles</h3>
-                  <p className="text-[10px] text-emerald-200/90 font-medium">{products.length} article(s) disponible(s)</p>
+                  <h3 className="font-black text-sm tracking-tight text-white font-display">Catalogue d'Articles</h3>
+                  <p className="text-[11px] text-emerald-200/90 font-medium">{products.length} article(s) disponible(s)</p>
                 </div>
               </div>
               <button
@@ -521,27 +816,27 @@ export const PosView: React.FC = () => {
                 onClick={() => setIsArticlePickerOpen(false)}
                 className="p-1.5 text-emerald-200 hover:text-white rounded-full hover:bg-white/10 transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Barre de recherche */}
-            <div className="p-3 border-b border-slate-100 bg-slate-50/50">
+            <div className="p-3.5 border-b border-slate-100 bg-slate-50/50">
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Rechercher un article..."
                   value={articleSearch}
                   onChange={(e) => setArticleSearch(e.target.value)}
-                  className="w-full pl-8.5 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all shadow-2xs"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all shadow-2xs"
                   autoFocus
                 />
               </div>
             </div>
 
             {/* Liste des articles */}
-            <div className="p-3 space-y-1.5 overflow-y-auto max-h-64 divide-y divide-slate-100">
+            <div className="p-3.5 space-y-2 overflow-y-auto max-h-80 divide-y divide-slate-100">
               {filteredProducts.length === 0 ? (
                 <div className="text-center py-8 text-slate-400 text-xs font-medium">
                   Aucun article trouvé.
