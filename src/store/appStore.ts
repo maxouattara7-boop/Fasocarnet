@@ -315,6 +315,7 @@ export const useAppStore = create<AppState>((set, get) => {
         localStorage.removeItem('fasocarnet_active_team_leader');
         localStorage.removeItem('fasocarnet_settings_tab');
         localStorage.removeItem('fasocarnet_admin_tab');
+        localStorage.removeItem('fasocarnet_web_app_opened');
       }
 
       set({

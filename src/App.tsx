@@ -142,13 +142,33 @@ export const App: React.FC = () => {
     return <MiniAdminDashboard />;
   }
 
-  // 1. SUR LE WEB (Navigateur / Render) : Afficher la Landing Page sauf si mode app explicite ou session active
+  // 1. SUR LE WEB (Navigateur / Render) : Afficher la Landing Page si paramètre d'URL explicite, ou pour tout nouveau visiteur
   const isNative = Capacitor.isNativePlatform();
   const isExplicitAppMode = isNative || webForceAppMode;
+  const isLandingParam = typeof window !== 'undefined' && (
+    window.location?.search?.includes('mode=landing') || 
+    window.location?.search?.includes('landing') || 
+    window.location?.search?.includes('vitrine')
+  );
 
   let mainContent: React.ReactNode = null;
 
-  if (!isExplicitAppMode && !activeShopId && !activeTeamLeader && !isAdminOpen) {
+  if (isLandingParam) {
+    mainContent = (
+      <LandingPageView
+        onOpenApp={() => {
+          if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('landing');
+            url.searchParams.delete('mode');
+            url.searchParams.delete('vitrine');
+            window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+          }
+          setWebForceAppMode(true);
+        }}
+      />
+    );
+  } else if (!isExplicitAppMode && !activeShopId && !activeTeamLeader && !isAdminOpen) {
     mainContent = <LandingPageView onOpenApp={() => setWebForceAppMode(true)} />;
   } else if (isAdminOpen) {
     mainContent = <AdminView onClose={() => setIsAdminOpen(false)} />;
