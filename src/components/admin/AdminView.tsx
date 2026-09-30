@@ -870,7 +870,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
             className="px-2.5 sm:px-3 py-1.5 bg-red-950/40 hover:bg-red-900/60 active:scale-95 text-red-300 text-xs font-bold rounded-xl border border-red-800/40 flex items-center space-x-1 sm:space-x-1.5 transition-all cursor-pointer min-h-[36px]"
           >
             <LogOut className="w-3.5 h-3.5 shrink-0" />
-            <span className="hidden xs:inline">Quitter</span>
+            <span className="hidden sm:inline">Quitter Admin</span>
+            <span className="sm:hidden">Quitter</span>
           </button>
         </div>
       </header>
