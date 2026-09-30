@@ -70,13 +70,13 @@ describe('FasoCarnet App Component', () => {
     fireEvent.change(pinInput, { target: { value: '1234' } });
     fireEvent.click(submitBtn);
 
-    // 2. Étape d'authentification / Vérification OTP
+    // 2. Étape de vérification de sécurité anti-robot
     await waitFor(() => {
-      expect(screen.getByText(/Vérification de Sécurité/i)).toBeInTheDocument();
+      expect(screen.getByText(/Vérification de sécurité/i)).toBeInTheDocument();
     });
 
-    const otpInput = screen.getByPlaceholderText(/••••/i);
-    const confirmOtpBtn = screen.getByRole('button', { name: /CONFIRMER ET ACTIVER MA BOUTIQUE/i });
+    const otpInput = screen.getByPlaceholderText(/Code ici/i);
+    const confirmOtpBtn = screen.getByRole('button', { name: /VALIDER MON INSCRIPTION/i });
 
     // Saisie du code d'authentification (code master de test 2260)
     fireEvent.change(otpInput, { target: { value: '2260' } });

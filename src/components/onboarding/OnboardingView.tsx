@@ -24,9 +24,7 @@ import {
   Upload,
   Users,
   X,
-  ShieldCheck,
-  MessageCircle,
-  Check
+  ShieldCheck
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { BurkinaFlag } from '../common/BurkinaFlag';
@@ -68,12 +66,11 @@ export const OnboardingView: React.FC = () => {
   const [duplicateAccountDetected, setDuplicateAccountDetected] = useState<{ exists: boolean; shopName?: string; phone?: string } | null>(null);
   const [isCheckingPhone, setIsCheckingPhone] = useState(false);
 
-  // Authentification / Vérification OTP par WhatsApp à la création
+  // Vérification de sécurité / Anti-robot à la création
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
   const [otpGeneratedCode, setOtpGeneratedCode] = useState('');
   const [otpInputCode, setOtpInputCode] = useState('');
   const [otpError, setOtpError] = useState('');
-  const [otpSentFeedback, setOtpSentFeedback] = useState(false);
   const [isSubmittingRegistration, setIsSubmittingRegistration] = useState(false);
 
   // Décompte anti-bruteforce pour la connexion
@@ -219,31 +216,19 @@ export const OnboardingView: React.FC = () => {
       return;
     }
 
-    // 2. Génération du code OTP de confirmation par WhatsApp
+    // 2. Génération du code de vérification anti-robot
     const { code } = adminService.generateAccountVerificationOtp(phone.trim());
     setOtpGeneratedCode(code);
     setOtpInputCode('');
     setOtpError('');
-    setOtpSentFeedback(false);
     setIsOtpModalOpen(true);
   };
 
-  const handleSendOtpWhatsApp = () => {
-    const url = adminService.getWhatsAppVerificationOtpUrl(phone.trim(), otpGeneratedCode, shopName.trim());
-    window.open(url, '_blank');
-    setOtpSentFeedback(true);
-    setTimeout(() => setOtpSentFeedback(false), 4000);
-  };
-
-  const handleResendOtp = () => {
+  const handleRefreshCaptcha = () => {
     const { code } = adminService.generateAccountVerificationOtp(phone.trim());
     setOtpGeneratedCode(code);
     setOtpInputCode('');
     setOtpError('');
-    const url = adminService.getWhatsAppVerificationOtpUrl(phone.trim(), code, shopName.trim());
-    window.open(url, '_blank');
-    setOtpSentFeedback(true);
-    setTimeout(() => setOtpSentFeedback(false), 4000);
   };
 
   const handleConfirmOtpAndCreateShop = async (e: React.FormEvent) => {
@@ -251,13 +236,13 @@ export const OnboardingView: React.FC = () => {
     setOtpError('');
 
     if (!otpInputCode.trim()) {
-      setOtpError('Veuillez saisir le code de confirmation à 4 chiffres.');
+      setOtpError('Veuillez saisir le code affiché à 4 chiffres.');
       return;
     }
 
-    const isValid = adminService.verifyAccountVerificationOtp(phone.trim(), otpInputCode.trim());
+    const isValid = otpInputCode.trim() === otpGeneratedCode.trim() || adminService.verifyAccountVerificationOtp(phone.trim(), otpInputCode.trim());
     if (!isValid) {
-      setOtpError('Code de confirmation incorrect ou expiré. Veuillez vérifier le code reçu ou le renvoyer.');
+      setOtpError('Code incorrect. Veuillez recopier le code affiché.');
       return;
     }
 
@@ -830,136 +815,97 @@ export const OnboardingView: React.FC = () => {
       </div>
 
       {/* ========================================================= */}
-      {/* MODALE DE VÉRIFICATION OTP PAR WHATSAPP À L'INSCRIPTION */}
+      {/* MODALE DE VÉRIFICATION DE SÉCURITÉ (ANTI-ROBOT) */}
       {/* ========================================================= */}
       {isOtpModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white text-slate-900 rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl space-y-4 border border-emerald-100 animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white text-slate-900 rounded-3xl p-5 w-full max-w-xs sm:max-w-sm shadow-2xl space-y-4 border border-emerald-100 animate-in zoom-in-95">
             {/* En-tête */}
-            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white flex items-center justify-center shadow-md">
-                  <ShieldCheck className="w-6 h-6" />
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 text-base font-display">
-                    Vérification de Sécurité
+                  <h3 className="font-bold text-slate-900 text-sm font-display">
+                    Vérification de sécurité
                   </h3>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Validation du compte par WhatsApp
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    Protection anti-robot
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsOtpModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                title="Fermer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Corps */}
-            <div className="space-y-3.5">
-              <div className="p-3 bg-emerald-50/70 border border-emerald-200/70 rounded-2xl space-y-1.5 text-xs">
-                <div className="flex items-center justify-between text-emerald-950 font-semibold">
-                  <span>Commerce : <strong className="text-emerald-800">{shopName}</strong></span>
-                  <span className="font-mono text-emerald-700">📞 +226 {phone}</span>
-                </div>
-                <p className="text-[11px] text-emerald-800/90 leading-relaxed">
-                  Un code de confirmation à 4 chiffres a été généré pour votre numéro WhatsApp. Veuillez le saisir pour finaliser l'ouverture de votre commerce.
-                </p>
-              </div>
+            {/* Instruction */}
+            <p className="text-xs text-slate-600 text-center leading-relaxed">
+              Veuillez taper le code qui s'affiche pour valider votre inscription :
+            </p>
 
-              {/* Note d'explication */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1.5 text-xs text-slate-700">
-                <div className="flex items-center space-x-2 font-bold text-slate-800">
-                  <Lock className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Code de sécurité confidentiel</span>
-                </div>
-                <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Cliquez sur le bouton vert ci-dessous pour ouvrir WhatsApp et recevoir votre code d'activation à 4 chiffres.
-                </p>
-              </div>
-
-              {/* Bouton unique d'envoi WhatsApp */}
-              <div>
-                <button
-                  type="button"
-                  onClick={handleSendOtpWhatsApp}
-                  className="w-full py-3 px-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-black rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-2 shadow-md shadow-[#25D366]/20 active:scale-98 transition-all cursor-pointer font-display"
-                >
-                  {otpSentFeedback ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      <span>WhatsApp Ouvert !</span>
-                    </>
-                  ) : (
-                    <>
-                      <MessageCircle className="w-4 h-4" />
-                      <span>Recevoir mon code sur WhatsApp (+226 {phone})</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Formulaire de saisie du code */}
-              <form onSubmit={handleConfirmOtpAndCreateShop} className="space-y-3 pt-1">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
-                    Saisissez le code à 4 chiffres reçu sur WhatsApp *
-                  </label>
-                  <input
-                    type="tel"
-                    maxLength={6}
-                    autoFocus
-                    required
-                    placeholder="••••"
-                    value={otpInputCode}
-                    onChange={(e) => setOtpInputCode(e.target.value.replace(/\D/g, ''))}
-                    className="w-full py-2.5 px-4 bg-slate-50 border-2 border-emerald-500/40 focus:border-emerald-600 rounded-2xl text-center font-mono font-black text-2xl tracking-[0.5em] text-slate-900 outline-none transition-all placeholder:tracking-normal placeholder:font-normal placeholder:text-slate-300"
-                  />
-                </div>
-
-                {otpError && (
-                  <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700 flex items-center space-x-2 animate-in fade-in">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-                    <span>{otpError}</span>
-                  </div>
-                )}
-
-                {/* Bouton de confirmation */}
-                <button
-                  type="submit"
-                  disabled={isSubmittingRegistration}
-                  className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-2xl text-xs sm:text-sm shadow-lg shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50 font-display"
-                >
-                  {isSubmittingRegistration ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Validation en cours...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>CONFIRMER ET ACTIVER MA BOUTIQUE</span>
-                    </>
-                  )}
-                </button>
-              </form>
-
-              {/* Renvoyer / Assistance */}
-              <div className="text-center pt-1 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                <button
-                  type="button"
-                  onClick={handleResendOtp}
-                  className="text-emerald-700 hover:text-emerald-800 font-bold hover:underline cursor-pointer"
-                >
-                  Renvoyer un nouveau code
-                </button>
-                <span className="text-slate-400 font-mono">Assistance : 65616134</span>
-              </div>
+            {/* Zone d'affichage du Code Captcha */}
+            <div className="bg-emerald-50/80 border border-dashed border-emerald-300 rounded-2xl p-3 flex items-center justify-center relative">
+              <span className="font-mono font-black text-3xl tracking-[0.35em] text-emerald-800 select-all pl-2">
+                {otpGeneratedCode}
+              </span>
+              <button
+                type="button"
+                onClick={handleRefreshCaptcha}
+                className="absolute right-2 p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-100/60 rounded-lg transition-colors cursor-pointer"
+                title="Générer un autre code"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
             </div>
+
+            {/* Formulaire de saisie */}
+            <form onSubmit={handleConfirmOtpAndCreateShop} className="space-y-3">
+              <div>
+                <input
+                  type="tel"
+                  maxLength={4}
+                  autoFocus
+                  required
+                  placeholder="Code ici"
+                  value={otpInputCode}
+                  onChange={(e) => setOtpInputCode(e.target.value.replace(/\D/g, ''))}
+                  className="w-full py-2.5 px-4 bg-slate-50 border-2 border-emerald-500/40 focus:border-emerald-600 rounded-2xl text-center font-mono font-black text-2xl tracking-[0.35em] text-slate-900 outline-none transition-all placeholder:tracking-normal placeholder:font-normal placeholder:text-sm placeholder:text-slate-300"
+                />
+              </div>
+
+              {otpError && (
+                <div className="p-2 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700 flex items-center space-x-1.5 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                  <span>{otpError}</span>
+                </div>
+              )}
+
+              {/* Bouton de validation */}
+              <button
+                type="submit"
+                disabled={isSubmittingRegistration}
+                className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-2xl text-xs sm:text-sm shadow-md shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-50 font-display"
+              >
+                {isSubmittingRegistration ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Validation en cours...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>VALIDER MON INSCRIPTION</span>
+                  </>
+                )}
+              </button>
+            </form>
           </div>
         </div>
       )}
