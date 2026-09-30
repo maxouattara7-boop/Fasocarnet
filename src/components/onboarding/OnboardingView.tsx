@@ -14,9 +14,6 @@ import {
   AlertCircle,
   RefreshCw,
   ChevronDown,
-  ChevronUp,
-  FileText,
-  Upload,
   Users,
   X,
   ShieldCheck
@@ -25,7 +22,6 @@ import { Logo } from '../common/Logo';
 import { BurkinaFlag } from '../common/BurkinaFlag';
 import { syncService } from '../../db/services/syncService';
 import { adminService } from '../../db/services/adminService';
-import { ColorPalettePicker } from '../common/ColorPalettePicker';
 
 export const OnboardingView: React.FC = () => {
   const { loginWithPhoneAndPin, createShop, isSyncing } = useAppStore();
@@ -51,11 +47,6 @@ export const OnboardingView: React.FC = () => {
   const [customCity, setCustomCity] = useState('');
   const [pinCode, setPinCode] = useState('');
   const [showPin, setShowPin] = useState(false);
-  const [ifu, setIfu] = useState('');
-  const [rccm, setRccm] = useState('');
-  const [logo, setLogo] = useState<string | null>(null);
-  const [primaryColor, setPrimaryColor] = useState<string>('#047857');
-  const [showBusinessInfo, setShowBusinessInfo] = useState(false);
   const [registerError, setRegisterError] = useState('');
   const [duplicateAccountDetected, setDuplicateAccountDetected] = useState<{ exists: boolean; shopName?: string; phone?: string } | null>(null);
   const [isCheckingPhone, setIsCheckingPhone] = useState(false);
@@ -93,42 +84,6 @@ export const OnboardingView: React.FC = () => {
       }
     }
   }, []);
-
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const maxDim = 180;
-        let width = img.width;
-        let height = img.height;
-        if (width > height) {
-          if (width > maxDim) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          }
-        } else {
-          if (height > maxDim) {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/png', 0.85);
-          setLogo(dataUrl);
-        }
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,10 +209,7 @@ export const OnboardingView: React.FC = () => {
         currency: 'FCFA',
         orangeMoneyNumber: phone.trim(),
         referralCode: referralCode.trim().toUpperCase() || undefined,
-        ifu: ifu.trim() || undefined,
-        rccm: rccm.trim() || undefined,
-        logo: logo || undefined,
-        primaryColor: primaryColor || undefined
+        primaryColor: '#047857'
       });
       setIsOtpModalOpen(false);
     } catch (err: any) {
@@ -632,91 +584,6 @@ export const OnboardingView: React.FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-12 pr-4 py-2.5 sm:py-3 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal shadow-2xs"
-                  />
-                </div>
-
-                {/* 7. Accordéon Informations Légales & Logo (Optionnel) */}
-                <div className="border border-emerald-200/60 rounded-2xl overflow-hidden bg-emerald-50/20">
-                  <button
-                    type="button"
-                    onClick={() => setShowBusinessInfo(!showBusinessInfo)}
-                    className="w-full p-2.5 flex items-center justify-between text-left text-xs font-bold text-emerald-800 hover:bg-emerald-50/50 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <FileText className="w-4 h-4 text-emerald-600" />
-                      <span>N° IFU, RCCM & Logo (Optionnel)</span>
-                    </div>
-                    {showBusinessInfo ? (
-                      <ChevronUp className="w-4 h-4 text-emerald-600" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-emerald-600" />
-                    )}
-                  </button>
-
-                  {showBusinessInfo && (
-                    <div className="p-3 border-t border-emerald-100 space-y-2.5 animate-in fade-in duration-150">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[9px] font-bold uppercase text-slate-600 mb-0.5">N° IFU</label>
-                          <input
-                            type="text"
-                            placeholder="Ex: 00012345A"
-                            value={ifu}
-                            onChange={(e) => setIfu(e.target.value)}
-                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:border-emerald-500 outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[9px] font-bold uppercase text-slate-600 mb-0.5">N° RCCM</label>
-                          <input
-                            type="text"
-                            placeholder="Ex: BF-OUA-01-2024"
-                            value={rccm}
-                            onChange={(e) => setRccm(e.target.value)}
-                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:border-emerald-500 outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Logo uploader */}
-                      <div>
-                        <label className="block text-[9px] font-bold uppercase text-slate-600 mb-1">Logo de l'entreprise</label>
-                        {logo ? (
-                          <div className="flex items-center space-x-3 bg-white p-2 rounded-xl border border-slate-200">
-                            <img src={logo} alt="Logo" className="w-10 h-10 object-contain rounded-lg border border-slate-100 bg-slate-50" />
-                            <span className="text-[11px] font-bold text-emerald-700 flex-1">Logo sélectionné</span>
-                            <button
-                              type="button"
-                              onClick={() => setLogo(null)}
-                              className="p-1 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          <label className="flex items-center justify-center space-x-2 p-2 bg-white border border-dashed border-emerald-300 hover:border-emerald-500 rounded-xl cursor-pointer text-xs font-bold text-emerald-700 transition-colors">
-                            <Upload className="w-3.5 h-3.5" />
-                            <span>Importer un logo (PNG / JPG)</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleLogoUpload}
-                              className="hidden"
-                            />
-                          </label>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 8. Palette de couleurs & Thème de la boutique */}
-                <div className="p-3.5 bg-slate-50/80 border border-slate-200 rounded-2xl">
-                  <ColorPalettePicker
-                    selectedColor={primaryColor}
-                    onChange={setPrimaryColor}
-                    shopName={shopName}
-                    showPreview={true}
                   />
                 </div>
 
