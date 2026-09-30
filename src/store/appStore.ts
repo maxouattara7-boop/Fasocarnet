@@ -79,6 +79,20 @@ export const useAppStore = create<AppState>((set, get) => {
     window.addEventListener('offline', () => {
       set({ isOnline: false });
     });
+    window.addEventListener('fasocarnet_account_deleted', () => {
+      syncService.stopAutoRealtimeSync();
+      set({
+        activeShopId: null,
+        shopProfile: null,
+        activeTeamLeader: null,
+        isMiniAdminOpen: false,
+        isLocked: false,
+        activeTab: 'pos',
+        lastSyncedAt: null,
+        syncError: null,
+        isInitialized: true
+      });
+    });
   }
 
   return {
@@ -299,16 +313,6 @@ export const useAppStore = create<AppState>((set, get) => {
     },
 
     logout: async () => {
-      // Synchroniser une dernière fois si possible
-      const current = get().shopProfile;
-      if (current) {
-        try {
-          await syncService.pushLocalChanges(current.id);
-        } catch {
-          // Hors-ligne, on continue
-        }
-      }
-
       // Vider les données locales de l'appareil et stopper la synchronisation temps-réel
       syncService.stopAutoRealtimeSync();
       await syncService.clearLocalData();

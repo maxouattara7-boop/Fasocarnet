@@ -213,6 +213,13 @@ export const syncService = {
           fullDb[shopId] = supaShop;
           this.saveCloudDatabase(fullDb);
           return supaShop;
+        } else if (typeof navigator === 'undefined' || navigator.onLine) {
+          // Si Supabase est configuré et en ligne, mais que la boutique n'y est pas,
+          // elle a été supprimée définitivement !
+          const fullDb = this.getCloudDatabase();
+          delete fullDb[shopId];
+          this.saveCloudDatabase(fullDb);
+          return null;
         }
       } catch (err) {
         console.warn('[Sync] Fallback partition Supabase:', err);
@@ -347,42 +354,44 @@ export const syncService = {
       return { success: true, teamLeader };
     }
 
-    // Récupérer la dernière version du Cloud
-    const cloudDb = await this.fetchRemoteDatabase();
-    
-    // 2. Recherche dans la base Cloud
+    // 2. Recherche directe dans Supabase (priorité absolue)
     let matchedShopData: CloudShopData | null = null;
+    if (supabaseClient.isConfigured()) {
+      try {
+        const supaShop = await supabaseClient.findShopByPhone(cleanInput);
+        if (supaShop && supaShop.profile) {
+          matchedShopData = supaShop;
+        }
+      } catch (err) {
+        console.warn('[Sync Login] Erreur recherche Supabase:', err);
+      }
+    }
 
-    for (const shopId of Object.keys(cloudDb)) {
-      const shopData = cloudDb[shopId];
-      if (shopData && shopData.profile) {
-        const p1 = this.normalizePhone(shopData.profile.phone);
-        const p2 = shopData.profile.ownerPhone ? this.normalizePhone(shopData.profile.ownerPhone) : '';
-        if (p1 === cleanInput || p2 === cleanInput) {
-          matchedShopData = shopData;
-          break;
+    // 2.bis Recherche dans le cache Cloud distant si non trouvé
+    if (!matchedShopData) {
+      const cloudDb = await this.fetchRemoteDatabase();
+      for (const shopId of Object.keys(cloudDb)) {
+        const shopData = cloudDb[shopId];
+        if (shopData && shopData.profile) {
+          const p1 = this.normalizePhone(shopData.profile.phone);
+          const p2 = shopData.profile.ownerPhone ? this.normalizePhone(shopData.profile.ownerPhone) : '';
+          if (p1 === cleanInput || p2 === cleanInput) {
+            matchedShopData = shopData;
+            break;
+          }
         }
       }
     }
 
-    // 3. Si non trouvé dans le Cloud, vérifier la base locale au cas où
+    // 3. Si non trouvé dans le Cloud :
+    // Le compte n'existe pas ou a été supprimé !
     if (!matchedShopData) {
-      const localShops = await db.shopProfiles.toArray();
-      const localMatch = localShops.find(s => this.normalizePhone(s.phone) === cleanInput || (s.ownerPhone && this.normalizePhone(s.ownerPhone) === cleanInput));
-      if (localMatch) {
-        if (localMatch.pinCode && !verifyHash(pin, localMatch.pinCode)) {
-          return { success: false, message: 'Code PIN incorrect. Veuillez réessayer.' };
-        }
-        // Migration transparente si l'ancien PIN n'était pas haché
-        if (localMatch.pinCode && !isHashed(localMatch.pinCode)) {
-          localMatch.pinCode = hashPin(pin);
-          await db.shopProfiles.put(localMatch);
-        }
-        // Sauvegarder dans le Cloud pour les futurs appareils
-        await this.pushLocalChanges(localMatch.id);
-        return { success: true, shop: localMatch };
-      }
-      return { success: false, message: 'Aucun compte trouvé avec ce numéro. Vérifiez votre saisie ou créez votre espace.' };
+      // Vider les données locales orphelines pour éviter la résurrection
+      await this.clearLocalData();
+      return { 
+        success: false, 
+        message: 'Ce compte a été supprimé ou n\'existe pas. Veuillez vérifier votre saisie ou créer un nouvel espace.' 
+      };
     }
 
     // 4. Vérification du code PIN commerçant
@@ -637,9 +646,45 @@ export const syncService = {
   },
 
   /**
+   * Traite la suppression d'une boutique (Wipe local immédiat et notification)
+   */
+  async handleShopDeletedLocally(shopId: string): Promise<void> {
+    this.stopAutoRealtimeSync();
+    await this.clearLocalData();
+    const fullDb = this.getCloudDatabase();
+    delete fullDb[shopId];
+    if (inMemoryCloudDb[shopId]) {
+      delete inMemoryCloudDb[shopId];
+    }
+    this.saveCloudDatabase(fullDb);
+
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('fasocarnet_active_tab');
+      localStorage.removeItem('fasocarnet_is_admin_open');
+      localStorage.removeItem('fasocarnet_is_mini_admin_open');
+      localStorage.removeItem('fasocarnet_active_team_leader');
+      localStorage.removeItem('fasocarnet_settings_tab');
+      localStorage.removeItem('fasocarnet_admin_tab');
+      localStorage.removeItem('fasocarnet_web_app_opened');
+      window.dispatchEvent(new CustomEvent('fasocarnet_account_deleted', { detail: { shopId } }));
+    }
+  },
+
+  /**
    * Récupère les données distantes du Cloud et les fusionne en local avec isolation multi-tenant
    */
   async pullRemoteChanges(shopId: string): Promise<boolean> {
+    // Si Supabase est configuré et en ligne, vérifier l'existence
+    if (supabaseClient.isConfigured() && (typeof navigator === 'undefined' || navigator.onLine)) {
+      const supaShop = await supabaseClient.fetchShop(shopId);
+      if (!supaShop) {
+        // Le compte a été supprimé sur le serveur Cloud !
+        console.warn(`[Sync] Le compte ${shopId} a été supprimé sur le Cloud.`);
+        await this.handleShopDeletedLocally(shopId);
+        return false;
+      }
+    }
+
     const remoteData = await this.fetchShopPartition(shopId);
     if (!remoteData) return false;
 
@@ -708,8 +753,14 @@ export const syncService = {
       }
     };
 
-    // 1. Abonnement WebSocket temps-réel Supabase
-    const unsubscribeSupabase = supabaseClient.subscribeToShopChanges(shopId, handleRemoteTrigger);
+    // 1. Abonnement WebSocket temps-réel Supabase avec gestion de la suppression
+    const unsubscribeSupabase = supabaseClient.subscribeToShopChanges(
+      shopId, 
+      handleRemoteTrigger,
+      async () => {
+        await this.handleShopDeletedLocally(shopId);
+      }
+    );
 
     // 2. Polling rapide de secours (toutes les 4 secondes si connecté)
     activePollingInterval = setInterval(async () => {
@@ -912,14 +963,21 @@ export const syncService = {
    */
   async clearLocalData() {
     this.clearAuthToken();
-    await Promise.all([
-      db.shopProfiles.clear(),
-      db.products.clear(),
-      db.customers.clear(),
-      db.debts.clear(),
-      db.debtPayments.clear(),
-      db.sales.clear(),
-      db.licenses.clear()
-    ]);
+    try {
+      await Promise.all([
+        db.shopProfiles.clear(),
+        db.products.clear(),
+        db.customers.clear(),
+        db.debts.clear(),
+        db.debtPayments.clear(),
+        db.sales.clear(),
+        db.licenses.clear(),
+        db.expenses.clear(),
+        db.supplies.clear(),
+        db.customInvoices.clear()
+      ]);
+    } catch (err) {
+      console.warn('[Sync] Erreur clearLocalData:', err);
+    }
   }
 };

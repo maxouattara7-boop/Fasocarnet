@@ -269,22 +269,31 @@ export const adminService = {
     await db.shopProfiles.delete(shopId);
 
     // Supprimer également les données locales liées si présentes
-    const [sales, customers, products, debts] = await Promise.all([
+    const [sales, customers, products, debts, expenses, supplies, invoices] = await Promise.all([
       db.sales.toArray(),
       db.customers.toArray(),
       db.products.toArray(),
-      db.debts.toArray()
+      db.debts.toArray(),
+      db.expenses.toArray(),
+      db.supplies.toArray(),
+      db.customInvoices.toArray()
     ]);
 
     const salesToDelete = sales.filter((s: any) => s.shopId === shopId).map(s => s.id);
     const customersToDelete = customers.filter((c: any) => c.shopId === shopId).map(c => c.id);
     const productsToDelete = products.filter((p: any) => p.shopId === shopId).map(p => p.id);
     const debtsToDelete = debts.filter((d: any) => d.shopId === shopId).map(d => d.id);
+    const expensesToDelete = expenses.filter((e: any) => e.shopId === shopId).map(e => e.id);
+    const suppliesToDelete = supplies.filter((s: any) => s.shopId === shopId).map(s => s.id);
+    const invoicesToDelete = invoices.filter((inv: any) => inv.shopId === shopId).map(inv => inv.id);
 
     if (salesToDelete.length) await db.sales.bulkDelete(salesToDelete);
     if (customersToDelete.length) await db.customers.bulkDelete(customersToDelete);
     if (productsToDelete.length) await db.products.bulkDelete(productsToDelete);
     if (debtsToDelete.length) await db.debts.bulkDelete(debtsToDelete);
+    if (expensesToDelete.length) await db.expenses.bulkDelete(expensesToDelete);
+    if (suppliesToDelete.length) await db.supplies.bulkDelete(suppliesToDelete);
+    if (invoicesToDelete.length) await db.customInvoices.bulkDelete(invoicesToDelete);
 
     // Supprimer définitivement du serveur Cloud, de Supabase et du cache local
     await syncService.deleteRemoteShop(shopId);

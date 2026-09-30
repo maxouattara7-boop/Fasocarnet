@@ -201,25 +201,6 @@ export const supabaseClient = {
   },
 
   /**
-   * Supprime une boutique de Supabase (Super-Admin)
-   */
-  async deleteShop(shopId: string): Promise<boolean> {
-    const client = this.getClient();
-    if (!client) return false;
-
-    try {
-      const { error } = await client
-        .from('shops')
-        .delete()
-        .eq('id', shopId);
-
-      return !error;
-    } catch {
-      return false;
-    }
-  },
-
-  /**
    * Récupère les données d'une boutique depuis Supabase
    */
   async fetchShop(shopId: string): Promise<CloudShopData | null> {
@@ -427,54 +408,6 @@ export const supabaseClient = {
   /**
    * Abonne l'appareil aux modifications en temps réel de sa boutique (Multi-appareils Téléphone ⇄ PC)
    */
-  subscribeToShopChanges(shopId: string, onRemoteChange: () => void): (() => void) {
-    const client = this.getClient();
-    if (!client || !shopId) return () => {};
-
-    try {
-      const channelName = `shop_realtime_${shopId}`;
-      const channel = client.channel(channelName);
-
-      // 1. Écoute des mutations directes sur la table shops de Supabase
-      channel.on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'shops',
-          filter: `id=eq.${shopId}`
-        },
-        () => {
-          onRemoteChange();
-        }
-      );
-
-      // 2. Écoute des messages de diffusion instantanée WebSocket (Broadcast ultra-rapide)
-      channel.on(
-        'broadcast',
-        { event: 'shop_sync' },
-        () => {
-          onRemoteChange();
-        }
-      );
-
-      channel.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          // Connecté avec succès au flux temps réel
-        }
-      });
-
-      return () => {
-        try {
-          client.removeChannel(channel);
-        } catch {}
-      };
-    } catch (err) {
-      console.warn('[Supabase Realtime] Erreur abonnement canal:', err);
-      return () => {};
-    }
-  },
-
   /**
    * Diffuse un signal de synchronisation instantané aux autres appareils connectés sur le même compte
    */
@@ -492,6 +425,114 @@ export const supabaseClient = {
       });
     } catch {
       // Silencieux si échec d'envoi broadcast
+    }
+  },
+
+  /**
+   * Diffuse un signal instantané de suppression définitive de compte aux appareils connectés
+   */
+  async broadcastShopDeleted(shopId: string): Promise<void> {
+    const client = this.getClient();
+    if (!client || !shopId) return;
+
+    try {
+      const channelName = `shop_realtime_${shopId}`;
+      const channel = client.channel(channelName);
+      await channel.send({
+        type: 'broadcast',
+        event: 'shop_deleted',
+        payload: { shopId, timestamp: Date.now() }
+      });
+    } catch {
+      // Silencieux si échec d'envoi broadcast
+    }
+  },
+
+  /**
+   * Supprime une boutique de Supabase et notifie immédiatement tous les appareils
+   */
+  async deleteShop(shopId: string): Promise<boolean> {
+    const client = this.getClient();
+    if (!client) return false;
+
+    try {
+      // Émettre le signal de suppression avant la destruction en base
+      await this.broadcastShopDeleted(shopId);
+
+      const { error } = await client
+        .from('shops')
+        .delete()
+        .eq('id', shopId);
+
+      return !error;
+    } catch {
+      return false;
+    }
+  },
+
+  /**
+   * S'abonne aux changements temps réel d'une boutique (Postgres changes + WebSockets)
+   */
+  subscribeToShopChanges(
+    shopId: string, 
+    onRemoteChange: () => void,
+    onShopDeleted?: () => void
+  ): (() => void) {
+    const client = this.getClient();
+    if (!client || !shopId) return () => {};
+
+    try {
+      const channelName = `shop_realtime_${shopId}`;
+      const channel = client.channel(channelName);
+
+      // 1. Écoute des mutations directes sur la table shops de Supabase
+      channel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'shops',
+          filter: `id=eq.${shopId}`
+        },
+        (payload: any) => {
+          if (payload?.eventType === 'DELETE') {
+            if (onShopDeleted) onShopDeleted();
+            else onRemoteChange();
+          } else {
+            onRemoteChange();
+          }
+        }
+      );
+
+      // 2. Écoute des messages de diffusion instantanée WebSocket
+      channel.on(
+        'broadcast',
+        { event: 'shop_sync' },
+        () => {
+          onRemoteChange();
+        }
+      );
+
+      // 3. Écoute du signal de suppression de compte
+      channel.on(
+        'broadcast',
+        { event: 'shop_deleted' },
+        () => {
+          if (onShopDeleted) onShopDeleted();
+          else onRemoteChange();
+        }
+      );
+
+      channel.subscribe();
+
+      return () => {
+        try {
+          client.removeChannel(channel);
+        } catch {}
+      };
+    } catch (err) {
+      console.warn('[Supabase Realtime] Erreur abonnement canal:', err);
+      return () => {};
     }
   }
 };
