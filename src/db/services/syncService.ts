@@ -730,6 +730,14 @@ export const syncService = {
     if (autoPushTimer) {
       clearTimeout(autoPushTimer);
     }
+    // Si hors-ligne : marquer qu'il y a des données locales non encore synchronisées
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+    if (isOffline && typeof localStorage !== 'undefined') {
+      localStorage.setItem('fasocarnet_pending_offline_data', 'true');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('fasocarnet_pending_offline_data_changed', { detail: { pending: true } }));
+      }
+    }
     autoPushTimer = setTimeout(async () => {
       try {
         let id = targetShopId;
@@ -739,9 +747,17 @@ export const syncService = {
         }
         if (id) {
           await this.pushLocalChanges(id);
+          // Push réussi : effacer le flag "données en attente"
+          if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem('fasocarnet_pending_offline_data');
+          }
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('fasocarnet_pending_offline_data_changed', { detail: { pending: false } }));
+          }
         }
       } catch (err) {
-        console.warn('[Sync AutoPush] Erreur push:', err);
+        console.warn('[Sync AutoPush] Hors-ligne ou erreur, données conservées localement en attente:', err);
+        // Ne pas effacer le flag : les données sont toujours en attente
       }
     }, 80);
   },

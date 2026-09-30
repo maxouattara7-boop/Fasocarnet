@@ -55,6 +55,7 @@ interface AppState {
   logoutMiniAdmin: () => void;
   isOnline: boolean;
   isSyncing: boolean;
+  hasPendingOfflineData: boolean;
   lastSyncedAt: string | null;
   syncError: string | null;
   loadCurrentShop: () => Promise<void>;
@@ -72,12 +73,33 @@ interface AppState {
 export const useAppStore = create<AppState>((set, get) => {
   // Détecter l'état du réseau au lancement
   if (typeof window !== 'undefined') {
-    window.addEventListener('online', () => {
+    window.addEventListener('online', async () => {
       set({ isOnline: true });
-      get().syncNow();
+      // Dès que la connexion revient, pousser TOUTES les données locales vers Supabase
+      // (données sauvegardées hors-ligne en attente de synchronisation)
+      const state = get();
+      const shopProfile = state.shopProfile;
+      if (shopProfile) {
+        set({ isSyncing: true });
+        try {
+          await syncService.pushLocalChanges(shopProfile.id);
+          await syncService.pullRemoteChanges(shopProfile.id);
+          // Effacer le flag "données en attente"
+          if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem('fasocarnet_pending_offline_data');
+          }
+          set({ isSyncing: false, syncError: null, hasPendingOfflineData: false, lastSyncedAt: new Date().toISOString() });
+        } catch {
+          set({ isSyncing: false });
+        }
+      }
     });
     window.addEventListener('offline', () => {
       set({ isOnline: false });
+    });
+    window.addEventListener('fasocarnet_pending_offline_data_changed', (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      set({ hasPendingOfflineData: !!detail?.pending });
     });
     window.addEventListener('fasocarnet_account_deleted', () => {
       syncService.stopAutoRealtimeSync();
@@ -149,6 +171,9 @@ export const useAppStore = create<AppState>((set, get) => {
     },
     isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
     isSyncing: false,
+    hasPendingOfflineData: typeof window !== 'undefined'
+      ? localStorage.getItem('fasocarnet_pending_offline_data') === 'true'
+      : false,
     lastSyncedAt: null,
     syncError: null,
     isLocked: false,

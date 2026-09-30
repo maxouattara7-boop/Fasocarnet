@@ -5,7 +5,7 @@ import { Logo } from '../common/Logo';
 import { HelpGuideModal } from '../common/HelpGuideModal';
 
 export const Header: React.FC = () => {
-  const { shopProfile, setIsLocked, isOnline, isSyncing, syncNow, activeTab, setActiveTab, logout } = useAppStore();
+  const { shopProfile, setIsLocked, isOnline, isSyncing, hasPendingOfflineData, syncNow, activeTab, setActiveTab, logout } = useAppStore();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -82,19 +82,26 @@ export const Header: React.FC = () => {
               type="button"
               onClick={() => syncNow()}
               disabled={isSyncing}
-              className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all flex items-center space-x-1 shadow-xs active:scale-95 cursor-pointer ${
+              className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all flex items-center space-x-1 shadow-xs active:scale-95 cursor-pointer relative ${
                 isSyncing
                   ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50 animate-pulse'
-                  : isOnline
-                    ? 'bg-emerald-800/80 hover:bg-emerald-700 text-emerald-100 border-emerald-600/40'
-                    : 'bg-amber-950/80 text-amber-200 border-amber-500/40'
+                  : hasPendingOfflineData
+                    ? 'bg-amber-600/90 hover:bg-amber-600 text-white border-amber-400/60 animate-pulse'
+                    : isOnline
+                      ? 'bg-emerald-800/80 hover:bg-emerald-700 text-emerald-100 border-emerald-600/40'
+                      : 'bg-amber-950/80 text-amber-200 border-amber-500/40'
               }`}
-              title="Cliquer pour forcer la synchronisation réseau"
+              title={hasPendingOfflineData ? "Données hors-ligne en attente — cliquer pour synchroniser maintenant" : "Cliquer pour forcer la synchronisation réseau"}
             >
               {isSyncing ? (
                 <>
                   <RefreshCw className="w-3 h-3 animate-spin text-emerald-300" />
                   <span className="hidden xs:inline">Synchro...</span>
+                </>
+              ) : hasPendingOfflineData ? (
+                <>
+                  <AlertTriangle className="w-3 h-3 text-white" />
+                  <span className="hidden xs:inline">En attente</span>
                 </>
               ) : isOnline ? (
                 <>
