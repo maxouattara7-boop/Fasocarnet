@@ -38,8 +38,6 @@ export const DiscountModal: React.FC<DiscountModalProps> = ({
     }
   }, [isOpen, currentDiscount]);
 
-  if (!isOpen) return null;
-
   const numValue = Math.max(0, parseFloat(inputValue) || 0);
 
   let discountAmount = 0;
@@ -89,6 +87,8 @@ export const DiscountModal: React.FC<DiscountModalProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, discountAmount, discountType, numValue, onApply, onClose]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">

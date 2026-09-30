@@ -29,9 +29,7 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
     }
   }, [isOpen, product, initialQuantity]);
 
-  if (!isOpen || !product) return null;
-
-  const maxAvailableStock = typeof product.stockQuantity === 'number' ? Math.max(0, product.stockQuantity) : undefined;
+  const maxAvailableStock = typeof product?.stockQuantity === 'number' ? Math.max(0, product.stockQuantity) : undefined;
   const isOutOfStock = maxAvailableStock !== undefined && maxAvailableStock <= 0;
   const isOverStock = maxAvailableStock !== undefined && quantity > maxAvailableStock;
 
@@ -64,6 +62,7 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
   };
 
   const handleConfirm = () => {
+    if (!product) return;
     if (isOutOfStock) {
       alert("Cet article est en rupture de stock.");
       return;
@@ -93,6 +92,8 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, quantity, product, isOutOfStock, isOverStock, maxAvailableStock, onConfirm, onClose]);
+
+  if (!isOpen || !product) return null;
 
   const totalAmount = quantity * product.price;
 

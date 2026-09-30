@@ -20,6 +20,7 @@ import { Crown, Megaphone, X } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
 import { DebtAlarmModal } from './components/debts/DebtAlarmModal';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { customersService } from './db/services/customersService';
 import { Customer } from './types';
 
@@ -276,11 +277,13 @@ export const App: React.FC = () => {
         )}
 
         <main className={`flex-1 w-full min-h-0 ${activeTab === 'pos' ? 'h-full overflow-hidden' : ''}`}>
-          {activeTab === 'pos' && <PosView />}
-          {activeTab === 'debts' && <DebtsView />}
-          {activeTab === 'reports' && <DailyReportView />}
-          {activeTab === 'invoices' && <InvoicesView />}
-          {activeTab === 'settings' && <SettingsView />}
+          <ErrorBoundary fallbackMessage="Une anomalie temporaire est survenue sur cet écran. Vos données sont conservées en toute sécurité.">
+            {activeTab === 'pos' && <PosView />}
+            {activeTab === 'debts' && <DebtsView />}
+            {activeTab === 'reports' && <DailyReportView />}
+            {activeTab === 'invoices' && <InvoicesView />}
+            {activeTab === 'settings' && <SettingsView />}
+          </ErrorBoundary>
         </main>
 
         <BottomNav />
