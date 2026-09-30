@@ -343,66 +343,70 @@ export const InvoicesView: React.FC = () => {
             </div>
           </div>
 
-          {/* KPI STATISTIQUES FACTURATION (DESIGN ÉPURÉ & MODERNE) */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-            <div className="bg-white p-4.5 rounded-3xl shadow-xs border border-slate-200/80 hover:border-emerald-300 transition-all space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500 text-[11px] font-black uppercase tracking-wider font-display">
-                  Total Facturé
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-                  <DollarSign className="w-4 h-4" />
-                </div>
+          {/* KPI STATISTIQUES FACTURATION (DESIGN PREMIUM CENTRÉ & ÉPURÉ) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            {/* Carte 1 : Total Facturé */}
+            <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-xs border border-slate-200/90 hover:border-emerald-400 hover:shadow-md transition-all flex flex-col items-center justify-center text-center group">
+              <div className="w-11 h-11 rounded-2xl bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center mb-2.5 shadow-2xs group-hover:scale-105 transition-transform shrink-0">
+                <DollarSign className="w-5 h-5 stroke-[2.2]" />
               </div>
-              <div className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 font-display">
+                Total Facturé
+              </span>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 font-display tracking-tight my-1">
                 {formatCurrency(totalInvoiced)}
               </div>
-              <p className="text-[10px] font-medium text-slate-400">Toutes factures confondues</p>
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full mt-1">
+                Toutes factures confondues
+              </span>
             </div>
 
-            <div className="bg-white p-4.5 rounded-3xl shadow-xs border border-slate-200/80 hover:border-emerald-300 transition-all space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-emerald-700 text-[11px] font-black uppercase tracking-wider font-display">
-                  Factures Encaissées
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center shrink-0">
-                  <CheckCircle className="w-4 h-4" />
-                </div>
+            {/* Carte 2 : Factures Encaissées */}
+            <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-xs border border-slate-200/90 hover:border-emerald-400 hover:shadow-md transition-all flex flex-col items-center justify-center text-center group">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200/80 flex items-center justify-center mb-2.5 shadow-2xs group-hover:scale-105 transition-transform shrink-0">
+                <CheckCircle className="w-5 h-5 stroke-[2.2]" />
               </div>
-              <div className="text-xl sm:text-2xl font-black text-emerald-700 font-display mt-1">
+              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 font-display">
+                Factures Encaissées
+              </span>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-black text-emerald-700 font-display tracking-tight my-1">
                 {formatCurrency(totalPaid)}
               </div>
-              <p className="text-[10px] font-medium text-slate-400">Règlements reçus</p>
+              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full mt-1">
+                Règlements reçus
+              </span>
             </div>
 
-            <div className="bg-white p-4.5 rounded-3xl shadow-xs border border-slate-200/80 hover:border-amber-300 transition-all space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-amber-700 text-[11px] font-black uppercase tracking-wider font-display">
-                  Factures En Attente
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 flex items-center justify-center shrink-0">
-                  <Clock className="w-4 h-4" />
-                </div>
+            {/* Carte 3 : Factures En Attente */}
+            <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-xs border border-slate-200/90 hover:border-amber-400 hover:shadow-md transition-all flex flex-col items-center justify-center text-center group">
+              <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200/80 flex items-center justify-center mb-2.5 shadow-2xs group-hover:scale-105 transition-transform shrink-0">
+                <Clock className="w-5 h-5 stroke-[2.2]" />
               </div>
-              <div className="text-xl sm:text-2xl font-black text-amber-700 font-display mt-1">
+              <span className="text-[11px] font-black uppercase tracking-wider text-amber-800 font-display">
+                Factures En Attente
+              </span>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-black text-amber-700 font-display tracking-tight my-1">
                 {formatCurrency(totalPending)}
               </div>
-              <p className="text-[10px] font-medium text-slate-400">À encaisser</p>
+              <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200/80 px-2.5 py-0.5 rounded-full mt-1">
+                À encaisser
+              </span>
             </div>
 
-            <div className="bg-white p-4.5 rounded-3xl shadow-xs border border-slate-200/80 hover:border-indigo-300 transition-all space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-indigo-700 text-[11px] font-black uppercase tracking-wider font-display">
-                  Devis Émis
-                </span>
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center shrink-0">
-                  <FileCheck className="w-4 h-4" />
-                </div>
+            {/* Carte 4 : Devis Émis */}
+            <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-xs border border-slate-200/90 hover:border-indigo-400 hover:shadow-md transition-all flex flex-col items-center justify-center text-center group">
+              <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-700 border border-indigo-200/80 flex items-center justify-center mb-2.5 shadow-2xs group-hover:scale-105 transition-transform shrink-0">
+                <FileCheck className="w-5 h-5 stroke-[2.2]" />
               </div>
-              <div className="text-xl sm:text-2xl font-black text-indigo-900 font-display mt-1">
+              <span className="text-[11px] font-black uppercase tracking-wider text-indigo-800 font-display">
+                Devis Émis
+              </span>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-black text-indigo-900 font-display tracking-tight my-1">
                 {formatCurrency(totalQuotes)}
               </div>
-              <p className="text-[10px] font-medium text-slate-400">Propositions commerciales</p>
+              <span className="text-[10px] font-bold text-indigo-800 bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded-full mt-1">
+                Propositions émises
+              </span>
             </div>
           </div>
 
