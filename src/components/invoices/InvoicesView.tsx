@@ -330,7 +330,7 @@ export const InvoicesView: React.FC = () => {
                 className="flex-1 sm:flex-none px-4 py-2.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white rounded-2xl text-xs font-black flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition-all cursor-pointer font-display"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Devis</span>
+                <span>Nouveau Devis</span>
               </button>
               <button
                 type="button"
@@ -338,55 +338,71 @@ export const InvoicesView: React.FC = () => {
                 className="flex-1 sm:flex-none px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white rounded-2xl text-xs font-black flex items-center justify-center space-x-1.5 shadow-sm active:scale-95 transition-all cursor-pointer font-display"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Facture</span>
+                <span>Nouvelle Facture</span>
               </button>
             </div>
           </div>
 
-          {/* KPI STATISTIQUES FACTURATION */}
+          {/* KPI STATISTIQUES FACTURATION (DESIGN ÉPURÉ & MODERNE) */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-            <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-4.5 rounded-3xl shadow-xs border border-emerald-700/50 space-y-1">
-              <div className="flex items-center justify-between text-emerald-300 text-[11px] font-bold uppercase tracking-wider font-display">
-                <span>Total Facturé</span>
-                <DollarSign className="w-4 h-4" />
+            <div className="bg-white p-4.5 rounded-3xl shadow-xs border border-slate-200/80 hover:border-emerald-300 transition-all space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 text-[11px] font-black uppercase tracking-wider font-display">
+                  Total Facturé
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                  <DollarSign className="w-4 h-4" />
+                </div>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-white font-display">
+              <div className="text-xl sm:text-2xl font-black text-slate-900 font-display mt-1">
                 {formatCurrency(totalInvoiced)}
               </div>
-              <p className="text-[10px] text-emerald-200/80">Toutes factures confondues</p>
+              <p className="text-[10px] font-medium text-slate-400">Toutes factures confondues</p>
             </div>
 
-            <div className="bg-gradient-to-br from-teal-800 to-slate-900 text-white p-4.5 rounded-3xl shadow-xs border border-teal-700/40 space-y-1">
-              <div className="flex items-center justify-between text-teal-300 text-[11px] font-bold uppercase tracking-wider font-display">
-                <span>Factures Encaissées</span>
-                <CheckCircle className="w-4 h-4" />
+            <div className="bg-white p-4.5 rounded-3xl shadow-xs border border-slate-200/80 hover:border-emerald-300 transition-all space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-emerald-700 text-[11px] font-black uppercase tracking-wider font-display">
+                  Factures Encaissées
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center shrink-0">
+                  <CheckCircle className="w-4 h-4" />
+                </div>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-emerald-300 font-display">
+              <div className="text-xl sm:text-2xl font-black text-emerald-700 font-display mt-1">
                 {formatCurrency(totalPaid)}
               </div>
-              <p className="text-[10px] text-teal-200/80">Règlements reçus</p>
+              <p className="text-[10px] font-medium text-slate-400">Règlements reçus</p>
             </div>
 
-            <div className="bg-gradient-to-br from-amber-900 to-slate-900 text-white p-4.5 rounded-3xl shadow-xs border border-amber-700/40 space-y-1">
-              <div className="flex items-center justify-between text-amber-300 text-[11px] font-bold uppercase tracking-wider font-display">
-                <span>Factures En Attente</span>
-                <Clock className="w-4 h-4" />
+            <div className="bg-white p-4.5 rounded-3xl shadow-xs border border-slate-200/80 hover:border-amber-300 transition-all space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-amber-700 text-[11px] font-black uppercase tracking-wider font-display">
+                  Factures En Attente
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 flex items-center justify-center shrink-0">
+                  <Clock className="w-4 h-4" />
+                </div>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-amber-300 font-display">
+              <div className="text-xl sm:text-2xl font-black text-amber-700 font-display mt-1">
                 {formatCurrency(totalPending)}
               </div>
-              <p className="text-[10px] text-amber-200/80">À encaisser</p>
+              <p className="text-[10px] font-medium text-slate-400">À encaisser</p>
             </div>
 
-            <div className="bg-gradient-to-br from-indigo-950 to-slate-900 text-white p-4.5 rounded-3xl shadow-xs border border-indigo-700/40 space-y-1">
-              <div className="flex items-center justify-between text-indigo-300 text-[11px] font-bold uppercase tracking-wider font-display">
-                <span>Devis Émis</span>
-                <FileCheck className="w-4 h-4" />
+            <div className="bg-white p-4.5 rounded-3xl shadow-xs border border-slate-200/80 hover:border-indigo-300 transition-all space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-indigo-700 text-[11px] font-black uppercase tracking-wider font-display">
+                  Devis Émis
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center shrink-0">
+                  <FileCheck className="w-4 h-4" />
+                </div>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-white font-display">
+              <div className="text-xl sm:text-2xl font-black text-indigo-900 font-display mt-1">
                 {formatCurrency(totalQuotes)}
               </div>
-              <p className="text-[10px] text-indigo-200/80">Propositions commerciales</p>
+              <p className="text-[10px] font-medium text-slate-400">Propositions commerciales</p>
             </div>
           </div>
 
@@ -406,7 +422,7 @@ export const InvoicesView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-full"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-full cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -471,30 +487,34 @@ export const InvoicesView: React.FC = () => {
               <p className="mt-3 text-xs font-bold text-slate-500">Chargement de vos factures & devis...</p>
             </div>
           ) : filteredDocs.length === 0 ? (
-            <div className="bg-white p-12 rounded-3xl border border-slate-200/80 shadow-xs text-center space-y-3">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+            <div className="bg-white p-12 rounded-3xl border border-slate-200/80 shadow-xs text-center space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-100">
                 <FileText className="w-7 h-7" />
               </div>
-              <h3 className="font-extrabold text-sm text-slate-800">Aucun document trouvé</h3>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                {searchQuery 
-                  ? `Aucun document ne correspond à "${searchQuery}".` 
-                  : "Créez votre premier devis ou votre première facture professionnelle dès maintenant."}
-              </p>
-              <div className="pt-2 flex items-center justify-center space-x-2">
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-800">Aucun document trouvé</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                  {searchQuery 
+                    ? `Aucun document ne correspond à "${searchQuery}".` 
+                    : "Créez votre premier devis ou votre première facture professionnelle dès maintenant."}
+                </p>
+              </div>
+              <div className="pt-2 flex items-center justify-center space-x-2.5">
                 <button
                   type="button"
                   onClick={() => handleStartNewDoc('INVOICE')}
-                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-black shadow-xs cursor-pointer font-display"
+                  className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-black shadow-xs cursor-pointer font-display flex items-center space-x-1.5 active:scale-95 transition-all"
                 >
-                  + Créer une Facture
+                  <Plus className="w-4 h-4" />
+                  <span>Créer une Facture</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleStartNewDoc('QUOTE')}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black shadow-xs cursor-pointer font-display"
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black shadow-xs cursor-pointer font-display flex items-center space-x-1.5 active:scale-95 transition-all"
                 >
-                  + Créer un Devis
+                  <Plus className="w-4 h-4" />
+                  <span>Créer un Devis</span>
                 </button>
               </div>
             </div>
