@@ -357,15 +357,15 @@ export const PosView: React.FC = () => {
         </div>
       )}
 
-      {/* DISPOSITION RESPONSIVE : CALCULATRICE À GAUCHE & CATALOGUE À DROITE (LG/XL) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+      {/* DISPOSITION RESPONSIVE : CALCULATRICE STATIQUE À GAUCHE & CATALOGUE DÉFILANT À DROITE */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start relative">
         
         {/* ======================================================== */}
-        {/* COLONNE GAUCHE (DESKTOP) : CAISSE, CALCULATRICE & ACTIONS */}
+        {/* COLONNE GAUCHE (DESKTOP) : CALCULATRICE STATIQUE & FIXE  */}
         {/* ======================================================== */}
-        <div className="lg:col-span-5 space-y-3.5 lg:sticky lg:top-6">
+        <div className="lg:col-span-5 space-y-3 lg:sticky lg:top-4 lg:self-start z-10">
           {/* Écran d'affichage du montant, de la remise et du calcul */}
-          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-4 sm:p-5 rounded-3xl shadow-xl flex flex-col justify-between min-h-[125px] sm:min-h-[135px] border border-emerald-700/50">
+          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-4 sm:p-4.5 rounded-3xl shadow-xl flex flex-col justify-between min-h-[120px] sm:min-h-[130px] border border-emerald-700/50">
             <div className="flex items-center justify-between text-emerald-300 text-[11px] font-bold tracking-wider uppercase">
               <div className="flex items-center space-x-1.5">
                 {hasCalculation ? (
@@ -676,7 +676,7 @@ export const PosView: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 xl:grid-cols-3 gap-3.5 max-h-[580px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-2 xl:grid-cols-3 gap-3.5 lg:max-h-[calc(100vh-210px)] max-h-[580px] overflow-y-auto pr-1.5 scrollbar-thin">
               {filteredProducts.map((prod) => {
                 const stock = prod.stockQuantity ?? 0;
                 const isZeroStock = stock <= 0;
