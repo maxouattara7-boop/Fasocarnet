@@ -41,8 +41,8 @@ export const supabaseClient = {
     }
 
     const isTest = (import.meta as any).env?.MODE === 'test';
-    const envUrl = isTest ? '' : ((import.meta as any).env?.VITE_SUPABASE_URL || '');
-    const envKey = isTest ? '' : ((import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '');
+    const envUrl = isTest ? '' : ((import.meta as any).env?.VITE_SUPABASE_URL || 'https://ofbqqzmatttztbhtjban.supabase.co');
+    const envKey = isTest ? '' : ((import.meta as any).env?.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mYnFxem1hdHR0enRiaHRqYmFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5OTIwNjYsImV4cCI6MjEwNTU2ODA2Nn0.bI6wxI9rw-rhauKhFTb2yHIEu2eXwh8F8mTcr2ZiuYI');
 
     return {
       url: envUrl.trim(),
