@@ -190,6 +190,17 @@ describe('FasoCarnet App Component', () => {
       updatedAt: new Date().toISOString()
     };
     await db.shopProfiles.put(shop);
+    const cloudDb = syncService.getCloudDatabase();
+    cloudDb['shop_persist_1'] = {
+      profile: shop,
+      products: [],
+      customers: [],
+      debts: [],
+      debtPayments: [],
+      sales: [],
+      licenses: [],
+      lastUpdatedAt: new Date().toISOString()
+    };
 
     // L'utilisateur navigue vers l'onglet "debts" (Créances)
     useAppStore.getState().setActiveTab('debts');

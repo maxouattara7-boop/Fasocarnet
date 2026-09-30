@@ -18,8 +18,6 @@ import { adminService } from './db/services/adminService';
 import { AdminBroadcastMessage } from './types';
 import { Crown, Megaphone, X } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import { updateService, AppUpdateInfo } from './services/updateService';
-import { UpdateModal } from './components/common/UpdateModal';
 import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
 import { DebtAlarmModal } from './components/debts/DebtAlarmModal';
 import { customersService } from './db/services/customersService';
@@ -30,8 +28,6 @@ export const App: React.FC = () => {
   const [broadcast, setBroadcast] = useState<AdminBroadcastMessage | null>(null);
   const [dismissedBroadcastId, setDismissedBroadcastId] = useState<string | null>(null);
   const [showBroadcastDetail, setShowBroadcastDetail] = useState(false);
-  const [availableUpdate, setAvailableUpdate] = useState<AppUpdateInfo | null>(null);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [alarmDebtors, setAlarmDebtors] = useState<Customer[]>([]);
   const [showDebtAlarm, setShowDebtAlarm] = useState(false);
   const [webForceAppMode, setWebForceAppMode] = useState<boolean>(() => {
@@ -69,57 +65,9 @@ export const App: React.FC = () => {
   }, [shopProfile]);
 
   useEffect(() => {
-    // Confirmer le bon démarrage pour le système de Live Update (anti-rollback)
-    updateService.notifyAppReady();
-
     // Rétablir automatiquement tout compte précédemment suspendu
     adminService.restoreAllSuspendedShops().catch(() => {});
     loadCurrentShop();
-    
-    // Fonction universelle de détection et affichage de mise à jour
-    const checkUpdates = async () => {
-      try {
-        const { hasUpdate, updateInfo } = await updateService.checkForUpdate();
-        if (hasUpdate && updateInfo) {
-          setAvailableUpdate(updateInfo);
-          setShowUpdateModal(true);
-        }
-      } catch (err) {
-        console.warn('[AutoUpdate] Erreur vérification:', err);
-      }
-    };
-
-    // 1. Vérification immédiate au démarrage
-    checkUpdates();
-
-    // 2. Vérification au retour au premier plan (quand l'utilisateur quitte et revient)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        checkUpdates();
-      }
-    };
-
-    const handleFocus = () => {
-      checkUpdates();
-    };
-
-    const handleOnline = () => {
-      checkUpdates();
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('online', handleOnline);
-
-    // 3. Vérification périodique toutes les 3 minutes
-    const interval = setInterval(checkUpdates, 3 * 60 * 1000);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('online', handleOnline);
-      clearInterval(interval);
-    };
   }, [loadCurrentShop]);
 
   useEffect(() => {
@@ -192,23 +140,6 @@ export const App: React.FC = () => {
         activeTab === 'pos' ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen justify-between'
       }`}>
         <Header />
-
-        {/* Bannière de Nouvelle Mise à Jour Disponible */}
-        {availableUpdate && (
-          <div className="bg-gradient-to-r from-emerald-700 via-teal-700 to-emerald-800 text-white px-3.5 py-2.5 text-xs font-bold flex items-center justify-between shadow-md border-b border-emerald-600 animate-in slide-in-from-top duration-300">
-            <div className="flex items-center space-x-2 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
-              <span className="truncate">✨ Mise à jour v{availableUpdate.version} disponible !</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowUpdateModal(true)}
-              className="ml-2 px-3 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl text-[11px] font-black shrink-0 active:scale-95 transition-all shadow-xs cursor-pointer font-display"
-            >
-              Mettre à jour
-            </button>
-          </div>
-        )}
 
         {/* Bannière de Message Broadcast Administrateur Défilante (Marquee Ticker) */}
         {broadcast && broadcast.isActive && dismissedBroadcastId !== broadcast.id && (
@@ -368,13 +299,6 @@ export const App: React.FC = () => {
     <>
       <PwaInstallPrompt />
       {mainContent}
-      {availableUpdate && (
-        <UpdateModal
-          updateInfo={availableUpdate}
-          isOpen={showUpdateModal}
-          onClose={() => setShowUpdateModal(false)}
-        />
-      )}
     </>
   );
 };
