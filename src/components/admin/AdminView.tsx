@@ -5,7 +5,7 @@ import {
   BarChart3, Download, Users,
   MapPin, Send, CheckCircle2, Megaphone,
   X, ChevronRight, Calendar, Phone, User, Building, FileText, Clock, Wallet,
-  Plus, Edit2, Zap, Sparkles, UserPlus
+  Plus, Edit2, Zap, Sparkles, UserPlus, AlertCircle
 } from 'lucide-react';
 import { adminService, AdminStats, ShopAdminDetails } from '../../db/services/adminService';
 import { syncService } from '../../db/services/syncService';
@@ -59,7 +59,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [unassignedCommercials, setUnassignedCommercials] = useState<CommercialAffiliateReport[]>([]);
   const [commercialAgents, setCommercialAgents] = useState<CommercialAgent[]>([]);
   const [teamLeaders, setTeamLeaders] = useState<TeamLeaderAccount[]>([]);
-  const [affiliateSubTab, setAffiliateSubTab] = useState<'agents' | 'teams' | 'leaders' | 'individual'>('agents');
+  const [affiliateSubTab, setAffiliateSubTab] = useState<'agents' | 'teams' | 'individual'>('agents');
 
   // Modale création / édition de Chef d'équipe (Mini-Admin)
   const [isLeaderModalOpen, setIsLeaderModalOpen] = useState(false);
@@ -71,7 +71,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [leaderFormZone, setLeaderFormZone] = useState('');
   const [leaderFormStatus, setLeaderFormStatus] = useState<'active' | 'inactive'>('active');
   const [isSavingLeader, setIsSavingLeader] = useState(false);
-  const [leaderSearchQuery, setLeaderSearchQuery] = useState('');
   const [leaderSuccessMsg, setLeaderSuccessMsg] = useState('');
   const [leaderWelcomeModal, setLeaderWelcomeModal] = useState<{ leader: TeamLeaderAccount; rawPin?: string } | null>(null);
 
@@ -97,6 +96,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<CommercialTeam | null>(null);
   const [teamFormName, setTeamFormName] = useState('');
+  const [teamFormLeaderId, setTeamFormLeaderId] = useState('');
   const [teamFormLeaderName, setTeamFormLeaderName] = useState('');
   const [teamFormLeaderPhone, setTeamFormLeaderPhone] = useState('');
   const [teamFormZone, setTeamFormZone] = useState('');
@@ -411,6 +411,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const handleOpenCreateTeamModal = () => {
     setEditingTeam(null);
     setTeamFormName('');
+    setTeamFormLeaderId('');
     setTeamFormLeaderName('');
     setTeamFormLeaderPhone('');
     setTeamFormZone('');
@@ -423,6 +424,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const handleOpenEditTeamModal = (team: CommercialTeam) => {
     setEditingTeam(team);
     setTeamFormName(team.name);
+    setTeamFormLeaderId(team.leaderId || '');
     setTeamFormLeaderName(team.leaderName || '');
     setTeamFormLeaderPhone(team.leaderPhone || '');
     setTeamFormZone(team.zone || '');
@@ -445,15 +447,33 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         const extra = teamFormNewCodeInput.split(',').map(c => c.trim().toUpperCase()).filter(Boolean);
         finalCodes = Array.from(new Set([...finalCodes, ...extra]));
       }
-      await adminService.saveCommercialTeam({
+
+      // Si un chef existant a été sélectionné, synchroniser ses infos
+      const selectedLeader = teamLeaders.find(l => l.id === teamFormLeaderId);
+      const effectiveLeaderName = selectedLeader ? selectedLeader.fullName : teamFormLeaderName.trim();
+      const effectiveLeaderPhone = selectedLeader ? selectedLeader.phone : teamFormLeaderPhone.trim();
+
+      const savedTeam = await adminService.saveCommercialTeam({
         id: editingTeam?.id,
         name: teamFormName.trim(),
-        leaderName: teamFormLeaderName.trim() || undefined,
-        leaderPhone: teamFormLeaderPhone.trim() || undefined,
+        leaderId: teamFormLeaderId.trim() || undefined,
+        leaderName: effectiveLeaderName || undefined,
+        leaderPhone: effectiveLeaderPhone || undefined,
         zone: teamFormZone.trim() || undefined,
         description: teamFormDescription.trim() || undefined,
         affiliateCodes: finalCodes
       });
+
+      // Si un chef existant est lié, mettre à jour son association avec cette équipe
+      if (selectedLeader) {
+        await adminService.saveTeamLeader({
+          ...selectedLeader,
+          teamId: savedTeam.id,
+          teamName: savedTeam.name,
+          zone: savedTeam.zone || selectedLeader.zone
+        });
+      }
+
       setTeamSuccessMsg(editingTeam ? `Équipe « ${teamFormName} » modifiée avec succès !` : `Équipe « ${teamFormName} » créée avec succès !`);
       setIsTeamModalOpen(false);
       await loadData();
@@ -487,13 +507,21 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   // ACTIONS CHEFS D'ÉQUIPE (MINI-ADMINS)
   // =========================================================================
 
-  const handleOpenCreateLeaderModal = () => {
+  const handleOpenCreateLeaderModal = (defaultTeamId?: string) => {
     setEditingLeader(null);
     setLeaderFormFullName('');
     setLeaderFormPhone('');
     setLeaderFormPin('');
-    setLeaderFormTeamId('');
-    setLeaderFormZone('');
+    setLeaderFormTeamId(defaultTeamId || '');
+    
+    // Auto-remplir la zone si l'équipe existe
+    if (defaultTeamId) {
+      const tr = teamsReports.find(t => t.team.id === defaultTeamId);
+      setLeaderFormZone(tr?.team.zone || '');
+    } else {
+      setLeaderFormZone('');
+    }
+
     setLeaderFormStatus('active');
     setIsLeaderModalOpen(true);
   };
@@ -1314,7 +1342,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               </div>
             )}
 
-            {/* SOUS-ONGLETS : COMMERCIAUX VS ÉQUIPES VS CHEFS D'ÉQUIPE VS INDIVIDUELS */}
+            {/* SOUS-ONGLETS : COMMERCIAUX VS ÉQUIPES & CHEFS D'ÉQUIPE VS RAPPORTS */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-slate-900 p-2 sm:p-3 rounded-2xl border border-slate-800">
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth w-full sm:w-auto pb-1 sm:pb-0">
                 <button
@@ -1339,19 +1367,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                   }`}
                 >
                   <Building className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>Équipes ({teamsReports.length})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAffiliateSubTab('leaders')}
-                  className={`px-3 sm:px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-1.5 sm:space-x-2 cursor-pointer font-display shrink-0 whitespace-nowrap ${
-                    affiliateSubTab === 'leaders'
-                      ? 'bg-amber-500 text-slate-950 shadow-md'
-                      : 'bg-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>Chefs d'Équipe ({teamLeaders.length})</span>
+                  <span>Équipes & Chefs d'Équipe ({teamsReports.length})</span>
                 </button>
                 <button
                   type="button"
@@ -1363,21 +1379,31 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                   }`}
                 >
                   <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>Rapports ({affiliates.length})</span>
+                  <span>Rapports & Commissions ({affiliates.length})</span>
                 </button>
               </div>
 
               <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0">
-                {affiliateSubTab === 'leaders' ? (
-                  <button
-                    type="button"
-                    onClick={handleOpenCreateLeaderModal}
-                    className="flex-1 sm:flex-none px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center space-x-1.5 shadow-md transition-all cursor-pointer font-display active:scale-95 min-h-[38px]"
-                  >
-                    <Crown className="w-4 h-4" />
-                    <span>+ Chef d'Équipe</span>
-                  </button>
-                ) : (
+                {affiliateSubTab === 'teams' ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleOpenCreateTeamModal}
+                      className="flex-1 sm:flex-none px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center space-x-1.5 shadow-md transition-all cursor-pointer font-display active:scale-95 min-h-[38px]"
+                    >
+                      <Building className="w-4 h-4" />
+                      <span>+ Nouvelle Équipe</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenCreateLeaderModal()}
+                      className="flex-1 sm:flex-none px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 border border-slate-700 shadow-sm transition-all cursor-pointer font-display active:scale-95 min-h-[38px]"
+                    >
+                      <Crown className="w-4 h-4 text-amber-400" />
+                      <span>+ Chef d'Équipe</span>
+                    </button>
+                  </>
+                ) : affiliateSubTab === 'agents' ? (
                   <button
                     type="button"
                     onClick={handleOpenCreateAgentModal}
@@ -1386,16 +1412,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                     <Plus className="w-4 h-4" />
                     <span>+ Commercial</span>
                   </button>
-                )}
-
-                {affiliateSubTab === 'teams' && (
+                ) : (
                   <button
                     type="button"
-                    onClick={handleOpenCreateTeamModal}
-                    className="flex-1 sm:flex-none px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 border border-slate-700 shadow-sm transition-all cursor-pointer font-display active:scale-95 min-h-[38px]"
+                    onClick={handleExportCsv}
+                    className="flex-1 sm:flex-none px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 border border-slate-700 shadow-sm transition-all cursor-pointer font-display active:scale-95 min-h-[38px]"
                   >
-                    <Building className="w-4 h-4" />
-                    <span>+ Équipe</span>
+                    <Download className="w-4 h-4 text-emerald-400" />
+                    <span>Exporter CSV</span>
                   </button>
                 )}
               </div>
@@ -1669,21 +1693,28 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
             )}
 
             {/* ========================================================= */}
-            {/* VUE 1 : GESTION DES ÉQUIPES COMMERCIALES & PERFORMANCES */}
+            {/* VUE 1 : GESTION UNIFIÉE DES ÉQUIPES & CHEFS D'ÉQUIPE (MINI-ADMINS) */}
             {/* ========================================================= */}
             {affiliateSubTab === 'teams' && (
-              <div className="space-y-3.5 animate-in fade-in duration-150">
-                {/* Barre de Recherche Équipes */}
+              <div className="space-y-4 animate-in fade-in duration-150">
+                {/* Barre de Recherche Équipes & Chefs */}
                 <div className="relative">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
-                    placeholder="Rechercher une équipe par nom, zone, responsable ou code..."
+                    placeholder="Rechercher une équipe par nom, zone, chef d'équipe (+226...) ou code commercial..."
                     value={teamSearchQuery}
                     onChange={(e) => setTeamSearchQuery(e.target.value)}
                     className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
                   />
                 </div>
+
+                {leaderSuccessMsg && (
+                  <div className="p-3 bg-amber-950/70 border border-amber-500/50 text-amber-300 text-xs font-bold rounded-2xl flex items-center space-x-2 animate-in fade-in">
+                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>{leaderSuccessMsg}</span>
+                  </div>
+                )}
 
                 {/* Liste des Équipes */}
                 {(() => {
@@ -1691,9 +1722,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                     const q = teamSearchQuery.toLowerCase();
                     const inName = tr.team.name.toLowerCase().includes(q);
                     const inLeader = (tr.team.leaderName || '').toLowerCase().includes(q);
+                    const inPhone = (tr.team.leaderPhone || '').toLowerCase().includes(q);
                     const inZone = (tr.team.zone || '').toLowerCase().includes(q);
                     const inCodes = tr.team.affiliateCodes.some(c => c.toLowerCase().includes(q));
-                    return inName || inLeader || inZone || inCodes;
+                    return inName || inLeader || inPhone || inZone || inCodes;
                   });
 
                   if (teamsReports.length === 0) {
@@ -1702,16 +1734,26 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                         <Building className="w-12 h-12 text-slate-600 mx-auto" />
                         <h4 className="font-bold text-sm text-slate-300">Aucune équipe commerciale créée</h4>
                         <p className="text-xs text-slate-500 max-w-md mx-auto">
-                          Regroupez vos commerciaux en équipes (ex: Équipe Ouaga Nord, Bobo Centre) pour suivre leur performance collective et envoyer les relevés hebdomadaires aux chefs d'équipe.
+                          Créez vos équipes commerciales avec leurs Chefs d'Équipe (Mini-Admins) pour piloter le déploiement terrain et suivre les commissions hebdomadaires.
                         </p>
-                        <button
-                          type="button"
-                          onClick={handleOpenCreateTeamModal}
-                          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl inline-flex items-center space-x-2 font-display cursor-pointer transition-all"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span>Créer la première équipe</span>
-                        </button>
+                        <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                          <button
+                            type="button"
+                            onClick={handleOpenCreateTeamModal}
+                            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl inline-flex items-center space-x-2 font-display cursor-pointer transition-all active:scale-95"
+                          >
+                            <Building className="w-4 h-4" />
+                            <span>Créer la première équipe</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCreateLeaderModal()}
+                            className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl inline-flex items-center space-x-2 border border-slate-700 font-display cursor-pointer transition-all active:scale-95"
+                          >
+                            <Crown className="w-4 h-4 text-amber-400" />
+                            <span>Créer un Chef d'Équipe</span>
+                          </button>
+                        </div>
                       </div>
                     );
                   }
@@ -1719,24 +1761,31 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                   if (filteredTeams.length === 0) {
                     return (
                       <div className="bg-slate-900 p-6 rounded-2xl text-center text-slate-500 text-xs border border-slate-800">
-                        Aucune équipe ne correspond à votre recherche « {teamSearchQuery} ».
+                        Aucune équipe ou chef d'équipe ne correspond à votre recherche « {teamSearchQuery} ».
                       </div>
                     );
                   }
 
                   return (
-                    <div className="space-y-3">
+                    <div className="space-y-3.5">
                       {filteredTeams.map((teamReport) => {
                         const { team } = teamReport;
                         const isExpanded = selectedTeam?.team.id === team.id;
                         const isDue = teamReport.currentWeekCommissionDue > 0 && !teamReport.currentWeekIsSettled;
+
+                        // Trouver le Chef d'Équipe associé
+                        const assignedLeader = teamLeaders.find(l => 
+                          (team.leaderId && l.id === team.leaderId) || 
+                          (team.leaderPhone && l.phone === team.leaderPhone) || 
+                          l.teamId === team.id
+                        );
 
                         return (
                           <div
                             key={team.id}
                             className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-3xl p-4 sm:p-5 space-y-3.5 transition-all shadow-sm"
                           >
-                            {/* En-tête de la carte Équipe */}
+                            {/* En-tête de l'équipe */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
                               <div className="space-y-1">
                                 <div className="flex flex-wrap items-center gap-2">
@@ -1767,24 +1816,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                                   )}
                                 </div>
 
-                                <p className="text-[11px] text-slate-400 flex flex-wrap items-center gap-x-2">
-                                  <span>👑 Responsable : <strong className="text-slate-200">{team.leaderName || 'Non assigné'}</strong></span>
-                                  {team.leaderPhone && (
-                                    <>
-                                      <span className="text-slate-600">•</span>
-                                      <span className="text-emerald-400 font-mono">📞 {team.leaderPhone}</span>
-                                    </>
-                                  )}
-                                  {team.description && (
-                                    <>
-                                      <span className="text-slate-600">•</span>
-                                      <span className="text-slate-400 italic">« {team.description} »</span>
-                                    </>
-                                  )}
-                                </p>
+                                {team.description && (
+                                  <p className="text-[11px] text-slate-400 italic">
+                                    « {team.description} »
+                                  </p>
+                                )}
                               </div>
 
-                              {/* Actions rapides sur l'équipe */}
+                              {/* Actions globales sur l'équipe */}
                               <div className="flex items-center space-x-2 self-end sm:self-auto">
                                 <button
                                   type="button"
@@ -1793,7 +1832,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                                   title="Envoyer le relevé de l'équipe au Chef d'équipe sur WhatsApp"
                                 >
                                   <MessageCircle className="w-3.5 h-3.5" />
-                                  <span className="hidden sm:inline">WhatsApp Chef</span>
+                                  <span className="hidden sm:inline">WhatsApp Bilan Équipe</span>
                                 </button>
                                 <button
                                   type="button"
@@ -1814,14 +1853,83 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                               </div>
                             </div>
 
+                            {/* BLOC CHEF D'ÉQUIPE (MINI-ADMIN) ATTACHÉ À CETTE ÉQUIPE */}
+                            {assignedLeader ? (
+                              <div className="p-3 sm:p-3.5 bg-gradient-to-r from-amber-500/10 via-slate-950/90 to-slate-950 border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                                <div className="flex items-center space-x-2.5 min-w-0">
+                                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-md">
+                                    <Crown className="w-4 h-4 sm:w-5 sm:h-5" />
+                                  </div>
+                                  <div className="min-w-0 space-y-0.5">
+                                    <div className="flex items-center space-x-2 flex-wrap">
+                                      <span className="font-black text-white text-xs sm:text-sm font-display truncate">
+                                        👑 {assignedLeader.fullName}
+                                      </span>
+                                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold border ${
+                                        assignedLeader.status === 'active'
+                                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                                          : 'bg-red-500/15 text-red-400 border-red-500/30'
+                                      }`}>
+                                        {assignedLeader.status === 'active' ? '✓ Mini-Admin Actif' : 'Suspendu'}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-400 font-mono">
+                                      📞 WhatsApp de connexion : <strong className="text-emerald-400">+226 {assignedLeader.phone}</strong>
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center space-x-1.5 self-end sm:self-auto shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSendLeaderWhatsApp(assignedLeader)}
+                                    className="px-2.5 py-1.5 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] text-xs font-bold rounded-xl border border-[#25D366]/30 flex items-center space-x-1 transition-all cursor-pointer font-display"
+                                    title="Envoyer le kit d'accès Chef d'équipe sur WhatsApp"
+                                  >
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                    <span>Accès WhatsApp</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEditLeaderModal(assignedLeader)}
+                                    className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl border border-slate-700 flex items-center space-x-1 transition-all cursor-pointer font-display"
+                                    title="Modifier le compte ou réinitialiser le PIN Mini-Admin"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                    <span>PIN / Modifier</span>
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="p-3 bg-amber-950/20 border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                                <div className="flex items-center space-x-2 text-amber-300 text-xs font-semibold">
+                                  <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                                  <span>
+                                    {team.leaderName 
+                                      ? `Responsable désigné : ${team.leaderName} (${team.leaderPhone || 'Pas de WhatsApp'}) - Compte Mini-Admin non activé`
+                                      : 'Aucun Chef d\'Équipe (Mini-Admin) assigné à cette équipe'}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenCreateLeaderModal(team.id)}
+                                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl flex items-center space-x-1.5 shadow-sm transition-all cursor-pointer font-display active:scale-95 shrink-0"
+                                >
+                                  <Crown className="w-3.5 h-3.5" />
+                                  <span>+ Créer / Assigner Chef</span>
+                                </button>
+                              </div>
+                            )}
+
                             {/* Codes des commerciaux rattachés */}
                             <div className="flex flex-wrap items-center gap-1.5">
                               <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider mr-1">
-                                Membres ({teamReport.membersCount}) :
+                                Membres de l'équipe ({teamReport.membersCount}) :
                               </span>
                               {team.affiliateCodes.length === 0 ? (
                                 <span className="text-[11px] text-amber-400/80 italic">
-                                  Aucun commercial assigné. Cliquez sur Modifier pour ajouter des codes.
+                                  Aucun commercial assigné. Cliquez sur Modifier l'équipe pour ajouter des codes.
                                 </span>
                               ) : (
                                 team.affiliateCodes.map(code => (
@@ -1967,95 +2075,69 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                     </div>
                   </div>
                 )}
-              </div>
-            )}
-            {/* ========================================================= */}
-            {/* VUE 1.BIS : GESTION DES CHEFS D'ÉQUIPE (MINI-ADMINS) */}
-            {/* ========================================================= */}
-            {affiliateSubTab === 'leaders' && (
-              <div className="space-y-3.5 animate-in fade-in duration-150">
-                {/* Barre de Recherche Chefs d'Équipe */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                  <div className="relative flex-1">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <input
-                      type="text"
-                      placeholder="Rechercher par nom du chef, téléphone (+226...), équipe ou zone..."
-                      value={leaderSearchQuery}
-                      onChange={(e) => setLeaderSearchQuery(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
-                    />
-                  </div>
-                </div>
 
-                {leaderSuccessMsg && (
-                  <div className="p-3 bg-amber-950/70 border border-amber-500/50 text-amber-300 text-xs font-bold rounded-2xl flex items-center space-x-2 animate-in fade-in">
-                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>{leaderSuccessMsg}</span>
-                  </div>
-                )}
-
-                {/* Liste des Chefs d'Équipe */}
-                {(() => {
-                  const filteredLeaders = teamLeaders.filter(leader => {
-                    const q = leaderSearchQuery.toLowerCase();
-                    const inName = leader.fullName.toLowerCase().includes(q);
-                    const inPhone = leader.phone.toLowerCase().includes(q);
-                    const inTeam = (leader.teamName || '').toLowerCase().includes(q);
-                    const inZone = (leader.zone || '').toLowerCase().includes(q);
-                    return inName || inPhone || inTeam || inZone;
-                  });
-
-                  if (teamLeaders.length === 0) {
-                    return (
-                      <div className="bg-slate-900 p-8 rounded-3xl text-center space-y-3 border border-slate-800">
-                        <Crown className="w-12 h-12 text-slate-600 mx-auto" />
-                        <h4 className="font-bold text-sm text-slate-300">Aucun Chef d'Équipe (Mini-Admin) créé</h4>
-                        <p className="text-xs text-slate-500 max-w-md mx-auto">
-                          Déléguez le management de vos commerciaux sur le terrain en créant des comptes Mini-Administrateurs pour vos chefs d'équipe (connexion avec leur téléphone + PIN).
+                {/* ========================================================= */}
+                {/* SECTION FLOTTE : TOUS LES CHEFS D'ÉQUIPE (MINI-ADMINS) */}
+                {/* ========================================================= */}
+                <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 space-y-4 shadow-lg">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div className="flex items-center space-x-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-black border border-amber-500/30">
+                        <Crown className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-white text-sm sm:text-base font-display">
+                          Comptes Chefs d'Équipe / Mini-Administrateurs ({teamLeaders.length})
+                        </h4>
+                        <p className="text-xs text-slate-400">
+                          Accès délégués pour piloter leurs équipes sur le terrain (connexion par WhatsApp + PIN)
                         </p>
-                        <button
-                          type="button"
-                          onClick={handleOpenCreateLeaderModal}
-                          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl inline-flex items-center space-x-2 font-display cursor-pointer transition-all"
-                        >
-                          <Crown className="w-4 h-4" />
-                          <span>Créer le premier compte Chef d'Équipe</span>
-                        </button>
                       </div>
-                    );
-                  }
+                    </div>
 
-                  if (filteredLeaders.length === 0) {
-                    return (
-                      <div className="bg-slate-900 p-6 rounded-2xl text-center text-slate-500 text-xs border border-slate-800">
-                        Aucun chef d'équipe ne correspond à votre recherche « {leaderSearchQuery} ».
-                      </div>
-                    );
-                  }
+                    <button
+                      type="button"
+                      onClick={() => handleOpenCreateLeaderModal()}
+                      className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center space-x-1.5 shadow-md transition-all cursor-pointer font-display active:scale-95 min-h-[38px] self-start sm:self-auto"
+                    >
+                      <Crown className="w-4 h-4" />
+                      <span>+ Nouveau Chef d'Équipe</span>
+                    </button>
+                  </div>
 
-                  return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                      {filteredLeaders.map((leader) => {
+                  {teamLeaders.length === 0 ? (
+                    <div className="p-6 text-center text-slate-500 text-xs border border-dashed border-slate-800 rounded-2xl space-y-2">
+                      <Crown className="w-8 h-8 text-slate-600 mx-auto" />
+                      <p>Aucun compte Chef d'Équipe créé pour l'instant.</p>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCreateLeaderModal()}
+                        className="text-amber-400 font-bold hover:underline cursor-pointer"
+                      >
+                        + Créer le premier compte Chef d'Équipe
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {teamLeaders.map((leader) => {
                         const isActive = leader.status === 'active';
-
                         return (
                           <div
                             key={leader.id}
-                            className="bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-4 space-y-3.5 transition-all shadow-sm"
+                            className="bg-slate-950/80 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-3.5 sm:p-4 space-y-3 transition-all"
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-300 font-black text-xs flex items-center justify-center border border-amber-500/30">
-                                  <Crown className="w-5 h-5" />
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center space-x-2.5">
+                                <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-black border border-amber-500/30 shrink-0">
+                                  <Crown className="w-4 h-4" />
                                 </div>
-                                <div className="space-y-0.5">
-                                  <div className="flex items-center space-x-2">
-                                    <h4 className="font-black text-white text-sm font-display">
+                                <div className="space-y-0.5 min-w-0">
+                                  <div className="flex items-center space-x-2 flex-wrap">
+                                    <h5 className="font-bold text-white text-xs sm:text-sm font-display truncate">
                                       {leader.fullName}
-                                    </h4>
+                                    </h5>
                                     <span
-                                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                                      className={`px-2 py-0.5 rounded-md text-[9px] font-bold border ${
                                         isActive
                                           ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                                           : 'bg-red-500/10 text-red-400 border-red-500/20'
@@ -2070,11 +2152,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                                 </div>
                               </div>
 
-                              <div className="flex items-center space-x-1.5">
+                              <div className="flex items-center space-x-1 shrink-0">
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEditLeaderModal(leader)}
-                                  className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-colors cursor-pointer"
+                                  className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-colors cursor-pointer"
                                   title="Modifier le compte ou réinitialiser le PIN"
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
@@ -2082,7 +2164,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteLeader(leader.id, leader.fullName)}
-                                  className="p-2 bg-red-950/40 hover:bg-red-900/80 text-red-400 hover:text-red-200 rounded-xl transition-colors cursor-pointer"
+                                  className="p-1.5 bg-red-950/40 hover:bg-red-900/80 text-red-400 hover:text-red-200 rounded-xl transition-colors cursor-pointer"
                                   title="Supprimer le compte Chef d'Équipe"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -2091,20 +2173,20 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                             </div>
 
                             {/* Équipe et Zone */}
-                            <div className="p-2.5 bg-slate-950/70 border border-slate-800/80 rounded-xl flex items-center justify-between text-xs">
-                              <div className="flex items-center space-x-1.5 text-slate-300">
-                                <Building className="w-3.5 h-3.5 text-amber-400" />
-                                <span>Équipe : <strong className="text-white">{leader.teamName}</strong></span>
+                            <div className="p-2 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
+                              <div className="flex items-center space-x-1.5 text-slate-300 truncate">
+                                <Building className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                <span className="truncate">Équipe : <strong className="text-white">{leader.teamName}</strong></span>
                               </div>
                               {leader.zone && (
-                                <div className="flex items-center space-x-1 text-slate-400 text-[11px]">
+                                <div className="flex items-center space-x-1 text-slate-400 text-[11px] shrink-0">
                                   <MapPin className="w-3 h-3 text-slate-500" />
                                   <span>{leader.zone}</span>
                                 </div>
                               )}
                             </div>
 
-                            {/* Boutons d'action */}
+                            {/* Boutons d'action rapides */}
                             <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
                               <button
                                 type="button"
@@ -2113,13 +2195,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                                   isActive ? 'text-amber-400' : 'text-emerald-400'
                                 }`}
                               >
-                                {isActive ? 'Désactiver le compte' : 'Activer le compte'}
+                                {isActive ? 'Désactiver' : 'Activer'}
                               </button>
 
                               <button
                                 type="button"
                                 onClick={() => handleSendLeaderWhatsApp(leader)}
-                                className="px-3 py-1.5 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] rounded-xl text-xs font-bold border border-[#25D366]/30 transition-all flex items-center space-x-1.5 cursor-pointer font-display"
+                                className="px-2.5 py-1 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] rounded-lg text-xs font-bold border border-[#25D366]/30 transition-all flex items-center space-x-1 cursor-pointer font-display"
                                 title="Envoyer le kit d'accès Chef d'équipe sur WhatsApp"
                               >
                                 <MessageCircle className="w-3.5 h-3.5" />
@@ -2130,8 +2212,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                         );
                       })}
                     </div>
-                  );
-                })()}
+                  )}
+                </div>
               </div>
             )}
 
@@ -2658,32 +2740,75 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                       />
                     </div>
 
-                    {/* Responsable & Téléphone */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
-                          Nom du Responsable / Chef
+                    {/* Chef d'Équipe Mini-Admin */}
+                    <div className="space-y-2 p-3 bg-slate-950/80 border border-amber-500/30 rounded-2xl">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[10px] font-black text-amber-300 uppercase tracking-wider flex items-center space-x-1.5 font-display">
+                          <Crown className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Chef d'Équipe (Mini-Admin)</span>
                         </label>
-                        <input
-                          type="text"
-                          placeholder="Ex: Moussa SAWADOGO"
-                          value={teamFormLeaderName}
-                          onChange={(e) => setTeamFormLeaderName(e.target.value)}
-                          className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
-                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsTeamModalOpen(false);
+                            handleOpenCreateLeaderModal(editingTeam?.id);
+                          }}
+                          className="text-[10px] font-bold text-amber-400 hover:text-amber-300 flex items-center space-x-1 cursor-pointer font-display"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>+ Nouveau Chef</span>
+                        </button>
                       </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
-                          Téléphone WhatsApp du Responsable
-                        </label>
-                        <input
-                          type="tel"
-                          placeholder="Ex: 70 12 34 56"
-                          value={teamFormLeaderPhone}
-                          onChange={(e) => setTeamFormLeaderPhone(e.target.value)}
-                          className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
-                        />
-                      </div>
+
+                      {/* Dropdown des chefs existants */}
+                      <select
+                        value={teamFormLeaderId}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          setTeamFormLeaderId(id);
+                          const chosen = teamLeaders.find(l => l.id === id);
+                          if (chosen) {
+                            setTeamFormLeaderName(chosen.fullName);
+                            setTeamFormLeaderPhone(chosen.phone);
+                            if (chosen.zone && !teamFormZone) setTeamFormZone(chosen.zone);
+                          } else {
+                            setTeamFormLeaderName('');
+                            setTeamFormLeaderPhone('');
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white font-semibold outline-none focus:border-amber-500"
+                      >
+                        <option value="">-- Aucun chef d'équipe assigné --</option>
+                        {teamLeaders.map(leader => (
+                          <option key={leader.id} value={leader.id}>
+                            👑 {leader.fullName} (📞 +226 {leader.phone}) {leader.teamName ? `• ${leader.teamName}` : ''}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Si aucun chef sélectionné dans la liste, saisie manuelle */}
+                      {!teamFormLeaderId && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                          <div>
+                            <input
+                              type="text"
+                              placeholder="Nom du Chef d'équipe"
+                              value={teamFormLeaderName}
+                              onChange={(e) => setTeamFormLeaderName(e.target.value)}
+                              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="tel"
+                              placeholder="WhatsApp (ex: 70 12 34 56)"
+                              value={teamFormLeaderPhone}
+                              onChange={(e) => setTeamFormLeaderPhone(e.target.value)}
+                              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Zone & Description */}

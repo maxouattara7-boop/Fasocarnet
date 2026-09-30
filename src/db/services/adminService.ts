@@ -1888,5 +1888,27 @@ export const adminService = {
     return phoneParam
       ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
       : `https://wa.me/?text=${encodeURIComponent(message)}`;
+  },
+
+  /**
+   * Génère le lien WhatsApp de rappel / motivation envoyé par le chef d'équipe à un commercial
+   */
+  getWhatsAppCommercialReminderUrl(commercial: { code: string; name?: string; phone?: string; totalShopsReferred?: number; currentWeekPaidCount?: number }, leaderName?: string): string {
+    const cleanPhone = (commercial.phone || '').replace(/\D/g, '');
+    const phoneParam = cleanPhone.startsWith('226') ? cleanPhone : (cleanPhone ? `226${cleanPhone}` : '');
+
+    const message = `👋 *MESSAGE DU CHEF D'ÉQUIPE FASOCARNET* 🇧🇫\n\n` +
+      `Bonjour *${commercial.name || commercial.code}*,\n` +
+      (leaderName ? `C'est ton chef d'équipe *${leaderName}*.\n\n` : '') +
+      `🎯 *Point Terrain & Motivation* :\n` +
+      `• Ton Code Commercial : *${commercial.code}*\n` +
+      `• Boutiques enregistrées : *${commercial.totalShopsReferred || 0}*\n` +
+      `• Abonnements validés cette semaine : *${commercial.currentWeekPaidCount || 0}*\n\n` +
+      `💪 Continue sur cette lancée ! Chaque boutique abonnée te rapporte 300 FCFA nets reversés chaque dimanche.\n` +
+      `N'hésite pas si tu as besoin d'aide ou d'accompagnement sur le terrain. Bonnes ventes !`;
+
+    return phoneParam
+      ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
   }
 };

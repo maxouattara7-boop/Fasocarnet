@@ -104,7 +104,17 @@ export const MiniAdminDashboard: React.FC = () => {
   };
 
   const handleSendWhatsAppKit = (agent: CommercialAgent) => {
-    const url = adminService.getWhatsAppCommercialKitUrl(agent);
+    const url = adminService.getWhatsAppCommercialKitUrl(agent, activeTeamLeader.fullName);
+    window.open(url, '_blank');
+  };
+
+  const handleSendWhatsAppPerformance = (comm: any) => {
+    const url = adminService.getWhatsAppAffiliateStatementUrl(comm);
+    window.open(url, '_blank');
+  };
+
+  const handleSendWhatsAppReminder = (comm: any) => {
+    const url = adminService.getWhatsAppCommercialReminderUrl(comm, activeTeamLeader.fullName);
     window.open(url, '_blank');
   };
 
@@ -192,7 +202,7 @@ export const MiniAdminDashboard: React.FC = () => {
               Gestion de votre Équipe Commerciale
             </h2>
             <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
-              Suivez les résultats de vos commerciaux sur le terrain, recrutez de nouveaux agents et générez automatiquement leurs codes d'affiliation en direct.
+              Suivez les résultats individuels de vos commerciaux, recrutez de nouveaux agents, envoyez les bilans de commissions et relancez votre flotte sur WhatsApp en direct.
             </p>
           </div>
 
@@ -264,7 +274,7 @@ export const MiniAdminDashboard: React.FC = () => {
                 </span>
               </h3>
               <p className="text-xs text-slate-400">
-                Suivi individuel des parrainages et commissions de vos recrues
+                Suivi individuel, rappels terrain et transmission des relevés de commissions
               </p>
             </div>
 
@@ -368,20 +378,36 @@ export const MiniAdminDashboard: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Action WhatsApp Pack Onboarding */}
-                    <div className="pt-1 flex items-center justify-between gap-2">
-                      <span className="text-[10px] sm:text-[11px] text-slate-500 truncate">
-                        {comm.referredShops.length} boutique(s) inscrite(s)
-                      </span>
+                    {/* Actions WhatsApp Prérogatives Mini-Admin : Relevé Performance, Rappel Terrain & Pack */}
+                    <div className="pt-1.5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSendWhatsAppPerformance(comm)}
+                        className="flex-1 min-w-[120px] py-2 px-2.5 bg-emerald-600/20 hover:bg-emerald-600/30 active:scale-95 text-emerald-300 text-[11px] font-bold rounded-xl border border-emerald-500/30 flex items-center justify-center space-x-1 transition-all cursor-pointer font-display"
+                        title="Envoyer le relevé officiel des commissions et performances sur WhatsApp"
+                      >
+                        <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Bilan Hebdo</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSendWhatsAppReminder(comm)}
+                        className="flex-1 min-w-[110px] py-2 px-2.5 bg-amber-500/20 hover:bg-amber-500/30 active:scale-95 text-amber-300 text-[11px] font-bold rounded-xl border border-amber-500/30 flex items-center justify-center space-x-1 transition-all cursor-pointer font-display"
+                        title="Envoyer un message de rappel et d'encouragement terrain sur WhatsApp"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Rappel WhatsApp</span>
+                      </button>
 
                       <button
                         type="button"
                         onClick={() => handleSendWhatsAppKit(agentObj)}
-                        className="px-3 py-1.5 sm:py-2 bg-[#25D366]/20 hover:bg-[#25D366]/30 active:scale-95 text-[#25D366] text-xs font-bold rounded-xl border border-[#25D366]/30 flex items-center space-x-1.5 transition-all cursor-pointer font-display shrink-0 min-h-[36px]"
-                        title="Renvoyer le kit commercial WhatsApp avec son lien"
+                        className="py-2 px-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 text-[11px] font-bold rounded-xl border border-slate-700 flex items-center justify-center space-x-1 transition-all cursor-pointer font-display"
+                        title="Renvoyer le pack commercial et le code d'affiliation"
                       >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        <span>Pack WhatsApp</span>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Pack Code</span>
                       </button>
                     </div>
                   </div>
