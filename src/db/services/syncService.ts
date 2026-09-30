@@ -373,21 +373,26 @@ export const syncService = {
       return { success: true, teamLeader };
     }
 
-    // 2. Recherche directe dans Supabase (priorité absolue)
+    // 2. Recherche DIRECTE ET EXCLUSIVE dans Supabase (Source de vérité absolue)
     let matchedShopData: CloudShopData | null = null;
     if (supabaseClient.isConfigured()) {
       try {
-        const supaShop = await supabaseClient.findShopByPhone(cleanInput);
-        if (supaShop && supaShop.profile) {
-          matchedShopData = supaShop;
-        }
+        matchedShopData = await supabaseClient.findShopByPhone(cleanInput);
       } catch (err) {
         console.warn('[Sync Login] Erreur recherche Supabase:', err);
       }
-    }
 
-    // 2.bis Recherche dans le cache Cloud distant si non trouvé
-    if (!matchedShopData) {
+      // RÈGLE STRICTE : AUCUNE CONNEXION DEPUIS LE LOCAL !
+      // Si la boutique n'existe pas dans Supabase, elle a été supprimée ou n'a jamais existé.
+      if (!matchedShopData) {
+        await this.clearLocalData();
+        return { 
+          success: false, 
+          message: 'Ce compte n\'existe pas ou a été supprimé. Aucune connexion locale n\'est autorisée.' 
+        };
+      }
+    } else {
+      // Fallback environnement de test sans configuration Supabase
       const cloudDb = await this.fetchRemoteDatabase();
       for (const shopId of Object.keys(cloudDb)) {
         const shopData = cloudDb[shopId];
@@ -400,17 +405,13 @@ export const syncService = {
           }
         }
       }
-    }
-
-    // 3. Si non trouvé dans le Cloud :
-    // Le compte n'existe pas ou a été supprimé !
-    if (!matchedShopData) {
-      // Vider les données locales orphelines pour éviter la résurrection
-      await this.clearLocalData();
-      return { 
-        success: false, 
-        message: 'Ce compte a été supprimé ou n\'existe pas. Veuillez vérifier votre saisie ou créer un nouvel espace.' 
-      };
+      if (!matchedShopData) {
+        await this.clearLocalData();
+        return { 
+          success: false, 
+          message: 'Ce compte a été supprimé ou n\'existe pas.' 
+        };
+      }
     }
 
     // 4. Vérification du code PIN commerçant

@@ -188,34 +188,19 @@ export const useAppStore = create<AppState>((set, get) => {
       // Sur cet appareil, charger l'unique profil existant
       const shop = await db.shopProfiles.toCollection().first();
       if (shop) {
-        // Vérification Cloud-First : si Supabase est accessible, synchroniser AVANT d'autoriser l'accès
+        // RÈGLE STRICTE : AUCUNE CONNEXION SI LE COMPTE N'EXISTE PAS SUR LE CLOUD
         if (typeof navigator !== 'undefined' && navigator.onLine) {
           try {
             const remoteShop = await syncService.fetchShopPartition(shop.id);
             if (!remoteShop) {
-              // Le compte n'est pas dans Supabase. Deux cas possibles :
-              //   A) Compte jamais synchronisé (ex: push raté à la création) → pousser maintenant
-              //   B) Compte supprimé intentionnellement → wipe local
-              // On tente d'abord un push. Si ça réussit, le compte est récupéré. Sinon, on wipe.
-              console.warn('[App] Compte local absent de Supabase, tentative de push:', shop.id);
-              try {
-                await syncService.pushLocalChanges(shop.id);
-                // Vérification que le push a bien fonctionné
-                const verifyRemote = await syncService.fetchShopPartition(shop.id);
-                if (!verifyRemote) {
-                  // Push échoué ou compte vraiment supprimé → wipe local
-                  console.warn('[App] Push échoué, compte introuvable dans Supabase → wipe local:', shop.id);
-                  await syncService.clearLocalData();
-                  set({ activeShopId: null, shopProfile: null, isLocked: false, isInitialized: true });
-                  return;
-                }
-                console.log('[App] Compte récupéré et synchronisé dans Supabase:', shop.id);
-              } catch {
-                // Erreur push (réseau) → on laisse entrer en mode dégradé
-              }
+              // Le compte a été supprimé sur le Cloud : purge locale immédiate et affichage écran connexion
+              console.warn('[App] Compte supprimé ou inexistant sur le Cloud, purge locale stricte:', shop.id);
+              await syncService.handleShopDeletedLocally(shop.id);
+              set({ activeShopId: null, shopProfile: null, isLocked: false, isInitialized: true });
+              return;
             }
           } catch {
-            // Hors-ligne ou erreur réseau → on accorde le bénéfice du doute et on laisse entrer
+            // Hors-ligne ou erreur réseau : accès temporaire toléré
           }
         }
 
