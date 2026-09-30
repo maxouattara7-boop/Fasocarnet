@@ -246,11 +246,6 @@ export const OnboardingView: React.FC = () => {
     setTimeout(() => setOtpSentFeedback(false), 4000);
   };
 
-  const handleContactSupportWhatsApp = () => {
-    const url = adminService.getWhatsAppSupportOtpRequestUrl(phone.trim(), shopName.trim());
-    window.open(url, '_blank');
-  };
-
   const handleConfirmOtpAndCreateShop = async (e: React.FormEvent) => {
     e.preventDefault();
     setOtpError('');
@@ -876,23 +871,23 @@ export const OnboardingView: React.FC = () => {
                 </p>
               </div>
 
-              {/* Note de sécurité : code confidentiel non visible à l'écran */}
+              {/* Note d'explication */}
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1.5 text-xs text-slate-700">
                 <div className="flex items-center space-x-2 font-bold text-slate-800">
                   <Lock className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>Code de sécurité confidentiel</span>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Par mesure de sécurité, le code d'authentification n'est pas affiché sur cet écran. Il est transmis directement sur votre WhatsApp ou par le support officiel FasoCarnet.
+                  Cliquez sur le bouton vert ci-dessous pour ouvrir WhatsApp et recevoir votre code d'activation à 4 chiffres.
                 </p>
               </div>
 
-              {/* Boutons d'action WhatsApp & Support */}
-              <div className="space-y-2">
+              {/* Bouton unique d'envoi WhatsApp */}
+              <div>
                 <button
                   type="button"
                   onClick={handleSendOtpWhatsApp}
-                  className="w-full py-2.5 px-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-black rounded-xl text-xs flex items-center justify-center space-x-2 shadow-md shadow-[#25D366]/20 active:scale-98 transition-all cursor-pointer font-display"
+                  className="w-full py-3 px-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-black rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-2 shadow-md shadow-[#25D366]/20 active:scale-98 transition-all cursor-pointer font-display"
                 >
                   {otpSentFeedback ? (
                     <>
@@ -906,22 +901,13 @@ export const OnboardingView: React.FC = () => {
                     </>
                   )}
                 </button>
-
-                <button
-                  type="button"
-                  onClick={handleContactSupportWhatsApp}
-                  className="w-full py-2 px-3 bg-emerald-50 hover:bg-emerald-100/80 text-emerald-800 font-bold rounded-xl text-xs flex items-center justify-center space-x-2 border border-emerald-200 transition-all cursor-pointer font-display"
-                >
-                  <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Demander mon code au Support WhatsApp</span>
-                </button>
               </div>
 
               {/* Formulaire de saisie du code */}
               <form onSubmit={handleConfirmOtpAndCreateShop} className="space-y-3 pt-1">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
-                    Saisissez le code à 4 chiffres reçu *
+                    Saisissez le code à 4 chiffres reçu sur WhatsApp *
                   </label>
                   <input
                     type="tel"
@@ -971,13 +957,7 @@ export const OnboardingView: React.FC = () => {
                 >
                   Renvoyer un nouveau code
                 </button>
-                <button
-                  type="button"
-                  onClick={handleContactSupportWhatsApp}
-                  className="text-slate-500 hover:text-slate-700 font-mono flex items-center space-x-1"
-                >
-                  <span>Support : 65616134</span>
-                </button>
+                <span className="text-slate-400 font-mono">Assistance : 65616134</span>
               </div>
             </div>
           </div>
