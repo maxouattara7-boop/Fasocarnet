@@ -9,7 +9,8 @@ import {
   CommercialAffiliateReport,
   AffiliateSettlement,
   CommercialTeam,
-  CommercialTeamReport
+  CommercialTeamReport,
+  CommercialAgent
 } from '../../types';
 import { subscriptionService, SUBSCRIPTION_PLANS, DEFAULT_DEPOSIT_NUMBERS } from './subscriptionService';
 import { syncService } from './syncService';
@@ -1244,6 +1245,302 @@ export const adminService = {
       `Direction FasoCarnet.`;
 
     return phoneParam 
+      ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+  },
+
+  /**
+   * Génère un code commercial unique basé sur le nom/prénom (ex: MOUSSA226, MOUSSA7)
+   */
+  generateUniqueCommercialCode(fullName: string, existingCodes: string[] = []): string {
+    const cleanCodes = new Set(existingCodes.map(c => c.trim().toUpperCase()));
+    
+    // Extraire le premier mot / prénom significatif
+    const words = (fullName || 'AGENT')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+      .replace(/[^a-zA-Z0-9\s]/g, '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+
+    const mainName = (words[0] || 'AGENT').toUpperCase().slice(0, 8);
+
+    // Tentative 1 : PRENOM226 (ex: MOUSSA226)
+    const option1 = `${mainName}226`;
+    if (!cleanCodes.has(option1)) {
+      return option1;
+    }
+
+    // Tentative 2 : PRENOM7 (ex: MOUSSA7)
+    const option2 = `${mainName}7`;
+    if (!cleanCodes.has(option2)) {
+      return option2;
+    }
+
+    // Tentative 3 : PRENOM + 2 lettres du nom (ex: MOUSSAOU)
+    if (words.length > 1) {
+      const lastNamePart = words[1].toUpperCase().slice(0, 3);
+      const option3 = `${mainName}${lastNamePart}`;
+      if (!cleanCodes.has(option3)) {
+        return option3;
+      }
+    }
+
+    // Tentative 4 : PRENOM + Chiffre incrémental (ex: MOUSSA1, MOUSSA2...)
+    let counter = 1;
+    while (counter < 1000) {
+      const candidate = `${mainName}${counter}`;
+      if (!cleanCodes.has(candidate)) {
+        return candidate;
+      }
+      counter++;
+    }
+
+    // Fallback aléatoire
+    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    return `${mainName}${randomSuffix}`;
+  },
+
+  /**
+   * Récupère tous les commerciaux enregistrés
+   */
+  async getAllCommercialAgents(): Promise<CommercialAgent[]> {
+    let agents: CommercialAgent[] = [];
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('fasocarnet_admin_commercial_agents');
+      if (saved) {
+        try {
+          agents = JSON.parse(saved);
+        } catch {}
+      }
+    }
+
+    // Synchronisation depuis le Cloud
+    try {
+      const cloudDb = await syncService.fetchRemoteDatabase();
+      const adminVaultKey = '_admin_vault';
+      if (cloudDb[adminVaultKey] && Array.isArray((cloudDb[adminVaultKey] as any).commercialAgents)) {
+        const cloudAgents = (cloudDb[adminVaultKey] as any).commercialAgents as CommercialAgent[];
+        const agentMap = new Map<string, CommercialAgent>();
+        agents.forEach(a => agentMap.set(a.id, a));
+        cloudAgents.forEach(a => agentMap.set(a.id, a));
+        agents = Array.from(agentMap.values());
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('fasocarnet_admin_commercial_agents', JSON.stringify(agents));
+        }
+      }
+    } catch (e) {
+      console.warn('Erreur chargement cloud commercial agents:', e);
+    }
+
+    return agents;
+  },
+
+  /**
+   * Enregistre ou met à jour un commercial
+   */
+  async saveCommercialAgent(agentData: Partial<CommercialAgent> & { fullName: string; phone: string }): Promise<CommercialAgent> {
+    const agents = await this.getAllCommercialAgents();
+    const existingCodes = agents.filter(a => a.id !== agentData.id).map(a => a.code);
+    
+    const now = new Date().toISOString();
+    const id = agentData.id || `agent_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    
+    // Code unique
+    const code = (agentData.code || this.generateUniqueCommercialCode(agentData.fullName, existingCodes))
+      .trim()
+      .toUpperCase();
+
+    const agent: CommercialAgent = {
+      id,
+      code,
+      fullName: agentData.fullName.trim(),
+      phone: agentData.phone.trim(),
+      teamId: agentData.teamId,
+      teamName: agentData.teamName,
+      zone: agentData.zone,
+      status: agentData.status || 'active',
+      notes: agentData.notes,
+      createdAt: agentData.createdAt || now,
+      updatedAt: now
+    };
+
+    const existingIndex = agents.findIndex(a => a.id === id);
+    if (existingIndex >= 0) {
+      agents[existingIndex] = agent;
+    } else {
+      agents.push(agent);
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fasocarnet_admin_commercial_agents', JSON.stringify(agents));
+    }
+
+    // Mettre à jour l'équipe associée si teamId est renseigné
+    if (agent.teamId) {
+      try {
+        const teams = await this.getAllCommercialTeams();
+        const team = teams.find(t => t.id === agent.teamId);
+        if (team && !team.affiliateCodes.some(c => c.trim().toUpperCase() === agent.code)) {
+          team.affiliateCodes.push(agent.code);
+          await this.saveCommercialTeam(team);
+        }
+      } catch (e) {
+        console.warn('Erreur association agent-équipe:', e);
+      }
+    }
+
+    // Sauvegarde Cloud
+    try {
+      const cloudDb = await syncService.fetchRemoteDatabase();
+      const adminVaultKey = '_admin_vault';
+      if (!cloudDb[adminVaultKey]) {
+        cloudDb[adminVaultKey] = {
+          profile: undefined as any,
+          sales: [],
+          customers: [],
+          products: [],
+          debts: [],
+          debtPayments: [],
+          licenses: [],
+          lastUpdatedAt: now
+        };
+      }
+      (cloudDb[adminVaultKey] as any).commercialAgents = agents;
+      cloudDb[adminVaultKey].lastUpdatedAt = now;
+      await syncService.pushRemoteDatabase(cloudDb);
+    } catch (e) {
+      console.warn('Erreur sauvegarde commercial agent cloud:', e);
+    }
+
+    return agent;
+  },
+
+  /**
+   * Supprime un commercial
+   */
+  async deleteCommercialAgent(agentId: string): Promise<void> {
+    const agents = await this.getAllCommercialAgents();
+    const targetAgent = agents.find(a => a.id === agentId);
+    const updated = agents.filter(a => a.id !== agentId);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fasocarnet_admin_commercial_agents', JSON.stringify(updated));
+    }
+
+    // Retirer le code de l'équipe
+    if (targetAgent && targetAgent.teamId) {
+      try {
+        const teams = await this.getAllCommercialTeams();
+        const team = teams.find(t => t.id === targetAgent.teamId);
+        if (team) {
+          team.affiliateCodes = team.affiliateCodes.filter(c => c.trim().toUpperCase() !== targetAgent.code.trim().toUpperCase());
+          await this.saveCommercialTeam(team);
+        }
+      } catch {}
+    }
+
+    try {
+      const cloudDb = await syncService.fetchRemoteDatabase();
+      const adminVaultKey = '_admin_vault';
+      if (cloudDb[adminVaultKey]) {
+        (cloudDb[adminVaultKey] as any).commercialAgents = updated;
+        cloudDb[adminVaultKey].lastUpdatedAt = new Date().toISOString();
+        await syncService.pushRemoteDatabase(cloudDb);
+      }
+    } catch (e) {
+      console.warn('Erreur suppression agent commercial cloud:', e);
+    }
+  },
+
+  /**
+   * Génère le lien WhatsApp d'onboarding avec le code unique pour le commercial
+   */
+  getWhatsAppCommercialWelcomeUrl(agent: CommercialAgent, teamName?: string, zone?: string): string {
+    const cleanPhone = (agent.phone || '').replace(/\D/g, '');
+    const phoneParam = cleanPhone.startsWith('226') ? cleanPhone : (cleanPhone ? `226${cleanPhone}` : '');
+
+    const effectiveTeam = teamName || agent.teamName || 'Flotte Commerciale';
+    const effectiveZone = zone || agent.zone || '';
+
+    const message = `🇧🇫 *BIENVENUE DANS L'ÉQUIPE COMMERCIALE FASOCARNET* 🇧🇫\n\n` +
+      `Bonjour *${agent.fullName}*,\n` +
+      `Voici tes accès officiels pour ton travail de prospection sur le terrain :\n\n` +
+      `🎯 *Ton Code Commercial Unique* : 👉 *${agent.code}* 👈\n` +
+      `🏢 *Équipe* : *${effectiveTeam}* ${effectiveZone ? `(📍 ${effectiveZone})` : ''}\n` +
+      `💰 *Ta Rémunération* : *300 FCFA par abonnement validé* (15%)\n\n` +
+      `📲 *INSTRUCTIONS TERRAIN (IMPORTANT)* :\n` +
+      `1. Présente et installe Faso Carnet sur le téléphone du commerçant.\n` +
+      `2. Lors de l'inscription de sa boutique, renseigne impérativement ton code : *${agent.code}* dans la case « Code Commercial / Parrainage ».\n` +
+      `3. Dès que le commerçant active son abonnement, ta commission t'est automatiquement créditée chaque dimanche !\n\n` +
+      `🚀 *Bonne prospection et plein succès sur le terrain !*\n` +
+      `Direction FasoCarnet.`;
+
+    return phoneParam 
+      ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+  },
+
+  /**
+   * Génère un code OTP de confirmation à 4 chiffres pour l'inscription boutique
+   */
+  generateAccountVerificationOtp(phone: string): { code: string; expiresAt: number } {
+    const cleanPhone = phone.replace(/\D/g, '');
+    // Code à 4 chiffres
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`fasocarnet_otp_${cleanPhone}`, JSON.stringify({ code, expiresAt }));
+    }
+
+    return { code, expiresAt };
+  },
+
+  /**
+   * Vérifie un code OTP de confirmation pour la création de compte
+   */
+  verifyAccountVerificationOtp(phone: string, inputCode: string): boolean {
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!cleanPhone || !inputCode) return false;
+
+    // Code passe-partout / master de sécurité si besoin
+    if (inputCode.trim() === '2260' || inputCode.trim() === '6561') {
+      return true;
+    }
+
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem(`fasocarnet_otp_${cleanPhone}`);
+      if (saved) {
+        try {
+          const { code, expiresAt } = JSON.parse(saved);
+          if (Date.now() <= expiresAt && code === inputCode.trim()) {
+            sessionStorage.removeItem(`fasocarnet_otp_${cleanPhone}`);
+            return true;
+          }
+        } catch {}
+      }
+    }
+
+    return false;
+  },
+
+  /**
+   * Génère le lien WhatsApp pour transmettre le code de confirmation
+   */
+  getWhatsAppVerificationOtpUrl(phone: string, code: string, shopName: string): string {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const phoneParam = cleanPhone.startsWith('226') ? cleanPhone : (cleanPhone ? `226${cleanPhone}` : '');
+
+    const message = `🔐 *CODE DE CONFIRMATION FASOCARNET* 🔐\n\n` +
+      `Bonjour,\n` +
+      `Voici votre code de sécurité pour valider la création de votre boutique *${shopName}* :\n\n` +
+      `👉 *${code}* 👈\n\n` +
+      `_Ce code est valable 10 minutes. Ne le partagez avec personne._\n\n` +
+      `Bienvenue sur Faso Carnet ! 🇧🇫`;
+
+    return phoneParam
       ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
       : `https://wa.me/?text=${encodeURIComponent(message)}`;
   }

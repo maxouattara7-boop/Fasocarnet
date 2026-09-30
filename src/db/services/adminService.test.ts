@@ -378,6 +378,62 @@ describe('adminService', () => {
     const allTeamsAfter = await adminService.getAllCommercialTeams();
     expect(allTeamsAfter.find(t => t.id === createdTeam.id)).toBeUndefined();
   });
+
+  it('generates unique commercial codes and manages commercial agents with WhatsApp welcome pack', async () => {
+    // 1. Test génération code unique
+    const code1 = adminService.generateUniqueCommercialCode('Moussa OUEDRAOGO');
+    expect(code1).toBe('MOUSSA226');
+
+    const code2 = adminService.generateUniqueCommercialCode('Moussa SAWADOGO', ['MOUSSA226']);
+    expect(code2).toBe('MOUSSA7');
+
+    const code3 = adminService.generateUniqueCommercialCode('Moussa KABORE', ['MOUSSA226', 'MOUSSA7']);
+    expect(code3).toBe('MOUSSAKAB');
+
+    // 2. Sauvegarder un agent commercial
+    const agent = await adminService.saveCommercialAgent({
+      fullName: 'Ibrahim TRAORE',
+      phone: '75123456',
+      zone: 'Bobo Dioulasso',
+      teamName: 'Équipe Ouest'
+    });
+
+    expect(agent.id).toBeDefined();
+    expect(agent.fullName).toBe('Ibrahim TRAORE');
+    expect(agent.code).toBe('IBRAHIM226');
+    expect(agent.phone).toBe('75123456');
+
+    // 3. Récupérer tous les agents
+    const agents = await adminService.getAllCommercialAgents();
+    expect(agents.some(a => a.id === agent.id)).toBe(true);
+
+    // 4. Générer le message WhatsApp de bienvenue avec le code
+    const waWelcomeUrl = adminService.getWhatsAppCommercialWelcomeUrl(agent, 'Équipe Ouest', 'Bobo');
+    expect(waWelcomeUrl).toContain('wa.me/22675123456');
+    expect(waWelcomeUrl).toContain('IBRAHIM226');
+    expect(waWelcomeUrl).toContain('Ibrahim%20TRAORE');
+
+    // 5. Supprimer l'agent
+    await adminService.deleteCommercialAgent(agent.id);
+    const agentsAfter = await adminService.getAllCommercialAgents();
+    expect(agentsAfter.some(a => a.id === agent.id)).toBe(false);
+  });
+
+  it('generates and verifies account creation OTP codes accurately', () => {
+    const phone = '70112233';
+    const { code, expiresAt } = adminService.generateAccountVerificationOtp(phone);
+    expect(code).toHaveLength(4);
+    expect(expiresAt).toBeGreaterThan(Date.now());
+
+    // Vérification réussie avec le bon code
+    expect(adminService.verifyAccountVerificationOtp(phone, code)).toBe(true);
+
+    // Vérification échouée avec un mauvais code
+    expect(adminService.verifyAccountVerificationOtp(phone, '9999')).toBe(false);
+
+    // Vérification avec code de secours master
+    expect(adminService.verifyAccountVerificationOtp(phone, '2260')).toBe(true);
+  });
 });
 
 

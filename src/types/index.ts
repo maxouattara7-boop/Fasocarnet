@@ -369,3 +369,17 @@ export interface CommercialTeamReport {
   commercials: CommercialAffiliateReport[];
 }
 
+export interface CommercialAgent {
+  id: string;
+  code: string; // Ex: ALI226, MOUSSA7
+  fullName: string;
+  phone: string;
+  teamId?: string;
+  teamName?: string;
+  zone?: string;
+  status: 'active' | 'inactive';
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+

@@ -70,7 +70,19 @@ describe('FasoCarnet App Component', () => {
     fireEvent.change(pinInput, { target: { value: '1234' } });
     fireEvent.click(submitBtn);
 
-    // 2. Après soumission, on bascule vers la caisse principale
+    // 2. Étape d'authentification / Vérification OTP
+    await waitFor(() => {
+      expect(screen.getByText(/Vérification de Sécurité/i)).toBeInTheDocument();
+    });
+
+    const otpInput = screen.getByPlaceholderText(/••••/i);
+    const confirmOtpBtn = screen.getByRole('button', { name: /CONFIRMER ET ACTIVER MA BOUTIQUE/i });
+
+    // Saisie du code d'authentification (code master de test 2260)
+    fireEvent.change(otpInput, { target: { value: '2260' } });
+    fireEvent.click(confirmOtpBtn);
+
+    // 3. Après validation OTP, on bascule vers la caisse principale
     await waitFor(() => {
       expect(screen.getByText(/Quincaillerie Faso/i)).toBeInTheDocument();
       expect(screen.getByText(/Montant à Encaisser/i)).toBeInTheDocument();

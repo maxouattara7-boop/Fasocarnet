@@ -5,7 +5,7 @@ import {
   BarChart3, Download, Users,
   MapPin, Send, CheckCircle2, Megaphone,
   X, ChevronRight, Calendar, Phone, User, Building, FileText, Clock, Wallet,
-  Plus, Edit2, Zap
+  Plus, Edit2, Zap, Sparkles, UserPlus
 } from 'lucide-react';
 import { adminService, AdminStats, ShopAdminDetails } from '../../db/services/adminService';
 import { syncService } from '../../db/services/syncService';
@@ -14,7 +14,8 @@ import {
   AdminBroadcastMessage, 
   CommercialAffiliateReport, 
   CommercialTeam, 
-  CommercialTeamReport 
+  CommercialTeamReport,
+  CommercialAgent
 } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -55,7 +56,26 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [affiliates, setAffiliates] = useState<CommercialAffiliateReport[]>([]);
   const [teamsReports, setTeamsReports] = useState<CommercialTeamReport[]>([]);
   const [unassignedCommercials, setUnassignedCommercials] = useState<CommercialAffiliateReport[]>([]);
-  const [affiliateSubTab, setAffiliateSubTab] = useState<'teams' | 'individual'>('teams');
+  const [commercialAgents, setCommercialAgents] = useState<CommercialAgent[]>([]);
+  const [affiliateSubTab, setAffiliateSubTab] = useState<'agents' | 'teams' | 'individual'>('agents');
+
+  // Modale création / édition de commercial
+  const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<CommercialAgent | null>(null);
+  const [agentFormFullName, setAgentFormFullName] = useState('');
+  const [agentFormPhone, setAgentFormPhone] = useState('');
+  const [agentFormCode, setAgentFormCode] = useState('');
+  const [agentFormTeamId, setAgentFormTeamId] = useState('');
+  const [agentFormZone, setAgentFormZone] = useState('');
+  const [agentFormStatus, setAgentFormStatus] = useState<'active' | 'inactive'>('active');
+  const [agentFormNotes, setAgentFormNotes] = useState('');
+  const [agentFormAutoCode, setAgentFormAutoCode] = useState(true);
+  const [isSavingAgent, setIsSavingAgent] = useState(false);
+  const [agentSuccessModal, setAgentSuccessModal] = useState<CommercialAgent | null>(null);
+  const [agentCopiedId, setAgentCopiedId] = useState<string | null>(null);
+  const [agentSearchQuery, setAgentSearchQuery] = useState('');
+  const [agentFilterTeam, setAgentFilterTeam] = useState('all');
+  const [agentFilterStatus, setAgentFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
 
   // Modale création / édition d'équipe
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
@@ -195,13 +215,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const loadData = async () => {
     setIsRefreshing(true);
     try {
-      const [s, an, sh, bc, aff, teamsData] = await Promise.all([
+      const [s, an, sh, bc, aff, teamsData, ags] = await Promise.all([
         adminService.getAdminStats(),
         adminService.getExtendedAnalytics(),
         adminService.getAllShopsWithDetails(),
         adminService.getBroadcastMessage(),
         adminService.getAffiliatesReports(),
-        adminService.getCommercialTeamsReports()
+        adminService.getCommercialTeamsReports(),
+        adminService.getAllCommercialAgents()
       ]);
       setStats(s);
       setAnalytics(an);
@@ -210,6 +231,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
       setAffiliates(aff);
       setTeamsReports(teamsData.teamsReports);
       setUnassignedCommercials(teamsData.unassignedCommercials);
+      setCommercialAgents(ags);
 
       if (bc) {
         setBroadcastTitle(bc.title);
@@ -234,6 +256,138 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  // =========================================================
+  // GESTION DES COMMERCIAUX DE FLOTTE / TERRAIN
+  // =========================================================
+  const handleOpenCreateAgentModal = () => {
+    setEditingAgent(null);
+    setAgentFormFullName('');
+    setAgentFormPhone('');
+    setAgentFormCode('');
+    setAgentFormTeamId('');
+    setAgentFormZone('');
+    setAgentFormStatus('active');
+    setAgentFormNotes('');
+    setAgentFormAutoCode(true);
+    setIsAgentModalOpen(true);
+  };
+
+  const handleOpenEditAgentModal = (agent: CommercialAgent) => {
+    setEditingAgent(agent);
+    setAgentFormFullName(agent.fullName);
+    setAgentFormPhone(agent.phone);
+    setAgentFormCode(agent.code);
+    setAgentFormTeamId(agent.teamId || '');
+    setAgentFormZone(agent.zone || '');
+    setAgentFormStatus(agent.status);
+    setAgentFormNotes(agent.notes || '');
+    setAgentFormAutoCode(false);
+    setIsAgentModalOpen(true);
+  };
+
+  const handleFullNameChange = (name: string) => {
+    setAgentFormFullName(name);
+    if (agentFormAutoCode && name.trim().length >= 2) {
+      const existingCodes = commercialAgents
+        .filter(a => a.id !== editingAgent?.id)
+        .map(a => a.code);
+      const generated = adminService.generateUniqueCommercialCode(name, existingCodes);
+      setAgentFormCode(generated);
+    }
+  };
+
+  const handleCodeChange = (code: string) => {
+    setAgentFormCode(code.toUpperCase());
+    setAgentFormAutoCode(false);
+  };
+
+  const handleRegenerateCode = () => {
+    const existingCodes = commercialAgents
+      .filter(a => a.id !== editingAgent?.id)
+      .map(a => a.code);
+    const generated = adminService.generateUniqueCommercialCode(agentFormFullName || 'COMMERCIAL', existingCodes);
+    setAgentFormCode(generated);
+  };
+
+  const handleSaveAgent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!agentFormFullName.trim()) {
+      alert('Veuillez renseigner le nom complet du commercial.');
+      return;
+    }
+    if (!agentFormPhone.trim()) {
+      alert('Veuillez renseigner le numéro de téléphone / WhatsApp du commercial.');
+      return;
+    }
+
+    setIsSavingAgent(true);
+    try {
+      const existingCodes = commercialAgents
+        .filter(a => a.id !== editingAgent?.id)
+        .map(a => a.code);
+
+      const finalCode = agentFormCode.trim().toUpperCase() || adminService.generateUniqueCommercialCode(agentFormFullName, existingCodes);
+      const assignedTeam = teamsReports.find(tr => tr.team.id === agentFormTeamId);
+
+      const saved = await adminService.saveCommercialAgent({
+        id: editingAgent?.id,
+        fullName: agentFormFullName.trim(),
+        phone: agentFormPhone.trim(),
+        code: finalCode,
+        teamId: agentFormTeamId || undefined,
+        teamName: assignedTeam ? assignedTeam.team.name : undefined,
+        zone: agentFormZone.trim() || undefined,
+        status: agentFormStatus,
+        notes: agentFormNotes.trim() || undefined
+      });
+
+      setIsAgentModalOpen(false);
+      await loadData();
+      setAgentSuccessModal(saved);
+    } catch (err: any) {
+      alert(err.message || "Erreur lors de l'enregistrement du commercial.");
+    } finally {
+      setIsSavingAgent(false);
+    }
+  };
+
+  const handleDeleteAgent = async (agentId: string, agentName: string) => {
+    if (confirm(`Voulez-vous vraiment supprimer le commercial « ${agentName} » ?\n\nSon code commercial ne sera plus attribué à une équipe.`)) {
+      try {
+        await adminService.deleteCommercialAgent(agentId);
+        await loadData();
+      } catch (err: any) {
+        alert(err.message || 'Erreur lors de la suppression.');
+      }
+    }
+  };
+
+  const handleOpenCommercialWhatsApp = (agent: CommercialAgent) => {
+    const url = adminService.getWhatsAppCommercialWelcomeUrl(agent);
+    window.open(url, '_blank');
+  };
+
+  const handleCopyCommercialWelcome = (agent: CommercialAgent) => {
+    const effectiveTeam = agent.teamName || 'Flotte Commerciale';
+    const effectiveZone = agent.zone || '';
+    const message = `🇧🇫 *BIENVENUE DANS L'ÉQUIPE COMMERCIALE FASOCARNET* 🇧🇫\n\n` +
+      `Bonjour *${agent.fullName}*,\n` +
+      `Voici tes accès officiels pour ton travail de prospection sur le terrain :\n\n` +
+      `🎯 *Ton Code Commercial Unique* : 👉 *${agent.code}* 👈\n` +
+      `🏢 *Équipe* : *${effectiveTeam}* ${effectiveZone ? `(📍 ${effectiveZone})` : ''}\n` +
+      `💰 *Ta Rémunération* : *300 FCFA par abonnement validé* (15%)\n\n` +
+      `📲 *INSTRUCTIONS TERRAIN (IMPORTANT)* :\n` +
+      `1. Présente et installe Faso Carnet sur le téléphone du commerçant.\n` +
+      `2. Lors de l'inscription de sa boutique, renseigne impérativement ton code : *${agent.code}* dans la case « Code Commercial / Parrainage ».\n` +
+      `3. Dès que le commerçant active son abonnement, ta commission t'est automatiquement créditée chaque dimanche !\n\n` +
+      `🚀 *Bonne prospection et plein succès sur le terrain !*\n` +
+      `Direction FasoCarnet.`;
+
+    navigator.clipboard.writeText(message);
+    setAgentCopiedId(agent.id);
+    setTimeout(() => setAgentCopiedId(null), 3000);
   };
 
   const handleOpenCreateTeamModal = () => {
@@ -1043,9 +1197,21 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               </div>
             )}
 
-            {/* SOUS-ONGLETS : ÉQUIPES VS INDIVIDUELS */}
+            {/* SOUS-ONGLETS : COMMERCIAUX VS ÉQUIPES VS INDIVIDUELS */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-slate-900 p-2.5 sm:p-3 rounded-2xl border border-slate-800">
-              <div className="flex space-x-1.5">
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setAffiliateSubTab('agents')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-2 cursor-pointer font-display ${
+                    affiliateSubTab === 'agents'
+                      ? 'bg-amber-500 text-slate-950 shadow-md'
+                      : 'bg-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Commerciaux ({commercialAgents.length})</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setAffiliateSubTab('teams')}
@@ -1056,7 +1222,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                   }`}
                 >
                   <Building className="w-4 h-4" />
-                  <span>Équipes Commerciales ({teamsReports.length})</span>
+                  <span>Équipes ({teamsReports.length})</span>
                 </button>
                 <button
                   type="button"
@@ -1067,22 +1233,300 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                       : 'bg-slate-800 text-slate-400 hover:text-white'
                   }`}
                 >
-                  <Users className="w-4 h-4" />
-                  <span>Commerciaux Individuels ({affiliates.length})</span>
+                  <Wallet className="w-4 h-4" />
+                  <span>Rapports & Commissions ({affiliates.length})</span>
                 </button>
               </div>
 
-              {affiliateSubTab === 'teams' && (
+              <div className="flex items-center space-x-2 self-end sm:self-auto">
                 <button
                   type="button"
-                  onClick={handleOpenCreateTeamModal}
+                  onClick={handleOpenCreateAgentModal}
                   className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center space-x-1.5 shadow-md transition-all cursor-pointer font-display active:scale-95"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Créer une Équipe</span>
+                  <span>Nouveau Commercial</span>
                 </button>
-              )}
+
+                {affiliateSubTab === 'teams' && (
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateTeamModal}
+                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 border border-slate-700 shadow-sm transition-all cursor-pointer font-display active:scale-95"
+                  >
+                    <Building className="w-4 h-4" />
+                    <span>Créer Équipe</span>
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* ========================================================= */}
+            {/* VUE 0 : LISTE DES COMMERCIAUX DE FLOTTE & PACKS WHATSAPP */}
+            {/* ========================================================= */}
+            {affiliateSubTab === 'agents' && (
+              <div className="space-y-3.5 animate-in fade-in duration-150">
+                {/* Barre de Recherche & Filtres Commerciaux */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Rechercher par nom, code (ex: MOUSSA226), téléphone, équipe ou zone..."
+                      value={agentSearchQuery}
+                      onChange={(e) => setAgentSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-2xl text-xs text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                    />
+                  </div>
+
+                  {/* Filtre Équipe */}
+                  <div className="flex items-center space-x-2 self-start sm:self-auto">
+                    <select
+                      value={agentFilterTeam}
+                      onChange={(e) => setAgentFilterTeam(e.target.value)}
+                      className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-300 font-bold outline-none focus:border-amber-500"
+                    >
+                      <option value="all">Toutes les équipes ({commercialAgents.length})</option>
+                      <option value="unassigned">Indépendants / Sans équipe</option>
+                      {teamsReports.map(tr => (
+                        <option key={tr.team.id} value={tr.team.id}>
+                          🏢 {tr.team.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Filtre Statut */}
+                    <div className="flex items-center space-x-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setAgentFilterStatus('all')}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                          agentFilterStatus === 'all'
+                            ? 'bg-amber-500 text-slate-950 shadow-xs'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        Tous
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAgentFilterStatus('active')}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                          agentFilterStatus === 'active'
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        Actifs
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAgentFilterStatus('inactive')}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                          agentFilterStatus === 'inactive'
+                            ? 'bg-red-600 text-white shadow-xs'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        Inactifs
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Liste des Commerciaux Enregistrés */}
+                {(() => {
+                  const filteredAgents = commercialAgents.filter(agent => {
+                    const q = agentSearchQuery.toLowerCase();
+                    const inName = (agent.fullName || '').toLowerCase().includes(q);
+                    const inCode = (agent.code || '').toLowerCase().includes(q);
+                    const inPhone = (agent.phone || '').toLowerCase().includes(q);
+                    const inZone = (agent.zone || '').toLowerCase().includes(q);
+                    const inTeam = (agent.teamName || '').toLowerCase().includes(q);
+                    const matchesQuery = inName || inCode || inPhone || inZone || inTeam;
+
+                    if (!matchesQuery) return false;
+                    if (agentFilterTeam === 'unassigned' && agent.teamId) return false;
+                    if (agentFilterTeam !== 'all' && agentFilterTeam !== 'unassigned' && agent.teamId !== agentFilterTeam) return false;
+                    if (agentFilterStatus !== 'all' && agent.status !== agentFilterStatus) return false;
+
+                    return true;
+                  });
+
+                  if (commercialAgents.length === 0) {
+                    return (
+                      <div className="bg-slate-900 p-8 rounded-3xl text-center space-y-3 border border-slate-800">
+                        <Users className="w-12 h-12 text-slate-600 mx-auto" />
+                        <h4 className="font-bold text-sm text-slate-300">Aucun commercial enregistré pour l'instant</h4>
+                        <p className="text-xs text-slate-500 max-w-md mx-auto">
+                          Enregistrez les membres de vos équipes commerciales pour leur attribuer un code unique (ex: <code className="text-amber-400">MOUSSA226</code>) et leur envoyer directement leur fiche d'instructions par WhatsApp.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleOpenCreateAgentModal}
+                          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl inline-flex items-center space-x-2 font-display cursor-pointer transition-all"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Enregistrer le premier commercial</span>
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  if (filteredAgents.length === 0) {
+                    return (
+                      <div className="bg-slate-900 p-6 rounded-2xl text-center text-slate-500 text-xs border border-slate-800">
+                        Aucun commercial ne correspond aux filtres actuels.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {filteredAgents.map((agent) => {
+                        const affReport = affiliates.find(a => a.code.toUpperCase() === agent.code.toUpperCase());
+                        const totalReferred = affReport ? affReport.totalShopsReferred : 0;
+                        const activeSubscribed = affReport ? affReport.activeSubscribedShops : 0;
+                        const dueThisSunday = affReport ? affReport.currentWeekCommissionDue : 0;
+                        const isCopied = agentCopiedId === agent.id;
+
+                        return (
+                          <div
+                            key={agent.id}
+                            className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-3xl p-4 sm:p-5 space-y-3.5 transition-all shadow-lg flex flex-col justify-between"
+                          >
+                            {/* En-tête de la carte */}
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center space-x-3 min-w-0">
+                                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 via-amber-600 to-amber-800 text-slate-950 font-black text-base flex items-center justify-center shadow-md font-display shrink-0">
+                                  {agent.fullName.slice(0, 2).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center space-x-2 flex-wrap">
+                                    <h4 className="font-extrabold text-white text-sm truncate font-display">
+                                      {agent.fullName}
+                                    </h4>
+                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                      agent.status === 'active'
+                                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40'
+                                        : 'bg-red-500/20 text-red-300 border border-red-400/40'
+                                    }`}>
+                                      {agent.status === 'active' ? '✓ Actif' : 'Inactif'}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center space-x-2 text-xs text-slate-400 pt-0.5">
+                                    <span className="font-mono font-bold text-emerald-400">📞 {agent.phone}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Actions modifier / supprimer */}
+                              <div className="flex items-center space-x-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditAgentModal(agent)}
+                                  className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+                                  title="Modifier le commercial"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteAgent(agent.id, agent.fullName)}
+                                  className="p-2 text-red-400 hover:text-red-200 rounded-xl hover:bg-red-950/40 transition-colors cursor-pointer"
+                                  title="Supprimer le commercial"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Badge Code Commercial Unique & Équipe */}
+                            <div className="p-3 bg-slate-950/70 border border-slate-800 rounded-2xl flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+                                  Code Commercial Unique
+                                </span>
+                                <span className="font-mono font-black text-amber-400 text-base tracking-widest block">
+                                  {agent.code}
+                                </span>
+                              </div>
+                              <div className="text-right space-y-0.5">
+                                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+                                  Équipe & Zone
+                                </span>
+                                <span className="text-xs font-bold text-slate-200 block truncate max-w-[150px]">
+                                  {agent.teamName ? `🏢 ${agent.teamName}` : 'Indépendant'}
+                                </span>
+                                {agent.zone && (
+                                  <span className="text-[10px] text-slate-400 block truncate max-w-[150px]">
+                                    📍 {agent.zone}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Métriques de performance */}
+                            <div className="grid grid-cols-3 gap-2 text-center">
+                              <div className="p-2 bg-slate-800/60 rounded-xl border border-slate-700/60">
+                                <span className="text-[9px] uppercase font-bold text-slate-400 block">Boutiques</span>
+                                <span className="text-sm font-black text-white font-mono">{totalReferred}</span>
+                              </div>
+                              <div className="p-2 bg-slate-800/60 rounded-xl border border-slate-700/60">
+                                <span className="text-[9px] uppercase font-bold text-slate-400 block">Abonnés</span>
+                                <span className="text-sm font-black text-emerald-400 font-mono">{activeSubscribed}</span>
+                              </div>
+                              <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/30">
+                                <span className="text-[9px] uppercase font-bold text-amber-300 block">Dimanche</span>
+                                <span className="text-sm font-black text-amber-400 font-mono">{dueThisSunday} F</span>
+                              </div>
+                            </div>
+
+                            {agent.notes && (
+                              <p className="text-[11px] text-slate-400 italic bg-slate-950/40 p-2 rounded-xl border border-slate-850">
+                                📝 {agent.notes}
+                              </p>
+                            )}
+
+                            {/* Actions WhatsApp & Copie Pack */}
+                            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenCommercialWhatsApp(agent)}
+                                className="py-2.5 px-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-black rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-[#25D366]/20 active:scale-98 transition-all cursor-pointer font-display"
+                                title="Envoyer le message d'accès et le code sur WhatsApp"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                                <span>WhatsApp 1-Clic</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleCopyCommercialWelcome(agent)}
+                                className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 border border-slate-700 transition-all cursor-pointer font-display"
+                                title="Copier le pack d'onboarding complet"
+                              >
+                                {isCopied ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                    <span className="text-emerald-400 font-bold">Copié !</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5" />
+                                    <span>Copier Pack</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* ========================================================= */}
             {/* VUE 1 : GESTION DES ÉQUIPES COMMERCIALES & PERFORMANCES */}
@@ -1605,6 +2049,271 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                     </div>
                   );
                 })()}
+              </div>
+            )}
+
+            {/* ========================================================= */}
+            {/* MODALE DE CRÉATION / MODIFICATION DE COMMERCIAL */}
+            {/* ========================================================= */}
+            {isAgentModalOpen && (
+              <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
+                <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 sm:p-6 w-full max-w-lg shadow-2xl space-y-4 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto text-white">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div className="flex items-center space-x-2 text-amber-400">
+                      <UserPlus className="w-5 h-5" />
+                      <h3 className="font-black text-white text-sm sm:text-base font-display">
+                        {editingAgent ? 'Modifier le Commercial' : 'Nouveau Commercial de Terrain'}
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsAgentModalOpen(false)}
+                      className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSaveAgent} className="space-y-3.5">
+                    {/* Nom Complet */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                        Nom & Prénom(s) du Commercial *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ex: Moussa SAWADOGO, Ali KABORE..."
+                        value={agentFormFullName}
+                        onChange={(e) => handleFullNameChange(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                      />
+                    </div>
+
+                    {/* Téléphone WhatsApp */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                        Téléphone / WhatsApp du Commercial *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="Ex: 70 12 34 56"
+                        value={agentFormPhone}
+                        onChange={(e) => setAgentFormPhone(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-mono font-bold text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                      />
+                      <span className="text-[10px] text-slate-400 block mt-0.5">
+                        Utilisé pour lui envoyer sa fiche et son code commercial directement par WhatsApp.
+                      </span>
+                    </div>
+
+                    {/* Code Commercial Unique */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+                          Code Commercial Unique *
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleRegenerateCode}
+                          className="text-[10px] text-amber-400 hover:text-amber-300 font-bold flex items-center space-x-1 cursor-pointer"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Régénérer</span>
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ex: MOUSSA226, ALI226..."
+                        value={agentFormCode}
+                        onChange={(e) => handleCodeChange(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-slate-950 border-2 border-amber-500/50 rounded-xl text-sm font-mono font-black text-amber-400 tracking-wider placeholder:text-slate-600 focus:border-amber-500 outline-none uppercase"
+                      />
+                      <span className="text-[10px] text-slate-400 block mt-0.5">
+                        Ce code sera renseigné par les commerçants lors de l'inscription pour lui reverser 15% (300 F / mois).
+                      </span>
+                    </div>
+
+                    {/* Équipe & Zone */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                          Équipe Rattachée
+                        </label>
+                        <select
+                          value={agentFormTeamId}
+                          onChange={(e) => setAgentFormTeamId(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white font-bold outline-none focus:border-amber-500"
+                        >
+                          <option value="">Indépendant / Aucune équipe</option>
+                          {teamsReports.map(tr => (
+                            <option key={tr.team.id} value={tr.team.id}>
+                              🏢 {tr.team.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                          Zone de Prospection
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Grand Marché, Ouaga Nord, Bobo..."
+                          value={agentFormZone}
+                          onChange={(e) => setAgentFormZone(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Statut & Notes */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                          Statut d'Activité
+                        </label>
+                        <select
+                          value={agentFormStatus}
+                          onChange={(e) => setAgentFormStatus(e.target.value as 'active' | 'inactive')}
+                          className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white font-bold outline-none focus:border-amber-500"
+                        >
+                          <option value="active">✓ Actif (En mission terrain)</option>
+                          <option value="inactive">Inactif / Suspendu</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider mb-1">
+                          Notes / Remarques (Optionnel)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Commercial leader, moto fournie..."
+                          value={agentFormNotes}
+                          onChange={(e) => setAgentFormNotes(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder:text-slate-500 focus:border-amber-500 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Bouton de sauvegarde */}
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={isSavingAgent}
+                        className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-md transition-all cursor-pointer font-display disabled:opacity-50 flex items-center justify-center space-x-2"
+                      >
+                        {isSavingAgent ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            <span>Enregistrement en cours...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>{editingAgent ? 'Enregistrer les Modifications' : 'Créer et Générer le Code Commercial'}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* ========================================================= */}
+            {/* MODALE DE SUCCÈS : COMMERCIAL CRÉÉ & TRANSMISSION 1-CLIC */}
+            {/* ========================================================= */}
+            {agentSuccessModal && (
+              <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
+                <div className="bg-slate-900 border border-amber-500/40 rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95 text-white">
+                  {/* En-tête */}
+                  <div className="text-center space-y-1.5 pb-1">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto border border-amber-500/30 shadow-lg">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-base sm:text-lg font-black font-display text-white">
+                      Commercial Prêt pour le Terrain !
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Le code commercial unique a été généré avec succès.
+                    </p>
+                  </div>
+
+                  {/* Fiche récapitulative */}
+                  <div className="p-4 bg-slate-950/90 border border-slate-800 rounded-2xl space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <span className="text-xs text-slate-400">Commercial :</span>
+                      <strong className="text-xs text-white font-display">{agentSuccessModal.fullName}</strong>
+                    </div>
+
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <span className="text-xs text-slate-400">Téléphone WhatsApp :</span>
+                      <span className="text-xs font-mono font-bold text-emerald-400">📞 {agentSuccessModal.phone}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <span className="text-xs text-slate-400">Équipe & Zone :</span>
+                      <span className="text-xs font-bold text-slate-200">
+                        {agentSuccessModal.teamName || 'Indépendant'} {agentSuccessModal.zone ? `(📍 ${agentSuccessModal.zone})` : ''}
+                      </span>
+                    </div>
+
+                    {/* Grand Badge Code */}
+                    <div className="pt-1 text-center space-y-1">
+                      <span className="text-[10px] uppercase font-black text-amber-300/90 tracking-wider">
+                        Code Commercial à Renseigner par les Commerçants
+                      </span>
+                      <div className="p-2.5 bg-amber-500/15 border-2 border-amber-500/60 rounded-xl">
+                        <span className="font-mono font-black text-xl text-amber-400 tracking-widest">
+                          {agentSuccessModal.code}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Boutons d'action : WhatsApp 1-Clic & Copier */}
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenCommercialWhatsApp(agentSuccessModal)}
+                      className="w-full py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-black rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-2 shadow-lg shadow-[#25D366]/20 active:scale-98 transition-all cursor-pointer font-display"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Envoyer la Fiche & Code sur WhatsApp</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleCopyCommercialWelcome(agentSuccessModal)}
+                      className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 border border-slate-700 transition-all cursor-pointer font-display"
+                    >
+                      {agentCopiedId === agentSuccessModal.id ? (
+                        <>
+                          <Check className="w-4 h-4 text-emerald-400" />
+                          <span className="text-emerald-400 font-bold">Pack d'Onboarding Copié !</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          <span>Copier le Pack & Instructions</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAgentSuccessModal(null)}
+                      className="w-full py-2 bg-slate-950 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Fermer
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 

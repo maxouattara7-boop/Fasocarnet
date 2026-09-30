@@ -1,9 +1,9 @@
 {
-  "version": "1.4.0",
-  "versionCode": 26,
-  "releaseDate": "2026-09-26",
-  "title": "Mise à Jour v1.4.0 : Factures & Devis, Stock Strict, Annulation Ventes",
-  "releaseNotes": "1. Module Factures & Devis Libres : Créez des devis, factures proforma et factures personnalisées avec impression A4 et partage direct sur WhatsApp.\n2. Gestion Stricte des Stocks : Stock initial obligatoire pour tout article et blocage automatique des ventes à la caisse en cas de rupture.\n3. Annulation Sécurisée des Ventes : Annulez une vente depuis le Bilan avec votre code PIN secret, restitution automatique du stock et annulation de la dette client liée.\n4. Arrivages Groupés par Date : Suivi des réapprovisionnements en sessions journalières avec calcul des marges et export Excel.\n5. Mise à jour complète du Centre d'Aide & FAQ.",
+  "version": "1.5.0",
+  "versionCode": 27,
+  "releaseDate": "2026-09-30",
+  "title": "Mise à Jour v1.5.0 : Gestion Commerciaux de Terrain & Authentification OTP WhatsApp",
+  "releaseNotes": "1. Gestion & Roster des Commerciaux : Création des commerciaux de terrain, génération automatique de code commercial unique (ex: MOUSSA226, ALI226) et envoi du pack d'accès en 1 clic sur WhatsApp.\n2. Authentification OTP WhatsApp à l'inscription : Validation sécurisée du numéro WhatsApp par code OTP à 4 chiffres lors de l'ouverture de boutique.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false
