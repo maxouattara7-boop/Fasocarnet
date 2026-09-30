@@ -5,7 +5,6 @@ import {
   Smartphone, 
   Check, 
   Save, 
-  LogOut, 
   AlertTriangle, 
   PackagePlus, 
   Trash2, 
@@ -36,9 +35,7 @@ import {
   Package,
   BellRing,
   ArrowRight,
-  BookOpen,
   Zap,
-  RefreshCw,
   TrendingUp
 } from 'lucide-react';
 import { SuppliesHistoryModal } from '../inventory/SuppliesHistoryModal';
@@ -50,10 +47,7 @@ import { isHapticsEnabled, setHapticsEnabled, triggerHaptic, triggerDoubleHaptic
 import { productsService } from '../../db/services/productsService';
 import { subscriptionService, SUBSCRIPTION_PLANS, SubscriptionPlan } from '../../db/services/subscriptionService';
 import { syncService } from '../../db/services/syncService';
-import { updateService, CURRENT_APP_VERSION, AppUpdateInfo } from '../../services/updateService';
 import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
-import { HelpGuideModal } from '../common/HelpGuideModal';
-import { UpdateModal } from '../common/UpdateModal';
 import { OnlinePaymentModal } from '../subscription/OnlinePaymentModal';
 import { Product } from '../../types';
 import { formatCurrency } from '../../utils/formatters';
@@ -71,7 +65,7 @@ const getInitialSettingsTab = (): SettingsTab => {
 };
 
 export const SettingsView: React.FC = () => {
-  const { shopProfile, updateShopProfile, logout } = useAppStore();
+  const { shopProfile, updateShopProfile } = useAppStore();
 
   const [activeSubTab, setActiveSubTabState] = useState<SettingsTab>(getInitialSettingsTab);
 
@@ -98,37 +92,10 @@ export const SettingsView: React.FC = () => {
   const [debtAlarmDay, setDebtAlarmDay] = useState(shopProfile?.debtAlarmDay ?? 1);
   const [pin, setNewPin] = useState(shopProfile?.pinCode || '');
   const [savedSuccess, setSavedSuccess] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [showPaymentConfirmModal, setShowPaymentConfirmModal] = useState(false);
   const [confirmPinInput, setConfirmPinInput] = useState('');
   const [confirmPinError, setConfirmPinError] = useState('');
-  const [isHelpGuideOpen, setIsHelpGuideOpen] = useState(false);
-  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
-  const [updateFeedback, setUpdateFeedback] = useState<string | null>(null);
-  const [manualUpdateInfo, setManualUpdateInfo] = useState<AppUpdateInfo | null>(null);
-  const [showManualUpdateModal, setShowManualUpdateModal] = useState(false);
-
-  const handleCheckUpdateManual = async () => {
-    setIsCheckingUpdate(true);
-    setUpdateFeedback('Connexion à GitHub et recherche de mise à jour...');
-    try {
-      const res = await updateService.checkForUpdate();
-      if (res.hasUpdate && res.updateInfo) {
-        setManualUpdateInfo(res.updateInfo);
-        setShowManualUpdateModal(true);
-        setUpdateFeedback(null);
-      } else {
-        setUpdateFeedback(`✓ Votre application est déjà sur la version la plus récente (v${CURRENT_APP_VERSION}).`);
-        setTimeout(() => setUpdateFeedback(null), 5000);
-      }
-    } catch {
-      setUpdateFeedback("Impossible de joindre le serveur de mise à jour. Vérifiez votre connexion Internet.");
-      setTimeout(() => setUpdateFeedback(null), 5000);
-    } finally {
-      setIsCheckingUpdate(false);
-    }
-  };
 
   useEffect(() => {
     if (shopProfile) {
@@ -501,11 +468,6 @@ export const SettingsView: React.FC = () => {
       }
     }
     await executeSaveProfile();
-  };
-
-  const handleConfirmLogout = () => {
-    setShowLogoutModal(false);
-    logout();
   };
 
   const lowStockCount = products.filter(
@@ -1004,37 +966,6 @@ export const SettingsView: React.FC = () => {
             />
           </div>
 
-          {/* Mises à Jour de l'Application & Détection OTA */}
-          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-100 shadow-xs space-y-2.5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <div className="flex items-center space-x-2 text-emerald-900">
-                <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
-                  <Zap className="w-3.5 h-3.5 text-amber-500" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-xs tracking-tight">Mise à Jour de l'Application</h3>
-                  <p className="text-[10px] text-slate-500">Version actuelle : <strong className="font-mono text-slate-800">v{CURRENT_APP_VERSION}</strong></p>
-                </div>
-              </div>
-            </div>
-
-            {updateFeedback && (
-              <div className="p-2 bg-emerald-50 text-emerald-800 text-xs font-semibold rounded-lg border border-emerald-200 animate-in fade-in">
-                {updateFeedback}
-              </div>
-            )}
-
-            <button
-              type="button"
-              disabled={isCheckingUpdate}
-              onClick={handleCheckUpdateManual}
-              className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-xs transition-all active:scale-98 cursor-pointer disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
-              <span>{isCheckingUpdate ? 'Vérification sur GitHub...' : 'Vérifier les Mises à Jour'}</span>
-            </button>
-          </div>
-
           {/* Assistance & Support Client WhatsApp */}
           <div className="bg-gradient-to-br from-emerald-700 to-teal-800 p-3.5 sm:p-4 rounded-xl text-white shadow-xs space-y-2">
             <div className="flex items-center space-x-2 border-b border-emerald-600/60 pb-1.5">
@@ -1047,46 +978,16 @@ export const SettingsView: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setIsHelpGuideOpen(true)}
-                className="w-full py-2 bg-emerald-950/60 hover:bg-emerald-950/80 text-emerald-100 border border-emerald-500/40 font-bold rounded-xl text-xs shadow-xs active:scale-98 transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-emerald-300" />
-                <span>Guide & FAQ</span>
-              </button>
-
+            <div className="pt-1">
               <button
                 type="button"
                 onClick={handleContactSupport}
-                className="w-full py-2 bg-white hover:bg-emerald-50 text-emerald-900 font-black rounded-xl text-xs shadow-xs active:scale-98 transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
+                className="w-full py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 font-black rounded-xl text-xs shadow-xs active:scale-98 transition-all flex items-center justify-center space-x-2 cursor-pointer font-display"
               >
-                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Support WhatsApp</span>
+                <MessageCircle className="w-4 h-4 text-emerald-600" />
+                <span>Contacter le Support WhatsApp</span>
               </button>
             </div>
-          </div>
-
-          {/* Déconnexion */}
-          <div className="bg-red-50/70 p-3.5 sm:p-4 rounded-xl border border-red-200/70 shadow-xs space-y-2">
-            <div className="flex items-center space-x-2 text-red-900 border-b border-red-200/60 pb-1.5">
-              <div className="w-6 h-6 rounded-lg bg-red-100/80 border border-red-300/60 flex items-center justify-center text-red-600 shrink-0">
-                <LogOut className="w-3.5 h-3.5" />
-              </div>
-              <h3 className="font-extrabold text-xs tracking-tight">Session du Commerce</h3>
-            </div>
-            <p className="text-[10px] text-red-700/90 font-medium leading-relaxed">
-              Fermez la session pour changer de compte sur cet appareil.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowLogoutModal(true)}
-              className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl text-xs shadow-xs active:scale-98 transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Se Déconnecter de l'Espace</span>
-            </button>
           </div>
         </div>
       </div>
@@ -1832,42 +1733,6 @@ export const SettingsView: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de Confirmation de Déconnexion */}
-      {showLogoutModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-xl p-4 text-center space-y-3 animate-in zoom-in-95 duration-150">
-            <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
-
-            <div>
-              <h3 className="text-sm font-black text-slate-900">Confirmer la Déconnexion</h3>
-              <p className="text-[10px] text-slate-500 mt-1">
-                Vous allez fermer votre session. Vos données restent conservées sur cet appareil et vous pourrez vous reconnecter en 1 clic.
-              </p>
-            </div>
-
-            <div className="flex space-x-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setShowLogoutModal(false)}
-                className="w-1/2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmLogout}
-                className="w-1/2 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-xs active:scale-98 flex items-center justify-center space-x-1"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Déconnexion</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Modal Scanner Code-Barres Caméra */}
       <BarcodeScannerModal
         isOpen={isBarcodeModalOpen}
@@ -2050,18 +1915,6 @@ export const SettingsView: React.FC = () => {
         onClose={() => setIsSuppliesHistoryModalOpen(false)}
         onSupplyUpdated={loadProducts}
       />
-
-      {/* Modal Centre d'Aide & Guide Rapide */}
-      <HelpGuideModal isOpen={isHelpGuideOpen} onClose={() => setIsHelpGuideOpen(false)} />
-
-      {/* Modal de Mise à jour Manuelle */}
-      {manualUpdateInfo && (
-        <UpdateModal
-          updateInfo={manualUpdateInfo}
-          isOpen={showManualUpdateModal}
-          onClose={() => setShowManualUpdateModal(false)}
-        />
-      )}
 
       {/* Modal de Paiement Automatique Instantané (PayTech) */}
       <OnlinePaymentModal

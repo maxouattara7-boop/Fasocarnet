@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { useAppStore, ActiveTab } from '../../store/appStore';
-import { ShieldCheck, Lock, Cloud, CloudOff, RefreshCw, HelpCircle, FileText, Calculator, BookOpen, BarChart3, Settings } from 'lucide-react';
+import { ShieldCheck, Lock, Cloud, CloudOff, RefreshCw, HelpCircle, FileText, Calculator, BookOpen, BarChart3, Settings, LogOut, AlertTriangle } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { HelpGuideModal } from '../common/HelpGuideModal';
-import { CustomInvoiceModal } from '../invoices/CustomInvoiceModal';
 
 export const Header: React.FC = () => {
-  const { shopProfile, setIsLocked, isOnline, isSyncing, syncNow, activeTab, setActiveTab } = useAppStore();
+  const { shopProfile, setIsLocked, isOnline, isSyncing, syncNow, activeTab, setActiveTab, logout } = useAppStore();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
-  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const desktopNavItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
     { id: 'pos', label: 'Caisse Tactile', icon: <Calculator className="w-4 h-4" /> },
@@ -17,6 +16,11 @@ export const Header: React.FC = () => {
     { id: 'invoices', label: 'Factures & Devis', icon: <FileText className="w-4 h-4" /> },
     { id: 'settings', label: 'Ma Boutique', icon: <Settings className="w-4 h-4" /> },
   ];
+
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false);
+    logout();
+  };
 
   return (
     <>
@@ -60,6 +64,7 @@ export const Header: React.FC = () => {
             })}
           </nav>
 
+          {/* Outils & Actions à l'extrême droite */}
           <div className="flex items-center space-x-1.5 flex-shrink-0">
 
             {/* Bouton Guide & Aide */}
@@ -107,6 +112,7 @@ export const Header: React.FC = () => {
             {/* Verrouillage par Code PIN */}
             {shopProfile?.pinCode && (
               <button
+                type="button"
                 onClick={() => setIsLocked(true)}
                 className="p-1.5 bg-emerald-800/80 hover:bg-emerald-700 rounded-lg text-emerald-100 border border-emerald-600/40 transition-all active:scale-95 cursor-pointer"
                 title="Verrouiller l'application"
@@ -115,9 +121,21 @@ export const Header: React.FC = () => {
               </button>
             )}
 
+            {/* Badge de sécurité */}
             <div className="bg-emerald-900/60 p-1.5 rounded-lg text-emerald-300 border border-emerald-700/40 hidden sm:flex items-center justify-center">
               <ShieldCheck className="w-3.5 h-3.5" />
             </div>
+
+            {/* BOUTON SE DÉCONNECTER (À l'extrême droite en haut) */}
+            <button
+              type="button"
+              onClick={() => setShowLogoutModal(true)}
+              className="p-1.5 bg-red-600/90 hover:bg-red-600 active:bg-red-700 text-white rounded-lg border border-red-500/50 transition-all active:scale-95 cursor-pointer flex items-center space-x-1 shadow-xs"
+              title="Se déconnecter de votre espace commercial"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="text-[10px] font-black hidden sm:inline">Quitter</span>
+            </button>
           </div>
         </div>
       </header>
@@ -125,9 +143,45 @@ export const Header: React.FC = () => {
       {/* Modal Centre d'Aide & Guide Rapide */}
       <HelpGuideModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
 
-      {/* Modal Factures & Devis Libres */}
-      <CustomInvoiceModal isOpen={isInvoiceOpen} onClose={() => setIsInvoiceOpen(false)} />
+      {/* Modal de Confirmation de Déconnexion */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 border border-slate-100">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto shadow-inner">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div className="text-center space-y-1.5">
+              <h3 className="text-base font-extrabold text-slate-900 font-display">
+                Confirmer la Déconnexion
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                Voulez-vous vraiment fermer votre session commerciale ? Toutes vos données locales restent sauvegardées en toute sécurité.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowLogoutModal(false)}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-xs transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmLogout}
+                className="w-full py-2.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-black rounded-2xl text-xs shadow-md shadow-red-600/20 active:scale-95 transition-all flex items-center justify-center space-x-1.5 cursor-pointer font-display"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Se Déconnecter</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
+
 
