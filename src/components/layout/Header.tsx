@@ -14,6 +14,7 @@ export const Header: React.FC = () => {
     { id: 'pos', label: 'Caisse Tactile', icon: <Calculator className="w-4 h-4" /> },
     { id: 'debts', label: 'Carnet de Dettes', icon: <BookOpen className="w-4 h-4" /> },
     { id: 'reports', label: 'Bilan & Ventes', icon: <BarChart3 className="w-4 h-4" /> },
+    { id: 'invoices', label: 'Factures & Devis', icon: <FileText className="w-4 h-4" /> },
     { id: 'settings', label: 'Ma Boutique', icon: <Settings className="w-4 h-4" /> },
   ];
 
@@ -36,7 +37,7 @@ export const Header: React.FC = () => {
           </div>
 
           {/* Navigation Bureau Desktop (Visible sur tablette et PC) */}
-          <nav className="hidden md:flex items-center space-x-1.5 bg-emerald-950/50 p-1 rounded-2xl border border-emerald-700/40 shadow-inner">
+          <nav className="hidden md:flex items-center space-x-1 bg-emerald-950/60 p-1.5 rounded-2xl border border-emerald-700/50 shadow-inner">
             {desktopNavItems.map((item) => {
               const isActive = activeTab === item.id;
               return (
@@ -44,10 +45,10 @@ export const Header: React.FC = () => {
                   key={item.id}
                   type="button"
                   onClick={() => setActiveTab(item.id)}
-                  className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center space-x-2 transition-all cursor-pointer font-display ${
+                  className={`px-3 lg:px-4 py-2 rounded-xl font-bold text-xs flex items-center space-x-2 transition-all cursor-pointer font-display ${
                     isActive
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-md shadow-emerald-500/20 font-black scale-102'
-                      : 'text-emerald-200 hover:text-white hover:bg-emerald-800/40'
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-md shadow-emerald-500/25 font-black scale-102'
+                      : 'text-emerald-200 hover:text-white hover:bg-emerald-800/50'
                   }`}
                 >
                   <span className={isActive ? 'text-slate-950' : 'text-emerald-300'}>
@@ -60,16 +61,6 @@ export const Header: React.FC = () => {
           </nav>
 
           <div className="flex items-center space-x-1.5 flex-shrink-0">
-            {/* Bouton Factures & Devis Libres */}
-            <button
-              type="button"
-              onClick={() => setIsInvoiceOpen(true)}
-              className="p-1.5 bg-emerald-800/80 hover:bg-emerald-700 rounded-lg text-emerald-100 border border-emerald-600/40 transition-all active:scale-95 cursor-pointer flex items-center space-x-1"
-              title="Factures & Devis Libres"
-            >
-              <FileText className="w-3.5 h-3.5 text-emerald-200" />
-              <span className="text-[10px] font-bold hidden xs:inline">Factures</span>
-            </button>
 
             {/* Bouton Guide & Aide */}
             <button

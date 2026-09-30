@@ -4,12 +4,12 @@ import { db } from '../db/db';
 import { syncService, LoginResult } from '../db/services/syncService';
 import { verifyHash, hashPin, isHashed } from '../utils/crypto';
 
-export type ActiveTab = 'pos' | 'debts' | 'reports' | 'settings';
+export type ActiveTab = 'pos' | 'debts' | 'reports' | 'invoices' | 'settings';
 
 const getInitialActiveTab = (): ActiveTab => {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('fasocarnet_active_tab');
-    if (saved === 'pos' || saved === 'debts' || saved === 'reports' || saved === 'settings') {
+    if (saved === 'pos' || saved === 'debts' || saved === 'reports' || saved === 'invoices' || saved === 'settings') {
       return saved as ActiveTab;
     }
   }

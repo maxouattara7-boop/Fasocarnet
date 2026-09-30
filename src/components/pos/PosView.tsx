@@ -357,11 +357,222 @@ export const PosView: React.FC = () => {
         </div>
       )}
 
-      {/* DISPOSITION RESPONSIVE : 2 COLONNES SUR GRAND ÉCRAN (LG/XL) */}
+      {/* DISPOSITION RESPONSIVE : CALCULATRICE À GAUCHE & CATALOGUE À DROITE (LG/XL) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
         
         {/* ======================================================== */}
-        {/* COLONNE GAUCHE (DESKTOP) : CATALOGUE D'ARTICLES & RECHERCHE */}
+        {/* COLONNE GAUCHE (DESKTOP) : CAISSE, CALCULATRICE & ACTIONS */}
+        {/* ======================================================== */}
+        <div className="lg:col-span-5 space-y-3.5 lg:sticky lg:top-6">
+          {/* Écran d'affichage du montant, de la remise et du calcul */}
+          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-4 sm:p-5 rounded-3xl shadow-xl flex flex-col justify-between min-h-[125px] sm:min-h-[135px] border border-emerald-700/50">
+            <div className="flex items-center justify-between text-emerald-300 text-[11px] font-bold tracking-wider uppercase">
+              <div className="flex items-center space-x-1.5">
+                {hasCalculation ? (
+                  <Calculator className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                ) : (
+                  <ShoppingCart className="w-3.5 h-3.5" />
+                )}
+                <span>{hasCalculation ? 'Total Additionné' : 'Montant à Encaisser'}</span>
+              </div>
+              {discount && discount.calculatedAmount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setIsDiscountModalOpen(true)}
+                  className="bg-amber-400 hover:bg-amber-300 text-amber-950 px-2.5 py-0.5 rounded-lg text-[10px] font-black tracking-wide flex items-center space-x-1 transition-all cursor-pointer"
+                >
+                  <Tag className="w-3 h-3" />
+                  <span>Remise -{formatCurrency(discountAmount)}</span>
+                </button>
+              ) : (
+                <span className="bg-emerald-700/70 px-2.5 py-0.5 rounded-lg text-[10px] font-black tracking-wide">FCFA (XOF)</span>
+              )}
+            </div>
+
+            <div className="text-right mt-1">
+              {/* Formule de calcul si addition en cours */}
+              {hasCalculation && (
+                <div className="text-[11px] sm:text-xs font-semibold text-amber-300 bg-amber-950/40 px-2.5 py-0.5 rounded-lg inline-block max-w-full truncate mb-0.5 border border-amber-500/30">
+                  {formatPosExpressionDisplay(amountStr)} {/[+]\s*$/.test(amountStr) ? '...' : '='}
+                </div>
+              )}
+
+              {/* Affichage du sous-total barré si remise active */}
+              {discount && discount.calculatedAmount > 0 && (
+                <div className="text-xs font-semibold text-emerald-300/80 line-through">
+                  {formatCurrency(subtotalAmount)}
+                </div>
+              )}
+
+              <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white drop-shadow-sm truncate leading-tight font-display">
+                {formatCurrency(finalPayableAmount).replace(' FCFA', '')}
+              </div>
+
+              <div className="text-[11px] text-emerald-200/80 mt-1">
+                {discount && discount.calculatedAmount > 0 ? (
+                  <span className="font-bold text-amber-300">
+                    Remise appliquée : -{formatCurrency(discountAmount)} ({discount.type === 'PERCENT' ? `${discount.value}%` : 'Montant fixe'})
+                  </span>
+                ) : selectedItems.length > 0 ? (
+                  <span className="font-semibold text-amber-300 truncate block">
+                    {selectedItems.length} article(s) dans le panier en cours
+                  </span>
+                ) : (
+                  'Francs CFA — Saisissez un montant ou choisissez des articles'
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* DÉTAIL DU PANIER EN COURS (SI ARTICLES CHOISIS) */}
+          {selectedItems.length > 0 && (
+            <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2 animate-in fade-in">
+              <div className="flex items-center justify-between text-xs font-extrabold text-slate-800 border-b border-slate-100 pb-2">
+                <div className="flex items-center space-x-1.5">
+                  <ShoppingCart className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Panier ({selectedItems.length} article{selectedItems.length > 1 ? 's' : ''})</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="text-[10px] text-red-600 hover:text-red-700 font-bold flex items-center space-x-1 cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>Vider</span>
+                </button>
+              </div>
+
+              <div className="max-h-36 overflow-y-auto divide-y divide-slate-100 pr-1 space-y-1">
+                {selectedItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between py-1.5 text-xs">
+                    <div className="min-w-0 flex-1 pr-2">
+                      <p className="font-bold text-slate-900 truncate">{item.description}</p>
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        {item.quantity} x {formatCurrency(item.unitPrice)}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2 shrink-0">
+                      <span className="font-extrabold text-emerald-700 font-display">
+                        {formatCurrency(item.unitPrice * item.quantity)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(idx)}
+                        className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        title="Retirer cet article"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ======================================================== */}
+          {/* TOUCHES D'ACTION ALLONGÉES & VISIBLES : SCANNER & REMISE */}
+          {/* ======================================================== */}
+          <div className="grid grid-cols-2 gap-2.5">
+            {/* Bouton Scanner Caméra Code-Barres grand format allongé */}
+            <button
+              type="button"
+              onClick={() => setIsBarcodeScannerOpen(true)}
+              className="h-14 sm:h-16 px-3 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:from-amber-700 active:to-amber-800 text-white rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center space-x-2 shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer font-display"
+              title="Scanner un code-barres avec la caméra ou douchette"
+            >
+              <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-amber-100 shrink-0" />
+              <span className="tracking-wide">Scanner Code-Barres</span>
+            </button>
+
+            {/* Bouton Remise (% ou FCFA) grand format allongé */}
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(30);
+                setIsDiscountModalOpen(true);
+              }}
+              className={`h-14 sm:h-16 px-3 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center space-x-2 shadow-md active:scale-95 transition-all cursor-pointer font-display ${
+                discount && discount.calculatedAmount > 0
+                  ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-500 shadow-amber-400/30'
+                  : 'bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white shadow-slate-900/20'
+              }`}
+              title="Appliquer une remise en % ou FCFA"
+            >
+              <Tag className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300 shrink-0" />
+              <span className="tracking-wide">{discount && discount.calculatedAmount > 0 ? `Remise (-${formatCurrency(discountAmount)})` : 'Remise Client'}</span>
+            </button>
+          </div>
+
+          {/* Bouton catalogue complet & Puces rapides (Visible surtout sur mobile) */}
+          <div className="lg:hidden space-y-2">
+            {products.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setArticleSearch('');
+                  setIsArticlePickerOpen(true);
+                }}
+                className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
+                title="Ouvrir le catalogue d'articles"
+              >
+                <Package className="w-4 h-4 text-amber-300" />
+                <span>Consulter le Catalogue ({products.length} articles)</span>
+                <ChevronDown className="w-3.5 h-3.5 text-emerald-200" />
+              </button>
+            )}
+
+            {/* Puces des articles fréquents en 1-tap direct (Sur mobile) */}
+            <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 scrollbar-none">
+              {products.slice(0, 6).map((prod) => (
+                <button
+                  key={prod.id}
+                  type="button"
+                  onClick={() => handleSelectProduct(prod.id)}
+                  className={`px-2.5 py-1.5 bg-white hover:bg-emerald-50/70 text-slate-800 border rounded-xl text-xs font-semibold flex items-center space-x-1.5 shrink-0 shadow-2xs active:scale-95 transition-all cursor-pointer ${
+                    typeof prod.stockQuantity === 'number' && prod.stockQuantity <= 0
+                      ? 'border-red-300 bg-red-50/30'
+                      : typeof prod.stockQuantity === 'number' && prod.stockQuantity <= (prod.minStockAlert ?? 5)
+                      ? 'border-amber-300 bg-amber-50/20'
+                      : 'border-slate-200 hover:border-emerald-400'
+                  }`}
+                >
+                  <span className="font-extrabold text-slate-900">{prod.name}</span>
+                  <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                    {formatCurrency(prod.price).replace(' FCFA', '')}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Clavier tactile avec touche + et vibreur */}
+          <div className="bg-white p-3.5 sm:p-4 rounded-3xl shadow-xs border border-slate-200/80">
+            <Keypad
+              value={amountStr}
+              onChange={setAmountStr}
+              onClear={handleClear}
+            />
+          </div>
+
+          {/* Bouton d'encaissement principal */}
+          <button
+            type="button"
+            disabled={finalPayableAmount <= 0}
+            onClick={handleOpenPayment}
+            className={`w-full py-4 sm:py-5 rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg shadow-xl flex items-center justify-center space-x-2 transition-all cursor-pointer font-display ${
+              finalPayableAmount > 0
+                ? 'bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white shadow-emerald-700/30 active:scale-98'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+            }`}
+          >
+            <span>ENCAISSER ({formatCurrency(finalPayableAmount)})</span>
+            <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+          </button>
+        </div>
+
+        {/* ======================================================== */}
+        {/* COLONNE DROITE (DESKTOP) : CATALOGUE D'ARTICLES & RECHERCHE */}
         {/* ======================================================== */}
         <div className="hidden lg:block lg:col-span-7 space-y-4">
           {/* Barre supérieure du Catalogue */}
@@ -555,213 +766,6 @@ export const PosView: React.FC = () => {
               <span><kbd className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-white">Échap / C</kbd> Effacer</span>
             </div>
           </div>
-        </div>
-
-        {/* ======================================================== */}
-        {/* COLONNE DROITE (DESKTOP) / UNIQUE (MOBILE) : CAISSE & CLAVIER */}
-        {/* ======================================================== */}
-        <div className="lg:col-span-5 space-y-3.5 lg:sticky lg:top-6">
-          {/* Écran d'affichage du montant, de la remise et du calcul */}
-          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-4 sm:p-5 rounded-3xl shadow-xl flex flex-col justify-between min-h-[125px] sm:min-h-[135px] border border-emerald-700/50">
-            <div className="flex items-center justify-between text-emerald-300 text-[11px] font-bold tracking-wider uppercase">
-              <div className="flex items-center space-x-1.5">
-                {hasCalculation ? (
-                  <Calculator className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                ) : (
-                  <ShoppingCart className="w-3.5 h-3.5" />
-                )}
-                <span>{hasCalculation ? 'Total Additionné' : 'Montant à Encaisser'}</span>
-              </div>
-              {discount && discount.calculatedAmount > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => setIsDiscountModalOpen(true)}
-                  className="bg-amber-400 hover:bg-amber-300 text-amber-950 px-2.5 py-0.5 rounded-lg text-[10px] font-black tracking-wide flex items-center space-x-1 transition-all cursor-pointer"
-                >
-                  <Tag className="w-3 h-3" />
-                  <span>Remise -{formatCurrency(discountAmount)}</span>
-                </button>
-              ) : (
-                <span className="bg-emerald-700/70 px-2.5 py-0.5 rounded-lg text-[10px] font-black tracking-wide">FCFA (XOF)</span>
-              )}
-            </div>
-
-            <div className="text-right mt-1">
-              {/* Formule de calcul si addition en cours */}
-              {hasCalculation && (
-                <div className="text-[11px] sm:text-xs font-semibold text-amber-300 bg-amber-950/40 px-2.5 py-0.5 rounded-lg inline-block max-w-full truncate mb-0.5 border border-amber-500/30">
-                  {formatPosExpressionDisplay(amountStr)} {/[+]\s*$/.test(amountStr) ? '...' : '='}
-                </div>
-              )}
-
-              {/* Affichage du sous-total barré si remise active */}
-              {discount && discount.calculatedAmount > 0 && (
-                <div className="text-xs font-semibold text-emerald-300/80 line-through">
-                  {formatCurrency(subtotalAmount)}
-                </div>
-              )}
-
-              <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white drop-shadow-sm truncate leading-tight font-display">
-                {formatCurrency(finalPayableAmount).replace(' FCFA', '')}
-              </div>
-
-              <div className="text-[11px] text-emerald-200/80 mt-1">
-                {discount && discount.calculatedAmount > 0 ? (
-                  <span className="font-bold text-amber-300">
-                    Remise appliquée : -{formatCurrency(discountAmount)} ({discount.type === 'PERCENT' ? `${discount.value}%` : 'Montant fixe'})
-                  </span>
-                ) : selectedItems.length > 0 ? (
-                  <span className="font-semibold text-amber-300 truncate block">
-                    {selectedItems.length} article(s) dans le panier en cours
-                  </span>
-                ) : (
-                  'Francs CFA — Saisissez un montant ou choisissez des articles'
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* DÉTAIL DU PANIER EN COURS (SI ARTICLES CHOISIS) */}
-          {selectedItems.length > 0 && (
-            <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2 animate-in fade-in">
-              <div className="flex items-center justify-between text-xs font-extrabold text-slate-800 border-b border-slate-100 pb-2">
-                <div className="flex items-center space-x-1.5">
-                  <ShoppingCart className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Panier ({selectedItems.length} article{selectedItems.length > 1 ? 's' : ''})</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="text-[10px] text-red-600 hover:text-red-700 font-bold flex items-center space-x-1 cursor-pointer"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  <span>Vider</span>
-                </button>
-              </div>
-
-              <div className="max-h-36 overflow-y-auto divide-y divide-slate-100 pr-1 space-y-1">
-                {selectedItems.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between py-1.5 text-xs">
-                    <div className="min-w-0 flex-1 pr-2">
-                      <p className="font-bold text-slate-900 truncate">{item.description}</p>
-                      <p className="text-[10px] text-slate-500 font-mono">
-                        {item.quantity} x {formatCurrency(item.unitPrice)}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2 shrink-0">
-                      <span className="font-extrabold text-emerald-700 font-display">
-                        {formatCurrency(item.unitPrice * item.quantity)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(idx)}
-                        className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                        title="Retirer cet article"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* BARRE D'ACTIONS RAPIDES : SCANNER, REMISE & ARTICLES (MOBILE / DESKTOP) */}
-          <div className="flex items-center space-x-2 overflow-x-auto pb-0.5 scrollbar-none">
-            {/* Bouton Scanner Caméra Code-Barres */}
-            <button
-              type="button"
-              onClick={() => setIsBarcodeScannerOpen(true)}
-              className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shrink-0 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
-              title="Scanner un code-barres avec la caméra ou douchette"
-            >
-              <Camera className="w-3.5 h-3.5 text-white" />
-              <span>Scanner</span>
-            </button>
-
-            {/* Bouton Remise (% ou FCFA) */}
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(30);
-                setIsDiscountModalOpen(true);
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shrink-0 shadow-xs active:scale-95 transition-all cursor-pointer font-display ${
-                discount && discount.calculatedAmount > 0
-                  ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-500 font-black'
-                  : 'bg-slate-800 hover:bg-slate-700 text-white'
-              }`}
-              title="Appliquer une remise en % ou FCFA"
-            >
-              <Tag className="w-3.5 h-3.5 text-amber-300" />
-              <span>{discount && discount.calculatedAmount > 0 ? `Remise (-${formatCurrency(discountAmount)})` : 'Remise'}</span>
-            </button>
-
-            {/* Bouton catalogue complet (Visible surtout sur mobile) */}
-            {products.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setArticleSearch('');
-                  setIsArticlePickerOpen(true);
-                }}
-                className="lg:hidden px-3.5 py-2 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1.5 shrink-0 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
-                title="Ouvrir le catalogue d'articles"
-              >
-                <Package className="w-3.5 h-3.5 text-amber-300" />
-                <span>Articles ({products.length})</span>
-                <ChevronDown className="w-3 h-3 text-emerald-200" />
-              </button>
-            )}
-
-            {/* Puces des articles fréquents en 1-tap direct (Sur mobile) */}
-            <div className="lg:hidden flex items-center space-x-1.5">
-              {products.slice(0, 6).map((prod) => (
-                <button
-                  key={prod.id}
-                  type="button"
-                  onClick={() => handleSelectProduct(prod.id)}
-                  className={`px-2.5 py-1.5 bg-white hover:bg-emerald-50/70 text-slate-800 border rounded-xl text-xs font-semibold flex items-center space-x-1.5 shrink-0 shadow-2xs active:scale-95 transition-all cursor-pointer ${
-                    typeof prod.stockQuantity === 'number' && prod.stockQuantity <= 0
-                      ? 'border-red-300 bg-red-50/30'
-                      : typeof prod.stockQuantity === 'number' && prod.stockQuantity <= (prod.minStockAlert ?? 5)
-                      ? 'border-amber-300 bg-amber-50/20'
-                      : 'border-slate-200 hover:border-emerald-400'
-                  }`}
-                >
-                  <span className="font-extrabold text-slate-900">{prod.name}</span>
-                  <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
-                    {formatCurrency(prod.price).replace(' FCFA', '')}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Clavier tactile avec touche + et vibreur */}
-          <div className="bg-white p-3.5 sm:p-4 rounded-3xl shadow-xs border border-slate-200/80">
-            <Keypad
-              value={amountStr}
-              onChange={setAmountStr}
-              onClear={handleClear}
-            />
-          </div>
-
-          {/* Bouton d'encaissement principal */}
-          <button
-            type="button"
-            disabled={finalPayableAmount <= 0}
-            onClick={handleOpenPayment}
-            className={`w-full py-4 sm:py-5 rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg shadow-xl flex items-center justify-center space-x-2 transition-all cursor-pointer font-display ${
-              finalPayableAmount > 0
-                ? 'bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white shadow-emerald-700/30 active:scale-98'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-            }`}
-          >
-            <span>ENCAISSER ({formatCurrency(finalPayableAmount)})</span>
-            <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
-          </button>
         </div>
       </div>
 

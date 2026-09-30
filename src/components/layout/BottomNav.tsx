@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAppStore, ActiveTab } from '../../store/appStore';
-import { Calculator, BookOpen, BarChart3, Settings } from 'lucide-react';
+import { Calculator, BookOpen, BarChart3, FileText, Settings } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
   const { activeTab, setActiveTab } = useAppStore();
@@ -9,12 +9,13 @@ export const BottomNav: React.FC = () => {
     { id: 'pos', label: 'Caisse', icon: <Calculator className="w-5 h-5" /> },
     { id: 'debts', label: 'Dettes', icon: <BookOpen className="w-5 h-5" /> },
     { id: 'reports', label: 'Bilan', icon: <BarChart3 className="w-5 h-5" /> },
+    { id: 'invoices', label: 'Factures', icon: <FileText className="w-5 h-5" /> },
     { id: 'settings', label: 'Boutique', icon: <Settings className="w-5 h-5" /> },
   ];
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-slate-200/80 pt-1 pb-1.5 px-2 shadow-lg z-30 safe-bottom">
-      <div className="max-w-md mx-auto grid grid-cols-4 gap-1">
+      <div className="max-w-lg mx-auto grid grid-cols-5 gap-0.5">
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
           return (
