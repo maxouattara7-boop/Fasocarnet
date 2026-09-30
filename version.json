@@ -1,10 +1,10 @@
 {
   "version": "1.5.1",
-  "versionCode": 28,
+  "versionCode": 29,
   "releaseDate": "2026-09-30",
-  "title": "Mise à Jour v1.5.1 : Interface Web Grand Écran, Approvisionnements & Facturation Pro",
-  "releaseNotes": "1. Interface Web Grand Écran : Navigation fluide, calculatrice statique à gauche et catalogue défilant à droite.\n2. Approvisionnements & Gestion de stock : Journal quotidien téléchargeable et imprimable.\n3. Factures & Devis : Refonte premium des cartes et documents.",
+  "title": "Mise à Jour v1.5.1 : Sécurité & Synchronisation Supabase",
+  "releaseNotes": "1. Sécurité renforcée : Bannissement strict des comptes supprimés et interdiction de connexion locale.\n2. Synchronisation temps réel optimisée.\n3. Intégration du compte Le Max.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
-  "mandatory": false
+  "mandatory": true
 }
