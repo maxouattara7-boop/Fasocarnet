@@ -7,10 +7,11 @@ import {
   PackagePlus, 
   Search, 
   FileSpreadsheet, 
-  Trash2,
-  Calendar,
-  ChevronDown,
-  ChevronUp
+  Trash2, 
+  Calendar, 
+  ChevronDown, 
+  ChevronUp,
+  CheckCircle2
 } from 'lucide-react';
 import { downloadOrShareTextFile } from '../../utils/fileDownloader';
 
@@ -38,6 +39,7 @@ export const SuppliesHistoryModal: React.FC<SuppliesHistoryModalProps> = ({
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [downloadFeedback, setDownloadFeedback] = useState<string | null>(null);
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -178,6 +180,9 @@ export const SuppliesHistoryModal: React.FC<SuppliesHistoryModalProps> = ({
         mimeType: 'text/csv;charset=utf-8;',
         title: 'Historique des Approvisionnements - FasoCarnet'
       });
+
+      setDownloadFeedback(`Le fichier "${fileName}" a été téléchargé avec succès dans vos documents !`);
+      setTimeout(() => setDownloadFeedback(null), 5000);
     } catch (err) {
       console.error('Erreur export approvisionnements:', err);
       alert("Erreur lors de l'exportation.");
@@ -221,6 +226,14 @@ export const SuppliesHistoryModal: React.FC<SuppliesHistoryModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Toast confirmation de téléchargement direct */}
+        {downloadFeedback && (
+          <div className="px-4 py-2.5 bg-emerald-700 text-white text-xs font-bold flex items-center space-x-2 animate-in fade-in duration-150">
+            <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
+            <span className="flex-1">{downloadFeedback}</span>
+          </div>
+        )}
 
         {/* Barre de KPI & Filtres */}
         <div className="p-4 border-b border-slate-100 bg-slate-50/80 space-y-3">

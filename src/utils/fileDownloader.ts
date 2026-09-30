@@ -34,7 +34,7 @@ export interface FileActionResult {
 }
 
 /**
- * Sauvegarde et/ou ouvre un fichier Excel / CSV sur l'appareil (Android & Web)
+ * Sauvegarde et télécharge un fichier Excel / CSV directement vers les documents de l'appareil
  */
 export async function downloadOrShareTextFile(params: {
   fileName: string;
@@ -42,70 +42,36 @@ export async function downloadOrShareTextFile(params: {
   mimeType?: string;
   title?: string;
 }): Promise<FileActionResult> {
-  const { fileName, content, mimeType = 'text/csv;charset=utf-8;', title = 'Bilan Comptable' } = params;
+  const { fileName, content, mimeType = 'text/csv;charset=utf-8;' } = params;
 
-  // 1. Tenter l'utilisation des plugins natifs Capacitor si disponibles dans le binaire APK
-  if (Capacitor.isPluginAvailable('Filesystem')) {
+  // 1. Tenter l'utilisation des plugins natifs Capacitor si installés en binaire natif APK
+  if (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('Filesystem')) {
     try {
       const base64Data = btoa(unescape(encodeURIComponent(content)));
-      const writeResult = await Filesystem.writeFile({
+      await Filesystem.writeFile({
         path: fileName,
         data: base64Data,
         directory: Directory.Documents,
         recursive: true
       });
-
-      if (Capacitor.isPluginAvailable('Share')) {
-        await Share.share({
-          title,
-          text: `Fichier : ${fileName}`,
-          url: writeResult.uri,
-          dialogTitle: `Ouvrir / Sauvegarder ${fileName}`
-        });
-      }
-
       return { success: true, method: 'native' };
     } catch (err: any) {
-      if (err?.name === 'AbortError' || err?.message?.includes('canceled')) {
-        return { success: true, method: 'native' };
-      }
-      console.warn('[Downloader] Échec natif Filesystem/Share, tentative Web Share:', err);
+      console.warn('[Downloader] Échec écriture native Filesystem:', err);
     }
   }
 
-  // 2. Web Share API avec fichier réel
-  if (typeof navigator !== 'undefined' && navigator.share) {
-    try {
-      const blob = new Blob([content], { type: mimeType });
-      const file = new File([blob], fileName, { type: 'text/csv' });
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title,
-          text: `Export Bilan : ${fileName}`
-        });
-        return { success: true, method: 'web-share' };
-      }
-    } catch (shareErr: any) {
-      if (shareErr.name === 'AbortError') {
-        return { success: true, method: 'web-share' };
-      }
-      console.warn('[Downloader] Web Share CSV non supporté ou échoué:', shareErr);
-    }
-  }
-
-  // 3. Téléchargement standard via élément <a>
+  // 2. Téléchargement direct standard navigateur / ordinateur / mobile (Dossier Téléchargements / Documents)
   try {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = fileName;
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
     return { success: true, method: 'download' };
   } catch (err: any) {
     console.error('[Downloader] Échec téléchargement texte:', err);
