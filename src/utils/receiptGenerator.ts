@@ -1,5 +1,6 @@
 import { Sale, ShopProfile } from '../types';
 import { formatCurrency, formatDateTime } from './formatters';
+import { getShopPrimaryColor } from './themeColors';
 
 /**
  * Génère une image PNG haute définition (Canvas 2D) du ticket de caisse stylisé
@@ -181,10 +182,11 @@ export async function generateReceiptCanvas(
   }
   ctx.restore();
 
-  // 4. En-tête vert émeraude compact & raffiné
+  // 4. En-tête de marque raffiné (couleur personnalisée de la boutique)
+  const brandPrimaryColor = getShopPrimaryColor(shop?.primaryColor);
   const headerGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + headerHeight);
-  headerGrad.addColorStop(0, '#047857');
-  headerGrad.addColorStop(1, '#064e3b');
+  headerGrad.addColorStop(0, brandPrimaryColor);
+  headerGrad.addColorStop(1, '#0f172a');
   ctx.fillStyle = headerGrad;
   ctx.beginPath();
   ctx.roundRect(cardX, cardY, cardW, headerHeight, [radius, radius, 0, 0]);
@@ -398,7 +400,7 @@ export async function generateReceiptCanvas(
     ctx.fillText(`Règlement : ${modeText}`, cardX + 38, totalBoxY + 88);
 
     ctx.textAlign = 'right';
-    ctx.fillStyle = '#047857';
+    ctx.fillStyle = brandPrimaryColor;
     ctx.font = 'bold 24px sans-serif';
     ctx.fillText(formatCurrency(sale.totalAmount), cardX + cardW - 38, totalBoxY + 62);
   } else {
@@ -412,7 +414,7 @@ export async function generateReceiptCanvas(
     ctx.fillText(`Règlement : ${modeText}`, cardX + 38, totalBoxY + 58);
 
     ctx.textAlign = 'right';
-    ctx.fillStyle = '#047857';
+    ctx.fillStyle = brandPrimaryColor;
     ctx.font = 'bold 24px sans-serif';
     ctx.fillText(formatCurrency(sale.totalAmount), cardX + cardW - 38, totalBoxY + 48);
   }

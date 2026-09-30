@@ -28,6 +28,7 @@ import { Logo } from '../common/Logo';
 import { BurkinaFlag } from '../common/BurkinaFlag';
 import { syncService } from '../../db/services/syncService';
 import { adminService } from '../../db/services/adminService';
+import { ColorPalettePicker } from '../common/ColorPalettePicker';
 
 export const OnboardingView: React.FC = () => {
   const { loginWithPhoneAndPin, createShop, isSyncing } = useAppStore();
@@ -56,6 +57,7 @@ export const OnboardingView: React.FC = () => {
   const [ifu, setIfu] = useState('');
   const [rccm, setRccm] = useState('');
   const [logo, setLogo] = useState<string | null>(null);
+  const [primaryColor, setPrimaryColor] = useState<string>('#047857');
   const [showBusinessInfo, setShowBusinessInfo] = useState(false);
   const [registerError, setRegisterError] = useState('');
   const [duplicateAccountDetected, setDuplicateAccountDetected] = useState<{ exists: boolean; shopName?: string; phone?: string } | null>(null);
@@ -257,7 +259,8 @@ export const OnboardingView: React.FC = () => {
         referralCode: referralCode.trim().toUpperCase() || undefined,
         ifu: ifu.trim() || undefined,
         rccm: rccm.trim() || undefined,
-        logo: logo || undefined
+        logo: logo || undefined,
+        primaryColor: primaryColor || undefined
       });
       setIsOtpModalOpen(false);
     } catch (err: any) {
@@ -788,6 +791,16 @@ export const OnboardingView: React.FC = () => {
                       </div>
                     </div>
                   )}
+                </div>
+
+                {/* 8. Palette de couleurs & Thème de la boutique */}
+                <div className="p-3.5 bg-slate-50/80 border border-slate-200 rounded-2xl">
+                  <ColorPalettePicker
+                    selectedColor={primaryColor}
+                    onChange={setPrimaryColor}
+                    shopName={shopName}
+                    showPreview={true}
+                  />
                 </div>
 
                 {/* Bouton de validation */}

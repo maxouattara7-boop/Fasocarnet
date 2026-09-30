@@ -3,9 +3,27 @@ import { CustomInvoice, ShopProfile } from '../types';
 import { formatCurrency } from './formatters';
 import { downloadOrSharePdfBlob, downloadOrShareImage, FileActionResult } from './fileDownloader';
 import { getLegalArreteMention } from './numberToWords';
+import { hexToRgba } from './themeColors';
 
 export interface GeneratePdfOptions {
   directShare?: boolean;
+}
+
+function parseHexColorToRgb(hex: string, defaultRgb: [number, number, number]): [number, number, number] {
+  if (!hex || !/^#([0-9A-F]{3}){1,2}$/i.test(hex)) return defaultRgb;
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.length === 3 ? clean[0] + clean[0] : clean.substring(0, 2), 16);
+  const g = parseInt(clean.length === 3 ? clean[1] + clean[1] : clean.substring(2, 4), 16);
+  const b = parseInt(clean.length === 3 ? clean[2] + clean[2] : clean.substring(4, 6), 16);
+  return [r, g, b];
+}
+
+function hexToLightRgb(rgb: [number, number, number]): [number, number, number] {
+  return [
+    Math.round(rgb[0] + (255 - rgb[0]) * 0.92),
+    Math.round(rgb[1] + (255 - rgb[1]) * 0.92),
+    Math.round(rgb[2] + (255 - rgb[2]) * 0.92)
+  ];
 }
 
 /**
@@ -24,18 +42,22 @@ export function generateCustomInvoicePdf(
   const isQuote = invoice.type === 'QUOTE';
   const isProforma = invoice.type === 'PROFORMA';
 
-  // Palette de couleurs dynamique
-  const themeColor = isQuote 
+  const customRgb = shop?.primaryColor ? parseHexColorToRgb(shop.primaryColor, [4, 120, 87]) : null;
+
+  // Palette de couleurs dynamique (priorité à la couleur personnalisée de la boutique)
+  const themeColor = customRgb || (isQuote 
     ? [29, 78, 216] // Bleu roi (#1d4ed8)
     : isProforma 
     ? [99, 102, 241] // Indigo (#6366f1)
-    : [4, 120, 87]; // Émeraude FasoCarnet (#047857)
+    : [4, 120, 87]); // Émeraude FasoCarnet (#047857)
 
-  const themeLightBg = isQuote 
+  const themeLightBg = customRgb
+    ? hexToLightRgb(customRgb)
+    : (isQuote 
     ? [239, 246, 255] // Bleu très clair (#eff6ff)
     : isProforma 
     ? [238, 242, 255] // Indigo très clair (#eef2ff)
-    : [236, 253, 245]; // Vert très clair (#ecfdf5)
+    : [236, 253, 245]); // Vert très clair (#ecfdf5)
 
   const docTypeTitle = isQuote 
     ? 'DEVIS ESTIMATIF' 
@@ -487,8 +509,10 @@ export async function generateCustomInvoiceCanvas(
   const isQuote = invoice.type === 'QUOTE';
   const isProforma = invoice.type === 'PROFORMA';
   const docTypeTitle = isQuote ? 'DEVIS ESTIMATIF' : isProforma ? 'FACTURE PROFORMA' : 'FACTURE COMMERCIALE';
-  const primaryColor = isQuote ? '#1d4ed8' : isProforma ? '#4f46e5' : '#047857';
-  const secondaryColor = isQuote ? '#eff6ff' : isProforma ? '#eef2ff' : '#ecfdf5';
+  
+  const brandHex = shop?.primaryColor && /^#([0-9A-F]{3}){1,2}$/i.test(shop.primaryColor) ? shop.primaryColor : null;
+  const primaryColor = brandHex || (isQuote ? '#1d4ed8' : isProforma ? '#4f46e5' : '#047857');
+  const secondaryColor = brandHex ? hexToRgba(brandHex, 0.08) : (isQuote ? '#eff6ff' : isProforma ? '#eef2ff' : '#ecfdf5');
 
   const logoImg = await loadInvoiceLogoImage(shop?.logo);
   const items = invoice.items || [];

@@ -52,6 +52,7 @@ import { subscriptionService, SUBSCRIPTION_PLANS, SubscriptionPlan } from '../..
 import { syncService } from '../../db/services/syncService';
 import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
 import { OnlinePaymentModal } from '../subscription/OnlinePaymentModal';
+import { ColorPalettePicker } from '../common/ColorPalettePicker';
 import { Product, StockSupply } from '../../types';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
 
@@ -93,6 +94,7 @@ export const SettingsView: React.FC = () => {
   const [ifu, setIfu] = useState(shopProfile?.ifu || '');
   const [rccm, setRccm] = useState(shopProfile?.rccm || '');
   const [logo, setLogo] = useState<string | null>(shopProfile?.logo || null);
+  const [primaryColor, setPrimaryColor] = useState<string>(shopProfile?.primaryColor || '#047857');
   const [debtAlarmEnabled, setDebtAlarmEnabled] = useState(shopProfile?.debtAlarmEnabled !== false);
   const [debtAlarmDay, setDebtAlarmDay] = useState(shopProfile?.debtAlarmDay ?? 1);
   const [pin, setNewPin] = useState(shopProfile?.pinCode || '');
@@ -115,6 +117,7 @@ export const SettingsView: React.FC = () => {
       setIfu(shopProfile.ifu || '');
       setRccm(shopProfile.rccm || '');
       setLogo(shopProfile.logo || null);
+      setPrimaryColor(shopProfile.primaryColor || '#047857');
       setDebtAlarmEnabled(shopProfile.debtAlarmEnabled !== false);
       setDebtAlarmDay(shopProfile.debtAlarmDay ?? 1);
       setNewPin(shopProfile.pinCode || '');
@@ -477,6 +480,7 @@ export const SettingsView: React.FC = () => {
       ifu: ifu.trim() || undefined,
       rccm: rccm.trim() || undefined,
       logo: logo || undefined,
+      primaryColor: primaryColor || undefined,
       debtAlarmEnabled: debtAlarmEnabled,
       debtAlarmDay: debtAlarmDay,
       pinCode: updatedPin
@@ -825,6 +829,16 @@ export const SettingsView: React.FC = () => {
                   />
                 </label>
               )}
+            </div>
+
+            {/* Couleur de marque & Thème des reçus/factures */}
+            <div className="pt-2 border-t border-slate-100">
+              <ColorPalettePicker
+                selectedColor={primaryColor}
+                onChange={setPrimaryColor}
+                shopName={name}
+                showPreview={true}
+              />
             </div>
 
             <button
