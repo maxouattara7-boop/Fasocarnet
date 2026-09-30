@@ -47,7 +47,7 @@ describe('FasoCarnet App Component', () => {
     // 1. Présentation de la solution et phrase d'accroche Option 1
     await waitFor(() => {
       expect(screen.getByText(/FasoCarnet/i)).toBeInTheDocument();
-      expect(screen.getByText(/Votre caisse, vos crédits clients et vos bilans en poche/i)).toBeInTheDocument();
+      expect(screen.getByText(/La Solution Digitale des Commerçants/i)).toBeInTheDocument();
       expect(screen.getByTestId('btn-continue')).toBeInTheDocument();
     });
 

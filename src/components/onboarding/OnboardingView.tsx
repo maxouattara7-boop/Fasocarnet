@@ -13,9 +13,6 @@ import {
   EyeOff, 
   AlertCircle,
   RefreshCw,
-  Zap,
-  BookOpen,
-  WifiOff,
   ChevronDown,
   ChevronUp,
   FileText,
@@ -277,180 +274,100 @@ export const OnboardingView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-950 text-white flex flex-col justify-between p-4 sm:p-6 lg:p-10 select-none relative overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-950 text-white flex flex-col justify-center items-center p-4 sm:p-6 select-none relative overflow-x-hidden">
       
       {/* Effets lumineux d'ambiance en arrière-plan */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-1/4 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Conteneur principal Responsive (Largeur max 7xl) */}
-      <div className="max-w-7xl w-full mx-auto my-auto py-2 sm:py-6">
+      {/* Conteneur principal centré */}
+      <div className="w-full max-w-md mx-auto my-auto py-4 sm:py-6">
         
-        {/* ========================================================================= */}
-        {/* GRILLE PRINCIPALE : 2 COLONNES SUR GRAND ÉCRAN / FLUIDE SUR MOBILE        */}
-        {/* ========================================================================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          
-          {/* ======================================================================= */}
-          {/* COLONNE GAUCHE : PRÉSENTATION, LOGO & ATOUTS MAJEURS DE L'APPLICATION   */}
-          {/* ======================================================================= */}
-          <div className="lg:col-span-6 xl:col-span-7 space-y-5 sm:space-y-6 text-center lg:text-left">
-            
-            {/* Logo & Badge */}
-            <div className="flex flex-col items-center lg:items-start space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="p-2.5 bg-gradient-to-tr from-emerald-500/20 to-amber-500/20 rounded-2xl border border-emerald-500/30 shadow-xl backdrop-blur-sm">
-                  <Logo size="md" showText={false} />
-                </div>
-                <div className="text-left">
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white leading-none font-display">
-                    FasoCarnet
-                  </h1>
-                  <span className="text-[10px] sm:text-xs text-emerald-300 font-bold uppercase tracking-wider block mt-1">
-                    Caisse & Carnet Digital
-                  </span>
-                </div>
-              </div>
-
-              <div className="inline-flex items-center space-x-1.5 px-3 py-1 bg-emerald-500/15 border border-emerald-400/30 rounded-full text-xs font-bold text-emerald-300 shadow-xs">
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span>La Solution Digitale des Commerçants</span>
-              </div>
+        {/* ======================================================================= */}
+        {/* EN-TÊTE : LOGO, TITRE & BADGE CENTRÉS EN HAUT                           */}
+        {/* ======================================================================= */}
+        <div className="flex flex-col items-center justify-center space-y-3 mb-6 text-center">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 bg-gradient-to-tr from-emerald-500/20 to-amber-500/20 rounded-2xl border border-emerald-500/30 shadow-xl backdrop-blur-sm">
+              <Logo size="md" showText={false} />
             </div>
-
-            {/* Phrase d'accroche */}
-            <div className="space-y-2 max-w-xl mx-auto lg:mx-0">
-              <h2 className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-white leading-snug font-display">
-                Votre caisse, vos crédits clients et vos bilans en poche.
-              </h2>
-              <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed font-medium">
-                Gérez vos ventes au comptant, suivez vos créances et vos dépenses en toute sérénité.{' '}
-                <span className="text-amber-300 font-black">Simple, rapide et 100% hors-ligne.</span>
-              </p>
+            <div className="text-left">
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-none font-display">
+                FasoCarnet
+              </h1>
+              <span className="text-xs text-emerald-300 font-bold uppercase tracking-wider block mt-1">
+                CAISSE & CARNET DIGITAL
+              </span>
             </div>
-
-            {/* Grille des 3 Atouts Clés */}
-            <div className="space-y-2.5 max-w-xl mx-auto lg:mx-0">
-              {/* 1. Caisse Tactile Express */}
-              <div className="bg-slate-900/80 border border-emerald-500/25 p-3 sm:p-3.5 rounded-2xl flex items-center space-x-3.5 text-left backdrop-blur-md shadow-md hover:border-emerald-400/50 transition-all">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-400 shadow-inner">
-                  <Zap className="w-5 h-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider font-display">
-                    Caisse Tactile Express
-                  </h3>
-                  <p className="text-[11px] text-slate-300 truncate">
-                    Encaissez en 3 secondes avec reçus WhatsApp & tickets Bluetooth
-                  </p>
-                </div>
-              </div>
-
-              {/* 2. Carnet de Dettes Intelligent */}
-              <div className="bg-slate-900/80 border border-emerald-500/25 p-3 sm:p-3.5 rounded-2xl flex items-center space-x-3.5 text-left backdrop-blur-md shadow-md hover:border-emerald-400/50 transition-all">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400 shadow-inner">
-                  <BookOpen className="w-5 h-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider font-display">
-                    Carnet de Dettes Intelligent
-                  </h3>
-                  <p className="text-[11px] text-slate-300 truncate">
-                    Suivez les crédits clients et envoyez des relances en 1 clic sur WhatsApp
-                  </p>
-                </div>
-              </div>
-
-              {/* 3. 100% Hors-Ligne & Cloud */}
-              <div className="bg-slate-900/80 border border-emerald-500/25 p-3 sm:p-3.5 rounded-2xl flex items-center space-x-3.5 text-left backdrop-blur-md shadow-md hover:border-emerald-400/50 transition-all">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shrink-0 text-cyan-400 shadow-inner">
-                  <WifiOff className="w-5 h-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider font-display">
-                    100% Hors-Ligne & Sauvegardé
-                  </h3>
-                  <p className="text-[11px] text-slate-300 truncate">
-                    Fonctionne partout sans réseau, synchronisation automatique sécurisée
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Reassurance locale */}
-            <div className="hidden lg:flex items-center space-x-2 text-xs text-slate-400 pt-2">
-              <BurkinaFlag size="sm" />
-              <span>Conçu pour les commerçants du Burkina Faso • Données sécurisées</span>
-            </div>
-
-            {/* Bouton de secours pour les tests automatisés */}
-            <button
-              type="button"
-              data-testid="btn-continue"
-              onClick={() => {
-                const el = document.getElementById('auth-card-container');
-                if (el && typeof el.scrollIntoView === 'function') {
-                  el.scrollIntoView({ behavior: 'smooth' });
-                }
-              }}
-              className="hidden"
-            >
-              Continuer
-            </button>
           </div>
 
-          {/* ======================================================================= */}
-          {/* COLONNE DROITE : FORMULAIRE INTERACTIF (CONNEXION OU CRÉATION D'ESPACE) */}
-          {/* ======================================================================= */}
-          <div id="auth-card-container" className="lg:col-span-6 xl:col-span-5 w-full max-w-md mx-auto lg:max-w-none">
-            
-            <div className="space-y-3 text-center mb-3">
-              <h3 className="text-base sm:text-lg font-black tracking-tight leading-tight text-white font-display">
-                Se connecter ou créer son espace
-              </h3>
-              <p className="text-xs font-semibold text-emerald-300/80">
-                {authMode === 'login' ? 'Connexion à votre Espace' : 'Création de votre Espace'}
-              </p>
+          <div className="inline-flex items-center space-x-1.5 px-3.5 py-1 bg-emerald-500/15 border border-emerald-400/30 rounded-full text-xs font-bold text-emerald-300 shadow-xs">
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span>La Solution Digitale des Commerçants</span>
+          </div>
+        </div>
 
-              {/* SÉLECTEUR D'ONGLETS (CONNEXION / CRÉER UN ESPACE) */}
-              <div className="bg-emerald-900/80 backdrop-blur-md p-1 rounded-2xl flex border border-emerald-700/50 shadow-inner">
-                <button
-                  type="button"
-                  data-testid="tab-login"
-                  onClick={() => {
-                    setAuthMode('login');
-                    setLoginError('');
-                    setDuplicateAccountDetected(null);
-                  }}
-                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer font-display ${
-                    authMode === 'login'
-                      ? 'bg-white text-emerald-950 shadow-md font-black'
-                      : 'text-emerald-200 hover:text-white'
-                  }`}
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>Connexion</span>
-                </button>
+        {/* Bouton de secours pour les tests automatisés */}
+        <button
+          type="button"
+          data-testid="btn-continue"
+          className="hidden"
+        >
+          Continuer
+        </button>
 
-                <button
-                  type="button"
-                  data-testid="tab-register"
-                  onClick={() => {
-                    setAuthMode('register');
-                    setRegisterError('');
-                    setDuplicateAccountDetected(null);
-                  }}
-                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer font-display ${
-                    authMode === 'register'
-                      ? 'bg-emerald-500 text-emerald-950 shadow-md font-black'
-                      : 'text-emerald-200 hover:text-white'
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Créer un Espace</span>
-                </button>
-              </div>
+        {/* ======================================================================= */}
+        {/* CARTE D'AUTHENTIFICATION CENTRÉE (CONNEXION OU CRÉATION D'ESPACE)       */}
+        {/* ======================================================================= */}
+        <div id="auth-card-container" className="w-full">
+          
+          <div className="space-y-3 text-center mb-3">
+            <h2 className="text-base sm:text-lg font-black tracking-tight leading-tight text-white font-display">
+              Se connecter ou créer son espace
+            </h2>
+            <p className="text-xs font-semibold text-emerald-300/80">
+              {authMode === 'login' ? 'Connexion à votre Espace' : 'Création de votre Espace'}
+            </p>
+
+            {/* SÉLECTEUR D'ONGLETS (CONNEXION / CRÉER UN ESPACE) */}
+            <div className="bg-emerald-900/80 backdrop-blur-md p-1 rounded-2xl flex border border-emerald-700/50 shadow-inner">
+              <button
+                type="button"
+                data-testid="tab-login"
+                onClick={() => {
+                  setAuthMode('login');
+                  setLoginError('');
+                  setDuplicateAccountDetected(null);
+                }}
+                className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer font-display ${
+                  authMode === 'login'
+                    ? 'bg-white text-emerald-950 shadow-md font-black'
+                    : 'text-emerald-200 hover:text-white'
+                }`}
+              >
+                <Lock className="w-4 h-4" />
+                <span>Connexion</span>
+              </button>
+
+              <button
+                type="button"
+                data-testid="tab-register"
+                onClick={() => {
+                  setAuthMode('register');
+                  setRegisterError('');
+                  setDuplicateAccountDetected(null);
+                }}
+                className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center space-x-1.5 cursor-pointer font-display ${
+                  authMode === 'register'
+                    ? 'bg-emerald-500 text-emerald-950 shadow-md font-black'
+                    : 'text-emerald-200 hover:text-white'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Créer un Espace</span>
+              </button>
             </div>
+          </div>
 
             {/* ======================================================== */}
             {/* ONGLET 1 : SE CONNECTER                                   */}
@@ -832,7 +749,6 @@ export const OnboardingView: React.FC = () => {
 
           </div>
         </div>
-      </div>
 
       {/* ========================================================= */}
       {/* MODALE DE VÉRIFICATION DE SÉCURITÉ (ANTI-ROBOT)            */}
