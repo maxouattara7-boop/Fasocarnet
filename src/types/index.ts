@@ -348,6 +348,7 @@ export interface CommercialTeam {
   name: string;
   leaderName?: string;
   leaderPhone?: string;
+  leaderId?: string; // ID du compte TeamLeaderAccount
   zone?: string;
   description?: string;
   affiliateCodes: string[];
@@ -382,4 +383,28 @@ export interface CommercialAgent {
   createdAt: string;
   updatedAt?: string;
 }
+
+export interface TeamLeaderAccount {
+  id: string;
+  fullName: string;
+  phone: string; // Numéro WhatsApp de connexion (ex: '70112233')
+  pinCodeHash: string; // Hash SHA-256 du code PIN
+  teamId: string; // ID de l'équipe commerciale qu'il gère
+  teamName: string;
+  zone?: string;
+  status: 'active' | 'inactive';
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface TeamLeaderDashboardData {
+  leader: TeamLeaderAccount;
+  team: CommercialTeam;
+  membersCount: number;
+  totalShopsReferred: number;
+  activeSubscribedShops: number;
+  currentWeekCommissionTotal: number;
+  commercials: CommercialAffiliateReport[];
+}
+
 

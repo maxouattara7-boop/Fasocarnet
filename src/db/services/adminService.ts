@@ -10,7 +10,9 @@ import {
   AffiliateSettlement,
   CommercialTeam,
   CommercialTeamReport,
-  CommercialAgent
+  CommercialAgent,
+  TeamLeaderAccount,
+  TeamLeaderDashboardData
 } from '../../types';
 import { subscriptionService, SUBSCRIPTION_PLANS, DEFAULT_DEPOSIT_NUMBERS } from './subscriptionService';
 import { syncService } from './syncService';
@@ -1032,9 +1034,11 @@ export const adminService = {
     name: string;
     leaderName?: string;
     leaderPhone?: string;
+    leaderId?: string;
     zone?: string;
     description?: string;
     affiliateCodes: string[];
+    createdAt?: string;
   }): Promise<CommercialTeam> {
     if (!data.name.trim()) throw new Error('Le nom de l\'équipe est obligatoire.');
 
@@ -1048,14 +1052,14 @@ export const adminService = {
     const now = new Date().toISOString();
     let team: CommercialTeam;
 
-    if (data.id) {
-      const existingIdx = teams.findIndex(t => t.id === data.id);
-      if (existingIdx === -1) throw new Error('Équipe introuvable.');
+    const existingIdx = data.id ? teams.findIndex(t => t.id === data.id) : -1;
+    if (existingIdx !== -1) {
       team = {
         ...teams[existingIdx],
         name: data.name.trim(),
         leaderName: data.leaderName?.trim() || undefined,
         leaderPhone: data.leaderPhone?.trim() || undefined,
+        leaderId: data.leaderId?.trim() || undefined,
         zone: data.zone?.trim() || undefined,
         description: data.description?.trim() || undefined,
         affiliateCodes: cleanCodes,
@@ -1064,14 +1068,15 @@ export const adminService = {
       teams[existingIdx] = team;
     } else {
       team = {
-        id: `team_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        id: data.id || `team_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         name: data.name.trim(),
         leaderName: data.leaderName?.trim() || undefined,
         leaderPhone: data.leaderPhone?.trim() || undefined,
+        leaderId: data.leaderId?.trim() || undefined,
         zone: data.zone?.trim() || undefined,
         description: data.description?.trim() || undefined,
         affiliateCodes: cleanCodes,
-        createdAt: now,
+        createdAt: data.createdAt || now,
         updatedAt: now
       };
       teams.push(team);
@@ -1552,5 +1557,336 @@ export const adminService = {
     const cleanPhone = phone.replace(/\D/g, '');
     const message = `Bonjour le Support FasoCarnet 🇧🇫,\nJe crée actuellement mon espace boutique *${shopName}* avec le numéro WhatsApp *${cleanPhone}*.\nMerci de me transmettre mon code d'activation sécurisé.`;
     return `https://wa.me/22665616134?text=${encodeURIComponent(message)}`;
+  },
+
+  // =========================================================================
+  // GESTION DES CHEFS D'ÉQUIPE (MINI-ADMINISTRATEURS)
+  // =========================================================================
+
+  /**
+   * Récupère tous les comptes Chefs d'Équipe (Mini-Admins)
+   */
+  async getAllTeamLeaders(): Promise<TeamLeaderAccount[]> {
+    let leaders: TeamLeaderAccount[] = [];
+
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('fasocarnet_admin_team_leaders');
+        if (saved) {
+          leaders = JSON.parse(saved);
+        }
+      } catch (e) {
+        console.warn('Erreur lecture team leaders local:', e);
+      }
+    }
+
+    try {
+      const cloudDb = await syncService.fetchRemoteDatabase();
+      const adminVault = cloudDb['_admin_vault'] as any;
+      if (adminVault && Array.isArray(adminVault.teamLeaders)) {
+        const cloudLeaders: TeamLeaderAccount[] = adminVault.teamLeaders;
+        const leaderMap = new Map<string, TeamLeaderAccount>();
+        cloudLeaders.forEach(l => leaderMap.set(l.id, l));
+        leaders.forEach(l => leaderMap.set(l.id, l));
+        leaders = Array.from(leaderMap.values());
+      }
+    } catch (e) {
+      console.warn('Erreur synchro cloud team leaders:', e);
+    }
+
+    return leaders;
+  },
+
+  /**
+   * Crée ou met à jour un compte Chef d'Équipe (Mini-Admin)
+   */
+  async saveTeamLeader(data: Partial<TeamLeaderAccount> & { pinCode?: string }): Promise<TeamLeaderAccount> {
+    if (!data.fullName || !data.fullName.trim()) {
+      throw new Error('Le nom complet du chef d\'équipe est obligatoire.');
+    }
+    if (!data.phone || !data.phone.trim()) {
+      throw new Error('Le numéro de téléphone WhatsApp est obligatoire.');
+    }
+
+    const leaders = await this.getAllTeamLeaders();
+    const cleanPhone = data.phone.replace(/\D/g, '').slice(-8);
+    const now = new Date().toISOString();
+    const id = data.id || `leader_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+    // Calcul du hash PIN
+    let pinCodeHash = data.pinCodeHash || '';
+    if (data.pinCode && data.pinCode.trim()) {
+      pinCodeHash = hashPassword(data.pinCode.trim());
+    } else if (!pinCodeHash && data.id) {
+      const existing = leaders.find(l => l.id === data.id);
+      if (existing) pinCodeHash = existing.pinCodeHash;
+    }
+
+    if (!pinCodeHash) {
+      pinCodeHash = hashPassword('1234'); // PIN par défaut si non spécifié
+    }
+
+    // Récupérer le nom de l'équipe
+    let teamName = data.teamName || '';
+    if (data.teamId && !teamName) {
+      const teams = await this.getAllCommercialTeams();
+      const team = teams.find(t => t.id === data.teamId);
+      if (team) teamName = team.name;
+    }
+
+    const leader: TeamLeaderAccount = {
+      id,
+      fullName: data.fullName.trim(),
+      phone: cleanPhone,
+      pinCodeHash,
+      teamId: data.teamId || '',
+      teamName: teamName || 'Équipe Commerciale',
+      zone: data.zone?.trim(),
+      status: data.status || 'active',
+      createdAt: data.createdAt || now,
+      updatedAt: now
+    };
+
+    const existingIndex = leaders.findIndex(l => l.id === id);
+    if (existingIndex >= 0) {
+      leaders[existingIndex] = leader;
+    } else {
+      leaders.push(leader);
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fasocarnet_admin_team_leaders', JSON.stringify(leaders));
+    }
+
+    // Mettre à jour l'équipe associée
+    if (leader.teamId) {
+      try {
+        const teams = await this.getAllCommercialTeams();
+        const team = teams.find(t => t.id === leader.teamId);
+        if (team) {
+          team.leaderId = leader.id;
+          team.leaderName = leader.fullName;
+          team.leaderPhone = leader.phone;
+          if (leader.zone) team.zone = leader.zone;
+          await this.saveCommercialTeam(team);
+        }
+      } catch (e) {
+        console.warn('Erreur association chef-équipe:', e);
+      }
+    }
+
+    // Sauvegarde Cloud Vault
+    try {
+      const cloudDb = await syncService.fetchRemoteDatabase();
+      const adminVaultKey = '_admin_vault';
+      if (!cloudDb[adminVaultKey]) {
+        cloudDb[adminVaultKey] = {
+          profile: undefined as any,
+          sales: [],
+          customers: [],
+          products: [],
+          debts: [],
+          debtPayments: [],
+          licenses: [],
+          lastUpdatedAt: now
+        };
+      }
+      (cloudDb[adminVaultKey] as any).teamLeaders = leaders;
+      cloudDb[adminVaultKey].lastUpdatedAt = now;
+      await syncService.pushRemoteDatabase(cloudDb);
+    } catch (e) {
+      console.warn('Erreur sauvegarde chef d\'équipe cloud:', e);
+    }
+
+    return leader;
+  },
+
+  /**
+   * Supprime un compte Chef d'Équipe
+   */
+  async deleteTeamLeader(leaderId: string): Promise<void> {
+    const leaders = await this.getAllTeamLeaders();
+    const targetLeader = leaders.find(l => l.id === leaderId);
+    const updated = leaders.filter(l => l.id !== leaderId);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fasocarnet_admin_team_leaders', JSON.stringify(updated));
+    }
+
+    // Détacher le chef de son équipe
+    if (targetLeader && targetLeader.teamId) {
+      try {
+        const teams = await this.getAllCommercialTeams();
+        const team = teams.find(t => t.id === targetLeader.teamId);
+        if (team && team.leaderId === leaderId) {
+          team.leaderId = undefined;
+          team.leaderName = undefined;
+          team.leaderPhone = undefined;
+          await this.saveCommercialTeam(team);
+        }
+      } catch {}
+    }
+
+    try {
+      const cloudDb = await syncService.fetchRemoteDatabase();
+      const adminVaultKey = '_admin_vault';
+      if (cloudDb[adminVaultKey]) {
+        (cloudDb[adminVaultKey] as any).teamLeaders = updated;
+        cloudDb[adminVaultKey].lastUpdatedAt = new Date().toISOString();
+        await syncService.pushRemoteDatabase(cloudDb);
+      }
+    } catch (e) {
+      console.warn('Erreur suppression chef d\'équipe cloud:', e);
+    }
+  },
+
+  /**
+   * Vérifie si les identifiants correspondent à un Chef d'Équipe actif
+   */
+  async verifyTeamLeaderCredentials(phone: string, pin: string): Promise<TeamLeaderAccount | null> {
+    const cleanPhone = phone.replace(/\D/g, '').slice(-8);
+    if (!cleanPhone || !pin) return null;
+
+    const leaders = await this.getAllTeamLeaders();
+    const leader = leaders.find(l => l.phone.replace(/\D/g, '').slice(-8) === cleanPhone && l.status === 'active');
+    if (!leader) return null;
+
+    const isValid = verifyHash(pin, leader.pinCodeHash);
+    if (isValid) {
+      return leader;
+    }
+    return null;
+  },
+
+  /**
+   * Récupère les données isolées du tableau de bord pour un Chef d'Équipe
+   */
+  async getTeamLeaderDashboardData(leaderId: string): Promise<TeamLeaderDashboardData | null> {
+    const leaders = await this.getAllTeamLeaders();
+    const leader = leaders.find(l => l.id === leaderId);
+    if (!leader) return null;
+
+    const teams = await this.getAllCommercialTeams();
+    let team = teams.find(t => t.id === leader.teamId || t.leaderId === leader.id);
+    if (!team) {
+      // Créer une équipe par défaut pour ce chef si inexistante
+      team = await this.saveCommercialTeam({
+        id: leader.teamId || `team_${leader.id}`,
+        name: leader.teamName || `Équipe ${leader.fullName}`,
+        leaderId: leader.id,
+        leaderName: leader.fullName,
+        leaderPhone: leader.phone,
+        zone: leader.zone,
+        affiliateCodes: []
+      });
+    }
+
+    // Récupérer les agents de l'équipe
+    const allAgents = await this.getAllCommercialAgents();
+    const teamAgents = allAgents.filter(a => a.teamId === team!.id || team!.affiliateCodes.some(c => c.trim().toUpperCase() === a.code.trim().toUpperCase()));
+
+    // Récupérer les rapports d'affiliation consolidés
+    const allReports = await this.getAffiliatesReports();
+    const reportMap = new Map<string, CommercialAffiliateReport>();
+    allReports.forEach(r => reportMap.set(r.code.trim().toUpperCase(), r));
+
+    // Assurer que tous les agents de l'équipe ont une entrée de rapport
+    const commercials: CommercialAffiliateReport[] = teamAgents.map(agent => {
+      const codeKey = agent.code.trim().toUpperCase();
+      const existingReport = reportMap.get(codeKey);
+      if (existingReport) {
+        return {
+          ...existingReport,
+          name: agent.fullName || existingReport.name,
+          phone: agent.phone || existingReport.phone
+        };
+      }
+      return {
+        code: agent.code,
+        name: agent.fullName,
+        phone: agent.phone,
+        totalShopsReferred: 0,
+        activeSubscribedShops: 0,
+        totalRevenueGenerated: 0,
+        totalCommissionAllTime: 0,
+        currentWeekRevenue: 0,
+        currentWeekPaidCount: 0,
+        currentWeekCommissionDue: 0,
+        currentWeekIsSettled: false,
+        settlements: [],
+        referredShops: []
+      };
+    });
+
+    // Ajouter également les codes d'affiliation présents dans l'équipe mais sans profil agent complet
+    team.affiliateCodes.forEach(code => {
+      const codeKey = code.trim().toUpperCase();
+      if (!commercials.some(c => c.code.trim().toUpperCase() === codeKey)) {
+        const report = reportMap.get(codeKey);
+        if (report) commercials.push(report);
+      }
+    });
+
+    const membersCount = commercials.length;
+    const totalShopsReferred = commercials.reduce((acc, c) => acc + c.totalShopsReferred, 0);
+    const activeSubscribedShops = commercials.reduce((acc, c) => acc + c.activeSubscribedShops, 0);
+    const currentWeekCommissionTotal = commercials.reduce((acc, c) => acc + c.currentWeekCommissionDue, 0);
+
+    return {
+      leader,
+      team,
+      membersCount,
+      totalShopsReferred,
+      activeSubscribedShops,
+      currentWeekCommissionTotal,
+      commercials
+    };
+  },
+
+  /**
+   * Génère le message de bienvenue WhatsApp pour un Chef d'Équipe
+   */
+  getWhatsAppTeamLeaderWelcomeUrl(leader: TeamLeaderAccount, rawPin?: string): string {
+    const cleanPhone = leader.phone.replace(/\D/g, '');
+    const phoneParam = cleanPhone.startsWith('226') ? cleanPhone : (cleanPhone ? `226${cleanPhone}` : '');
+
+    const message = `🇧🇫 *ESPACE CHEF D'ÉQUIPE FASOCARNET* 🇧🇫\n\n` +
+      `Bonjour *${leader.fullName}*,\n\n` +
+      `Vous avez été nommé Chef de l'équipe commerciale *${leader.teamName}* sur FasoCarnet.\n\n` +
+      `📲 *Vos identifiants d'accès Chef d'équipe :*\n` +
+      `• *Numéro de connexion :* +226 ${cleanPhone}\n` +
+      (rawPin ? `• *Code PIN d'accès :* ${rawPin}\n` : '') +
+      `• *Zone :* ${leader.zone || 'Burkina Faso'}\n\n` +
+      `🚀 *Vos prérogatives :*\n` +
+      `1. Accéder au suivi des performances de votre équipe.\n` +
+      `2. Recruter de nouveaux commerciaux sur le terrain.\n` +
+      `3. Générer et partager instantanément leurs codes d'affiliation.\n\n` +
+      `Connectez-vous dès maintenant sur l'application FasoCarnet pour piloter votre équipe !`;
+
+    return phoneParam
+      ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+  },
+
+  /**
+   * Génère le kit de bienvenue WhatsApp pour un nouveau Commercial recruté
+   */
+  getWhatsAppCommercialKitUrl(agent: { fullName: string; code: string; phone?: string }, leaderName?: string): string {
+    const cleanPhone = (agent.phone || '').replace(/\D/g, '');
+    const phoneParam = cleanPhone.startsWith('226') ? cleanPhone : (cleanPhone ? `226${cleanPhone}` : '');
+
+    const message = `🇧🇫 *BIENVENUE DANS L'ÉQUIPE COMMERCIALE FASOCARNET* 🇧🇫\n\n` +
+      `Bonjour *${agent.fullName}*,\n\n` +
+      (leaderName ? `Vous avez été recruté(e) par votre Chef d'équipe *${leaderName}*.\n\n` : '') +
+      `🎉 *Votre code d'affiliation officiel :* 👉 *${agent.code}* 👈\n\n` +
+      `💼 *Votre mission :*\n` +
+      `1. Présentez FasoCarnet aux commerçants et boutiques de votre zone.\n` +
+      `2. Lors de leur inscription ou abonnement, demandez-leur de saisir votre code *${agent.code}*.\n` +
+      `3. Touchez *15% de commission* directe (soit *300 FCFA* par boutique abonnée à 2000 FCFA/mois) chaque semaine !\n\n` +
+      `Bonne prospection et plein succès sur le terrain !`;
+
+    return phoneParam
+      ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
   }
 };

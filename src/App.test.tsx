@@ -4,6 +4,7 @@ import App from './App';
 import { db } from './db/db';
 import { useAppStore } from './store/appStore';
 import { syncService } from './db/services/syncService';
+import { adminService } from './db/services/adminService';
 import { Capacitor } from '@capacitor/core';
 
 describe('FasoCarnet App Component', () => {
@@ -17,6 +18,8 @@ describe('FasoCarnet App Component', () => {
     useAppStore.setState({
       activeShopId: null,
       shopProfile: null,
+      activeTeamLeader: null,
+      isMiniAdminOpen: false,
       isLocked: false,
       isAdminOpen: false,
       isInitialized: false,
@@ -208,4 +211,59 @@ describe('FasoCarnet App Component', () => {
 
     unmount();
   });
+
+  it('allows intelligent login for Team Leaders and opens Mini-Admin dashboard directly', async () => {
+    await db.shopProfiles.clear();
+    useAppStore.setState({
+      activeShopId: null,
+      shopProfile: null,
+      activeTeamLeader: null,
+      isMiniAdminOpen: false,
+      isLocked: false,
+      isAdminOpen: false,
+      isInitialized: false,
+      activeTab: 'pos'
+    });
+
+    // 1. Créer un chef d'équipe dans adminService
+    await adminService.saveTeamLeader({
+      id: 'leader_bobo_test',
+      fullName: 'Oumar Chef Bobo',
+      phone: '75001122',
+      pinCode: '4321',
+      teamId: 'team_bobo',
+      teamName: 'Équipe Bobo Ouest',
+      zone: 'Bobo-Dioulasso',
+      status: 'active'
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('btn-continue')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId('btn-continue'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Se connecter ou créer son espace/i)).toBeInTheDocument();
+    });
+
+    const phoneInput = screen.getByPlaceholderText(/70 12 34 56/i);
+    const pinInput = screen.getByPlaceholderText(/• • • •/i);
+    const loginBtn = screen.getByRole('button', { name: /SE CONNECTER/i });
+
+    // Saisie des identifiants du chef d'équipe
+    fireEvent.change(phoneInput, { target: { value: '75001122' } });
+    fireEvent.change(pinInput, { target: { value: '4321' } });
+    fireEvent.click(loginBtn);
+
+    // Vérifie que le tableau de bord Mini-Admin Chef d'équipe s'ouvre directement
+    await waitFor(() => {
+      expect(screen.getAllByText(/Oumar Chef Bobo/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Équipe Bobo Ouest/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText(/Chef d'Équipe/i)).toBeInTheDocument();
+      expect(screen.getByText(/\+ RECRUTER UN COMMERCIAL/i)).toBeInTheDocument();
+    });
+  });
 });
+

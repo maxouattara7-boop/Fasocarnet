@@ -9,6 +9,7 @@ import { SettingsView } from './components/settings/SettingsView';
 import { PinLockModal } from './components/auth/PinLockModal';
 import { OnboardingView } from './components/onboarding/OnboardingView';
 import { AdminView } from './components/admin/AdminView';
+import { MiniAdminDashboard } from './components/admin/MiniAdminDashboard';
 import { LandingPageView } from './components/landing/LandingPageView';
 import { subscriptionService } from './db/services/subscriptionService';
 import { syncService } from './db/services/syncService';
@@ -23,7 +24,7 @@ import { customersService } from './db/services/customersService';
 import { Customer } from './types';
 
 export const App: React.FC = () => {
-  const { isInitialized, activeTab, setActiveTab, activeShopId, shopProfile, loadCurrentShop, isAdminOpen, setIsAdminOpen } = useAppStore();
+  const { isInitialized, activeTab, setActiveTab, activeShopId, shopProfile, loadCurrentShop, isAdminOpen, setIsAdminOpen, activeTeamLeader, isMiniAdminOpen } = useAppStore();
   const [broadcast, setBroadcast] = useState<AdminBroadcastMessage | null>(null);
   const [dismissedBroadcastId, setDismissedBroadcastId] = useState<string | null>(null);
   const [showBroadcastDetail, setShowBroadcastDetail] = useState(false);
@@ -135,6 +136,8 @@ export const App: React.FC = () => {
     mainContent = <LandingPageView />;
   } else if (isAdminOpen) {
     mainContent = <AdminView onClose={() => setIsAdminOpen(false)} />;
+  } else if (isMiniAdminOpen && activeTeamLeader) {
+    mainContent = <MiniAdminDashboard />;
   } else if (!isInitialized) {
     mainContent = (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">

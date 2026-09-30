@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { Customer, DebtPayment, DebtRecord, Product, Sale, ShopProfile, LicenseKey, AdminBroadcastMessage, DeviceTelemetry } from '../../types';
+import { Customer, DebtPayment, DebtRecord, Product, Sale, ShopProfile, LicenseKey, AdminBroadcastMessage, DeviceTelemetry, TeamLeaderAccount } from '../../types';
 import { adminService } from './adminService';
 import { collectCurrentTelemetry } from '../../utils/telemetry';
 import { verifyHash, hashPin, isHashed, generateShopAuthToken, verifyShopAuthToken } from '../../utils/crypto';
@@ -24,6 +24,7 @@ export interface LoginResult {
   shop?: ShopProfile;
   token?: string;
   isAdmin?: boolean;
+  teamLeader?: TeamLeaderAccount;
 }
 
 const CLOUD_STORAGE_KEY = 'fasocarnet_cloud_database_v1';
@@ -327,6 +328,12 @@ export const syncService = {
     // 1. Vérification si connexion directe Super-Admin
     if (adminService.isAdminCredentials(phoneInput, pinInput)) {
       return { success: true, isAdmin: true };
+    }
+
+    // 1.bis Vérification si connexion Chef d'Équipe (Mini-Admin)
+    const teamLeader = await adminService.verifyTeamLeaderCredentials(phoneInput, pinInput);
+    if (teamLeader) {
+      return { success: true, teamLeader };
     }
 
     // Récupérer la dernière version du Cloud

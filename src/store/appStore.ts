@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ShopProfile } from '../types';
+import { ShopProfile, TeamLeaderAccount } from '../types';
 import { db } from '../db/db';
 import { syncService, LoginResult } from '../db/services/syncService';
 import { verifyHash, hashPin, isHashed } from '../utils/crypto';
@@ -23,6 +23,23 @@ const getInitialAdminOpen = (): boolean => {
   return false;
 };
 
+const getInitialTeamLeader = (): TeamLeaderAccount | null => {
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('fasocarnet_active_team_leader');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+  }
+  return null;
+};
+
+const getInitialMiniAdminOpen = (): boolean => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('fasocarnet_is_mini_admin_open') === 'true';
+  }
+  return false;
+};
+
 interface AppState {
   isInitialized: boolean;
   activeTab: ActiveTab;
@@ -31,6 +48,11 @@ interface AppState {
   shopProfile: ShopProfile | null;
   isAdminOpen: boolean;
   setIsAdminOpen: (open: boolean) => void;
+  activeTeamLeader: TeamLeaderAccount | null;
+  isMiniAdminOpen: boolean;
+  setIsMiniAdminOpen: (open: boolean) => void;
+  openMiniAdmin: (leader: TeamLeaderAccount) => void;
+  logoutMiniAdmin: () => void;
   isOnline: boolean;
   isSyncing: boolean;
   lastSyncedAt: string | null;
@@ -78,6 +100,37 @@ export const useAppStore = create<AppState>((set, get) => {
       }
       set({ isAdminOpen: open });
     },
+    activeTeamLeader: getInitialTeamLeader(),
+    isMiniAdminOpen: getInitialMiniAdminOpen(),
+    setIsMiniAdminOpen: (open) => {
+      if (typeof window !== 'undefined') {
+        if (open) localStorage.setItem('fasocarnet_is_mini_admin_open', 'true');
+        else localStorage.removeItem('fasocarnet_is_mini_admin_open');
+      }
+      set({ isMiniAdminOpen: open });
+    },
+    openMiniAdmin: (leader) => {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('fasocarnet_active_team_leader', JSON.stringify(leader));
+        localStorage.setItem('fasocarnet_is_mini_admin_open', 'true');
+        localStorage.removeItem('fasocarnet_is_admin_open');
+      }
+      set({
+        activeTeamLeader: leader,
+        isMiniAdminOpen: true,
+        isAdminOpen: false
+      });
+    },
+    logoutMiniAdmin: () => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('fasocarnet_active_team_leader');
+        localStorage.removeItem('fasocarnet_is_mini_admin_open');
+      }
+      set({
+        activeTeamLeader: null,
+        isMiniAdminOpen: false
+      });
+    },
     isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
     isSyncing: false,
     lastSyncedAt: null,
@@ -114,17 +167,38 @@ export const useAppStore = create<AppState>((set, get) => {
           if (res.isAdmin) {
             if (typeof window !== 'undefined') {
               localStorage.setItem('fasocarnet_is_admin_open', 'true');
+              localStorage.removeItem('fasocarnet_is_mini_admin_open');
+              localStorage.removeItem('fasocarnet_active_team_leader');
             }
-            set({ isAdminOpen: true, isSyncing: false, isInitialized: true });
+            set({ isAdminOpen: true, isMiniAdminOpen: false, activeTeamLeader: null, isSyncing: false, isInitialized: true });
+            return res;
+          }
+          if (res.teamLeader) {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('fasocarnet_active_team_leader', JSON.stringify(res.teamLeader));
+              localStorage.setItem('fasocarnet_is_mini_admin_open', 'true');
+              localStorage.removeItem('fasocarnet_is_admin_open');
+            }
+            set({
+              activeTeamLeader: res.teamLeader,
+              isMiniAdminOpen: true,
+              isAdminOpen: false,
+              isSyncing: false,
+              isInitialized: true
+            });
             return res;
           }
           if (res.shop) {
             if (typeof window !== 'undefined') {
               localStorage.removeItem('fasocarnet_is_admin_open');
+              localStorage.removeItem('fasocarnet_is_mini_admin_open');
+              localStorage.removeItem('fasocarnet_active_team_leader');
             }
             set({
               activeShopId: res.shop.id,
               shopProfile: res.shop,
+              isMiniAdminOpen: false,
+              activeTeamLeader: null,
               isLocked: false,
               isInitialized: true,
               lastSyncedAt: new Date().toISOString()
@@ -222,6 +296,8 @@ export const useAppStore = create<AppState>((set, get) => {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('fasocarnet_active_tab');
         localStorage.removeItem('fasocarnet_is_admin_open');
+        localStorage.removeItem('fasocarnet_is_mini_admin_open');
+        localStorage.removeItem('fasocarnet_active_team_leader');
         localStorage.removeItem('fasocarnet_settings_tab');
         localStorage.removeItem('fasocarnet_admin_tab');
       }
@@ -229,6 +305,8 @@ export const useAppStore = create<AppState>((set, get) => {
       set({
         activeShopId: null,
         shopProfile: null,
+        activeTeamLeader: null,
+        isMiniAdminOpen: false,
         isLocked: false,
         activeTab: 'pos',
         lastSyncedAt: null,
