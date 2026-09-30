@@ -123,6 +123,11 @@ export const App: React.FC = () => {
     return <AdminView onClose={() => setIsAdminOpen(false)} />;
   }
 
+  // Si le portail Mini-Admin (Chef d'Équipe) est ouvert
+  if (isMiniAdminOpen && activeTeamLeader) {
+    return <MiniAdminDashboard />;
+  }
+
   // 1. SUR LE WEB (Navigateur / Render) : Afficher la Landing Page sauf si mode app explicite
   const isNative = Capacitor.isNativePlatform();
   const isExplicitAppMode = typeof window !== 'undefined' && (

@@ -118,7 +118,9 @@ export const useAppStore = create<AppState>((set, get) => {
       set({
         activeTeamLeader: leader,
         isMiniAdminOpen: true,
-        isAdminOpen: false
+        isAdminOpen: false,
+        activeShopId: null,
+        shopProfile: null
       });
     },
     logoutMiniAdmin: () => {
@@ -138,6 +140,17 @@ export const useAppStore = create<AppState>((set, get) => {
     isLocked: false,
 
     loadCurrentShop: async () => {
+      // Si une session Super-Admin ou Chef d'Équipe est déjà ouverte, ne pas charger de boutique commerçante
+      if (get().isAdminOpen || (get().isMiniAdminOpen && get().activeTeamLeader)) {
+        set({
+          activeShopId: null,
+          shopProfile: null,
+          isLocked: false,
+          isInitialized: true
+        });
+        return;
+      }
+
       // Sur cet appareil, charger l'unique profil existant
       const shop = await db.shopProfiles.toCollection().first();
       if (shop) {
@@ -170,7 +183,7 @@ export const useAppStore = create<AppState>((set, get) => {
               localStorage.removeItem('fasocarnet_is_mini_admin_open');
               localStorage.removeItem('fasocarnet_active_team_leader');
             }
-            set({ isAdminOpen: true, isMiniAdminOpen: false, activeTeamLeader: null, isSyncing: false, isInitialized: true });
+            set({ isAdminOpen: true, isMiniAdminOpen: false, activeTeamLeader: null, activeShopId: null, shopProfile: null, isSyncing: false, isInitialized: true });
             return res;
           }
           if (res.teamLeader) {
@@ -183,6 +196,8 @@ export const useAppStore = create<AppState>((set, get) => {
               activeTeamLeader: res.teamLeader,
               isMiniAdminOpen: true,
               isAdminOpen: false,
+              activeShopId: null,
+              shopProfile: null,
               isSyncing: false,
               isInitialized: true
             });

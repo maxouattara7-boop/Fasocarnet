@@ -16,6 +16,7 @@ import {
 } from '../../types';
 import { subscriptionService, SUBSCRIPTION_PLANS, DEFAULT_DEPOSIT_NUMBERS } from './subscriptionService';
 import { syncService } from './syncService';
+import { supabaseClient } from '../supabaseClient';
 import { detectBurkinaOperator, detectPlatform } from '../../utils/telemetry';
 import { verifyHash, hashPassword, isHashed, generateSignedLicenseKey } from '../../utils/crypto';
 
@@ -996,6 +997,70 @@ export const adminService = {
   },
 
   /**
+   * Synchronise le coffre-fort Administrateur complet (Chefs d'équipe, Équipes, Commerciaux) avec le Cloud & Supabase
+   */
+  async pushAdminVaultToCloud(vaultUpdates?: {
+    teamLeaders?: TeamLeaderAccount[];
+    commercialTeams?: CommercialTeam[];
+    commercialAgents?: CommercialAgent[];
+  }): Promise<void> {
+    try {
+      const now = new Date().toISOString();
+      let currentLeaders: TeamLeaderAccount[] = vaultUpdates?.teamLeaders || [];
+      let currentTeams: CommercialTeam[] = vaultUpdates?.commercialTeams || [];
+      let currentAgents: CommercialAgent[] = vaultUpdates?.commercialAgents || [];
+
+      if (!vaultUpdates?.teamLeaders && typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('fasocarnet_admin_team_leaders');
+          if (raw) currentLeaders = JSON.parse(raw);
+        } catch {}
+      }
+      if (!vaultUpdates?.commercialTeams && typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('fasocarnet_admin_commercial_teams');
+          if (raw) currentTeams = JSON.parse(raw);
+        } catch {}
+      }
+      if (!vaultUpdates?.commercialAgents && typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('fasocarnet_admin_commercial_agents');
+          if (raw) currentAgents = JSON.parse(raw);
+        } catch {}
+      }
+
+      const vaultData = {
+        teamLeaders: currentLeaders,
+        commercialTeams: currentTeams,
+        commercialAgents: currentAgents,
+        lastUpdatedAt: now
+      };
+
+      // 1. Supabase
+      if (supabaseClient.isConfigured()) {
+        await supabaseClient.pushAdminVault(vaultData).catch(() => {});
+      }
+
+      // 2. Cloud DB REST & Cache
+      const cloudDb = await syncService.fetchRemoteDatabase();
+      const adminVaultKey = '_admin_vault';
+      cloudDb[adminVaultKey] = {
+        profile: undefined as any,
+        sales: [],
+        customers: [],
+        products: [],
+        debts: [],
+        debtPayments: [],
+        licenses: [],
+        ...vaultData
+      };
+      await syncService.pushRemoteDatabase(cloudDb);
+    } catch (e) {
+      console.warn('Erreur synchronisation admin vault:', e);
+    }
+  },
+
+  /**
    * Récupère toutes les équipes de commerciaux enregistrées
    */
   async getAllCommercialTeams(): Promise<CommercialTeam[]> {
@@ -1009,12 +1074,33 @@ export const adminService = {
       } catch {}
     }
 
-    // 2. Depuis le Cloud Database
+    // 2. Depuis Supabase
+    try {
+      if (supabaseClient.isConfigured()) {
+        const supaVault = await supabaseClient.fetchAdminVault();
+        if (supaVault && Array.isArray(supaVault.commercialTeams)) {
+          const teamMap = new Map<string, CommercialTeam>();
+          teams.forEach(t => teamMap.set(t.id, t));
+          supaVault.commercialTeams.forEach((t: CommercialTeam) => teamMap.set(t.id, t));
+          teams = Array.from(teamMap.values());
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('fasocarnet_admin_commercial_teams', JSON.stringify(teams));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Erreur récupération équipes Supabase:', e);
+    }
+
+    // 3. Depuis le Cloud Database
     try {
       const cloudDb = await syncService.fetchRemoteDatabase();
       const adminVault = (cloudDb['_admin_vault'] as any) || {};
       if (Array.isArray(adminVault.commercialTeams) && adminVault.commercialTeams.length > 0) {
-        teams = adminVault.commercialTeams;
+        const teamMap = new Map<string, CommercialTeam>();
+        teams.forEach(t => teamMap.set(t.id, t));
+        adminVault.commercialTeams.forEach((t: CommercialTeam) => teamMap.set(t.id, t));
+        teams = Array.from(teamMap.values());
         if (typeof window !== 'undefined') {
           localStorage.setItem('fasocarnet_admin_commercial_teams', JSON.stringify(teams));
         }
@@ -1087,28 +1173,8 @@ export const adminService = {
       localStorage.setItem('fasocarnet_admin_commercial_teams', JSON.stringify(teams));
     }
 
-    // Persister sur le Cloud
-    try {
-      const cloudDb = await syncService.fetchRemoteDatabase();
-      const adminVaultKey = '_admin_vault';
-      if (!cloudDb[adminVaultKey]) {
-        cloudDb[adminVaultKey] = {
-          profile: undefined as any,
-          sales: [],
-          customers: [],
-          products: [],
-          debts: [],
-          debtPayments: [],
-          licenses: [],
-          lastUpdatedAt: now
-        };
-      }
-      (cloudDb[adminVaultKey] as any).commercialTeams = teams;
-      cloudDb[adminVaultKey].lastUpdatedAt = now;
-      await syncService.pushRemoteDatabase(cloudDb);
-    } catch (e) {
-      console.warn('Erreur sauvegarde équipe commerciale cloud:', e);
-    }
+    // Persister sur le Cloud & Supabase
+    await this.pushAdminVaultToCloud({ commercialTeams: teams });
 
     return team;
   },
@@ -1124,17 +1190,7 @@ export const adminService = {
       localStorage.setItem('fasocarnet_admin_commercial_teams', JSON.stringify(updated));
     }
 
-    try {
-      const cloudDb = await syncService.fetchRemoteDatabase();
-      const adminVaultKey = '_admin_vault';
-      if (cloudDb[adminVaultKey]) {
-        (cloudDb[adminVaultKey] as any).commercialTeams = updated;
-        cloudDb[adminVaultKey].lastUpdatedAt = new Date().toISOString();
-        await syncService.pushRemoteDatabase(cloudDb);
-      }
-    } catch (e) {
-      console.warn('Erreur suppression équipe commerciale cloud:', e);
-    }
+    await this.pushAdminVaultToCloud({ commercialTeams: updated });
   },
 
   /**
@@ -1321,7 +1377,25 @@ export const adminService = {
       }
     }
 
-    // Synchronisation depuis le Cloud
+    // 1. Depuis Supabase
+    try {
+      if (supabaseClient.isConfigured()) {
+        const supaVault = await supabaseClient.fetchAdminVault();
+        if (supaVault && Array.isArray(supaVault.commercialAgents)) {
+          const agentMap = new Map<string, CommercialAgent>();
+          agents.forEach(a => agentMap.set(a.id, a));
+          supaVault.commercialAgents.forEach((a: CommercialAgent) => agentMap.set(a.id, a));
+          agents = Array.from(agentMap.values());
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('fasocarnet_admin_commercial_agents', JSON.stringify(agents));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Erreur chargement Supabase commercial agents:', e);
+    }
+
+    // 2. Synchronisation depuis le Cloud
     try {
       const cloudDb = await syncService.fetchRemoteDatabase();
       const adminVaultKey = '_admin_vault';
@@ -1396,28 +1470,8 @@ export const adminService = {
       }
     }
 
-    // Sauvegarde Cloud
-    try {
-      const cloudDb = await syncService.fetchRemoteDatabase();
-      const adminVaultKey = '_admin_vault';
-      if (!cloudDb[adminVaultKey]) {
-        cloudDb[adminVaultKey] = {
-          profile: undefined as any,
-          sales: [],
-          customers: [],
-          products: [],
-          debts: [],
-          debtPayments: [],
-          licenses: [],
-          lastUpdatedAt: now
-        };
-      }
-      (cloudDb[adminVaultKey] as any).commercialAgents = agents;
-      cloudDb[adminVaultKey].lastUpdatedAt = now;
-      await syncService.pushRemoteDatabase(cloudDb);
-    } catch (e) {
-      console.warn('Erreur sauvegarde commercial agent cloud:', e);
-    }
+    // Sauvegarde Cloud & Supabase
+    await this.pushAdminVaultToCloud({ commercialAgents: agents });
 
     return agent;
   },
@@ -1446,17 +1500,7 @@ export const adminService = {
       } catch {}
     }
 
-    try {
-      const cloudDb = await syncService.fetchRemoteDatabase();
-      const adminVaultKey = '_admin_vault';
-      if (cloudDb[adminVaultKey]) {
-        (cloudDb[adminVaultKey] as any).commercialAgents = updated;
-        cloudDb[adminVaultKey].lastUpdatedAt = new Date().toISOString();
-        await syncService.pushRemoteDatabase(cloudDb);
-      }
-    } catch (e) {
-      console.warn('Erreur suppression agent commercial cloud:', e);
-    }
+    await this.pushAdminVaultToCloud({ commercialAgents: updated });
   },
 
   /**
@@ -1569,6 +1613,7 @@ export const adminService = {
   async getAllTeamLeaders(): Promise<TeamLeaderAccount[]> {
     let leaders: TeamLeaderAccount[] = [];
 
+    // 1. Depuis le stockage local
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem('fasocarnet_admin_team_leaders');
@@ -1580,15 +1625,37 @@ export const adminService = {
       }
     }
 
+    // 2. Depuis Supabase
+    try {
+      if (supabaseClient.isConfigured()) {
+        const supaVault = await supabaseClient.fetchAdminVault();
+        if (supaVault && Array.isArray(supaVault.teamLeaders)) {
+          const leaderMap = new Map<string, TeamLeaderAccount>();
+          leaders.forEach(l => leaderMap.set(l.id, l));
+          supaVault.teamLeaders.forEach((l: TeamLeaderAccount) => leaderMap.set(l.id, l));
+          leaders = Array.from(leaderMap.values());
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('fasocarnet_admin_team_leaders', JSON.stringify(leaders));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Erreur lecture team leaders Supabase:', e);
+    }
+
+    // 3. Depuis le Cloud Database
     try {
       const cloudDb = await syncService.fetchRemoteDatabase();
       const adminVault = cloudDb['_admin_vault'] as any;
       if (adminVault && Array.isArray(adminVault.teamLeaders)) {
         const cloudLeaders: TeamLeaderAccount[] = adminVault.teamLeaders;
         const leaderMap = new Map<string, TeamLeaderAccount>();
-        cloudLeaders.forEach(l => leaderMap.set(l.id, l));
         leaders.forEach(l => leaderMap.set(l.id, l));
+        cloudLeaders.forEach(l => leaderMap.set(l.id, l));
         leaders = Array.from(leaderMap.values());
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('fasocarnet_admin_team_leaders', JSON.stringify(leaders));
+        }
       }
     } catch (e) {
       console.warn('Erreur synchro cloud team leaders:', e);
@@ -1675,28 +1742,8 @@ export const adminService = {
       }
     }
 
-    // Sauvegarde Cloud Vault
-    try {
-      const cloudDb = await syncService.fetchRemoteDatabase();
-      const adminVaultKey = '_admin_vault';
-      if (!cloudDb[adminVaultKey]) {
-        cloudDb[adminVaultKey] = {
-          profile: undefined as any,
-          sales: [],
-          customers: [],
-          products: [],
-          debts: [],
-          debtPayments: [],
-          licenses: [],
-          lastUpdatedAt: now
-        };
-      }
-      (cloudDb[adminVaultKey] as any).teamLeaders = leaders;
-      cloudDb[adminVaultKey].lastUpdatedAt = now;
-      await syncService.pushRemoteDatabase(cloudDb);
-    } catch (e) {
-      console.warn('Erreur sauvegarde chef d\'équipe cloud:', e);
-    }
+    // Sauvegarde Cloud Vault & Supabase
+    await this.pushAdminVaultToCloud({ teamLeaders: leaders });
 
     return leader;
   },
@@ -1727,17 +1774,7 @@ export const adminService = {
       } catch {}
     }
 
-    try {
-      const cloudDb = await syncService.fetchRemoteDatabase();
-      const adminVaultKey = '_admin_vault';
-      if (cloudDb[adminVaultKey]) {
-        (cloudDb[adminVaultKey] as any).teamLeaders = updated;
-        cloudDb[adminVaultKey].lastUpdatedAt = new Date().toISOString();
-        await syncService.pushRemoteDatabase(cloudDb);
-      }
-    } catch (e) {
-      console.warn('Erreur suppression chef d\'équipe cloud:', e);
-    }
+    await this.pushAdminVaultToCloud({ teamLeaders: updated });
   },
 
   /**

@@ -380,6 +380,48 @@ export const supabaseClient = {
     } catch {
       return false;
     }
+  },
+
+  /**
+   * Récupère le coffre-fort administrateur (Chefs d'Équipe, Équipes, Commerciaux) depuis Supabase
+   */
+  async fetchAdminVault(): Promise<{ teamLeaders?: any[]; commercialTeams?: any[]; commercialAgents?: any[] } | null> {
+    const client = this.getClient();
+    if (!client) return null;
+
+    try {
+      const { data, error } = await client
+        .from('broadcasts')
+        .select('message')
+        .eq('id', 'admin_vault')
+        .single();
+
+      if (error || !data) return null;
+      return (data.message as any) || null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Synchronise le coffre-fort administrateur vers Supabase
+   */
+  async pushAdminVault(vaultData: { teamLeaders?: any[]; commercialTeams?: any[]; commercialAgents?: any[] }): Promise<boolean> {
+    const client = this.getClient();
+    if (!client) return false;
+
+    try {
+      const { error } = await client
+        .from('broadcasts')
+        .upsert({
+          id: 'admin_vault',
+          message: vaultData,
+          updated_at: new Date().toISOString()
+        });
+      return !error;
+    } catch {
+      return false;
+    }
   }
 };
 
