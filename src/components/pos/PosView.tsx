@@ -760,7 +760,7 @@ export const PosView: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 xl:grid-cols-3 gap-2.5 overflow-y-auto pr-1.5 pb-2 scrollbar-thin flex-1 min-h-0 overscroll-contain">
+            <div className="grid grid-cols-2 xl:grid-cols-3 gap-2.5 overflow-y-auto pr-1.5 pb-2 scrollbar-thin flex-1 min-h-0 overscroll-contain content-start auto-rows-max items-start">
               {filteredProducts.map((prod) => {
                 const stock = prod.stockQuantity ?? 0;
                 const isZeroStock = stock <= 0;
@@ -778,7 +778,7 @@ export const PosView: React.FC = () => {
                       }
                       handleSelectProduct(prod.id);
                     }}
-                    className={`bg-white p-3 rounded-2xl border text-left flex flex-col justify-between transition-all group shadow-2xs hover:shadow-md cursor-pointer ${
+                    className={`bg-white p-3 rounded-2xl border text-left flex flex-col justify-between transition-all group shadow-2xs hover:shadow-md cursor-pointer min-h-[110px] ${
                       isZeroStock
                         ? 'border-red-200 bg-red-50/20 opacity-70 cursor-not-allowed'
                         : isLowStock
