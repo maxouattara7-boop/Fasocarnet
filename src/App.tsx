@@ -19,6 +19,7 @@ import { Crown, Megaphone, X } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { updateService, AppUpdateInfo } from './services/updateService';
 import { UpdateModal } from './components/common/UpdateModal';
+import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
 import { DebtAlarmModal } from './components/debts/DebtAlarmModal';
 import { customersService } from './db/services/customersService';
 import { Customer } from './types';
@@ -32,6 +33,18 @@ export const App: React.FC = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [alarmDebtors, setAlarmDebtors] = useState<Customer[]>([]);
   const [showDebtAlarm, setShowDebtAlarm] = useState(false);
+  const [webForceAppMode, setWebForceAppMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const isStandaloneMedia = typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches;
+      const isStandaloneNav = (window.navigator as any)?.standalone === true;
+      const hasAppParam = window.location?.search?.includes('mode=app') || window.location?.search?.includes('source=pwa');
+      const hasAppPath = window.location?.pathname?.startsWith('/app');
+      const hasOpenedBefore = localStorage.getItem('fasocarnet_web_app_opened') === 'true';
+
+      return Boolean(isStandaloneMedia || isStandaloneNav || hasAppParam || hasAppPath || hasOpenedBefore);
+    }
+    return false;
+  });
 
   useEffect(() => {
     if (!shopProfile || !shopProfile.isConfigured) return;
@@ -128,17 +141,14 @@ export const App: React.FC = () => {
     return <MiniAdminDashboard />;
   }
 
-  // 1. SUR LE WEB (Navigateur / Render) : Afficher la Landing Page sauf si mode app explicite
+  // 1. SUR LE WEB (Navigateur / Render) : Afficher la Landing Page sauf si mode app explicite ou session active
   const isNative = Capacitor.isNativePlatform();
-  const isExplicitAppMode = typeof window !== 'undefined' && (
-    window.location.search.includes('mode=app') ||
-    window.location.pathname.startsWith('/app')
-  );
+  const isExplicitAppMode = isNative || webForceAppMode;
 
   let mainContent: React.ReactNode = null;
 
-  if (!isNative && !isExplicitAppMode) {
-    mainContent = <LandingPageView />;
+  if (!isExplicitAppMode && !activeShopId && !activeTeamLeader && !isAdminOpen) {
+    mainContent = <LandingPageView onOpenApp={() => setWebForceAppMode(true)} />;
   } else if (isAdminOpen) {
     mainContent = <AdminView onClose={() => setIsAdminOpen(false)} />;
   } else if (isMiniAdminOpen && activeTeamLeader) {
@@ -332,6 +342,7 @@ export const App: React.FC = () => {
 
   return (
     <>
+      <PwaInstallPrompt />
       {mainContent}
       {availableUpdate && (
         <UpdateModal

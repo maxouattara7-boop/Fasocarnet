@@ -8,3 +8,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <App />
   </React.StrictMode>,
 );
+
+// Enregistrement du Service Worker pour le fonctionnement PWA et hors-ligne
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator && (import.meta as any).env?.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(
+      (registration) => {
+        console.log('[PWA] ServiceWorker actif avec succès:', registration.scope);
+      },
+      (err) => {
+        console.warn('[PWA] Échec enregistrement ServiceWorker:', err);
+      }
+    );
+  });
+}

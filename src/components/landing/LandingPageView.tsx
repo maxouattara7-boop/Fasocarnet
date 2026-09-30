@@ -25,7 +25,7 @@ interface LandingPageViewProps {
 
 const APK_DOWNLOAD_URL = 'https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk';
 
-export const LandingPageView: React.FC<LandingPageViewProps> = () => {
+export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) => {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showFaqModal, setShowFaqModal] = useState(false);
   const [showCguModal, setShowCguModal] = useState(false);
@@ -35,14 +35,25 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
 
+  const handleLaunchApp = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('fasocarnet_web_app_opened', 'true');
+    }
+    if (onOpenApp) {
+      onOpenApp();
+    } else {
+      window.location.href = '/?mode=app';
+    }
+  };
+
   const faqs = [
     {
       q: "L'application fonctionne-t-elle sans connexion Internet ?",
       a: "Oui, à 100% ! Vous pouvez enregistrer des ventes, imprimer des reçus et noter des dettes toute la journée sans aucune connexion 4G ni Wi-Fi. Dès que vous avez du réseau, vos données sont automatiquement sauvegardées sur le Cloud de façon sécurisée."
     },
     {
-      q: "Comment installer l'APK sur mon téléphone Android ?",
-      a: "C'est très simple en 3 étapes : 1. Cliquez sur le bouton 'Télécharger l'APK'. 2. Ouvrez le fichier téléchargé et appuyez sur 'Autoriser l'installation'. 3. Ouvrez FasoCarnet, créez votre boutique et commencez à encaisser immédiatement."
+      q: "Comment installer l'application sur mon téléphone ou mon ordinateur ?",
+      a: "C'est ultra-rapide en 1 clic ! Cliquez sur 'Lancer l'Application' ou 'Installer l'application'. Vous pouvez l'ajouter directement sur votre écran d'accueil sans passer par le Play Store, ou télécharger le fichier APK Android selon votre préférence."
     },
     {
       q: "Combien coûte FasoCarnet après les 10 jours d'essai gratuit ?",
@@ -82,17 +93,34 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
 
           <nav className="hidden md:flex items-center space-x-8 text-sm font-semibold text-slate-600">
             <a href="#features" className="hover:text-emerald-600 transition-colors">Fonctionnalités</a>
+            <button 
+              type="button" 
+              onClick={handleLaunchApp} 
+              className="hover:text-emerald-600 transition-colors font-bold cursor-pointer"
+            >
+              Accéder à l'application
+            </button>
           </nav>
 
           <div className="flex items-center space-x-2 sm:space-x-3">
+            <button
+              type="button"
+              onClick={handleLaunchApp}
+              className="px-3.5 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl sm:rounded-2xl text-xs sm:text-sm flex items-center space-x-1.5 sm:space-x-2 active:scale-95 transition-all cursor-pointer shrink-0 shadow-md shadow-emerald-600/20"
+            >
+              <Zap className="w-4 h-4 fill-amber-400 text-amber-400" />
+              <span>Ouvrir l'App</span>
+            </button>
+
             <a
               href={APK_DOWNLOAD_URL}
               download={`FasoCarnet-v${CURRENT_APP_VERSION}-Android.apk`}
               onClick={() => setShowDownloadModal(true)}
-              className="px-4 sm:px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl sm:rounded-2xl text-xs sm:text-sm flex items-center space-x-2 active:scale-95 transition-all cursor-pointer shrink-0 shadow-md shadow-emerald-600/20"
+              className="hidden sm:flex px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl sm:rounded-2xl text-xs flex items-center space-x-1.5 active:scale-95 transition-all cursor-pointer shrink-0"
+              title="Télécharger le fichier APK Android"
             >
-              <Download className="w-4 h-4 stroke-[2.5]" />
-              <span>Télécharger l'APK</span>
+              <Download className="w-3.5 h-3.5 text-slate-500" />
+              <span>APK Android</span>
             </a>
           </div>
         </div>
@@ -111,7 +139,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
                 <div className="inline-flex items-center px-3.5 sm:px-4 py-1.5 bg-white rounded-full border border-emerald-200 shadow-xs">
                   <span className="text-emerald-700 font-black text-[11px] sm:text-xs uppercase tracking-wider flex items-center space-x-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Édition Android (APK Direct)</span>
+                    <span>Disponible sur Web, Mobile & Ordinateur</span>
                   </span>
                 </div>
 
@@ -120,21 +148,30 @@ export const LandingPageView: React.FC<LandingPageViewProps> = () => {
                     Télécharger l'application <span className="text-emerald-600">FasoCarnet</span>
                   </h1>
                   <p className="text-slate-600 text-sm sm:text-base lg:text-lg leading-relaxed font-normal max-w-xl mx-auto lg:mx-0">
-                    La caisse enregistreuse tactile, gestion des dettes clients et reçus WhatsApp conçue sur mesure pour les commerçants. Fonctionne à 100% sans connexion Internet.
+                    La caisse enregistreuse tactile, gestion des dettes clients et reçus WhatsApp conçue sur mesure pour les commerçants. Fonctionne à 100% sur mobile, tablette, ordinateur et hors-ligne.
                   </p>
                 </div>
 
-                {/* Bloc Téléchargement Principal */}
+                {/* Bloc Actions Principales */}
                 <div className="pt-1 sm:pt-2 space-y-3 sm:space-y-4">
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
+                    <button
+                      type="button"
+                      onClick={handleLaunchApp}
+                      className="w-full sm:w-auto px-8 sm:px-10 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-2xl text-base sm:text-lg shadow-xl shadow-emerald-600/25 flex items-center justify-center space-x-3 active:scale-95 transition-all cursor-pointer group text-center"
+                    >
+                      <Zap className="w-5 h-5 sm:w-6 sm:h-6 fill-amber-400 text-amber-400 group-hover:scale-110 transition-transform" />
+                      <span>Lancer l'Application Web</span>
+                    </button>
+
                     <a
                       href={APK_DOWNLOAD_URL}
                       download={`FasoCarnet-v${CURRENT_APP_VERSION}-Android.apk`}
                       onClick={() => setShowDownloadModal(true)}
-                      className="w-full sm:w-auto px-8 sm:px-10 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl text-base sm:text-lg shadow-xl shadow-emerald-600/25 flex items-center justify-center space-x-3 active:scale-95 transition-transform cursor-pointer group text-center"
+                      className="w-full sm:w-auto px-6 py-4 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-2xl text-sm sm:text-base shadow-lg flex items-center justify-center space-x-2.5 active:scale-95 transition-all cursor-pointer text-center"
                     >
-                      <Download className="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-y-0.5 transition-transform stroke-[2.5]" />
-                      <span>Télécharger l'APK Android (v{CURRENT_APP_VERSION})</span>
+                      <Download className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+                      <span>Télécharger l'APK (Android)</span>
                     </a>
                   </div>
 

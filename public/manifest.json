@@ -1,21 +1,57 @@
 {
   "short_name": "FasoCarnet",
   "name": "FasoCarnet - Caisse & Dettes Commerçants",
+  "description": "La caisse tactile rapide, gestion des crédits clients et bilans en poche pour commerçants",
+  "id": "/?source=pwa",
+  "start_url": "/?source=pwa&mode=app",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#022c22",
+  "theme_color": "#047857",
+  "categories": ["business", "finance", "productivity"],
   "icons": [
     {
       "src": "/icon-192.svg",
       "type": "image/svg+xml",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.svg",
       "type": "image/svg+xml",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "64x64",
+      "purpose": "any"
     }
   ],
-  "start_url": "/",
-  "background_color": "#047857",
-  "theme_color": "#047857",
-  "display": "standalone",
-  "orientation": "portrait"
+  "shortcuts": [
+    {
+      "name": "Nouvelle Vente",
+      "short_name": "Vente",
+      "description": "Ouvrir la caisse enregistreuse",
+      "url": "/?mode=app&tab=pos",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Carnet de Dettes",
+      "short_name": "Dettes",
+      "description": "Consulter les crédits clients",
+      "url": "/?mode=app&tab=debts",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Journal & Bilan",
+      "short_name": "Bilan",
+      "description": "Voir le bilan des ventes",
+      "url": "/?mode=app&tab=reports",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+    }
+  ]
 }
