@@ -188,7 +188,9 @@ export const App: React.FC = () => {
     const showSubWarning = subInfo.daysRemaining <= 3 || subInfo.isExpired;
 
     mainContent = (
-      <div className="min-h-screen bg-gray-100 flex flex-col justify-between font-sans antialiased text-gray-900">
+      <div className={`bg-gray-100 flex flex-col font-sans antialiased text-gray-900 ${
+        activeTab === 'pos' ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen justify-between'
+      }`}>
         <Header />
 
         {/* Bannière de Nouvelle Mise à Jour Disponible */}
@@ -342,7 +344,7 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        <main className={`flex-1 w-full ${activeTab === 'pos' ? 'lg:overflow-hidden' : ''}`}>
+        <main className={`flex-1 w-full min-h-0 ${activeTab === 'pos' ? 'h-full overflow-hidden' : ''}`}>
           {activeTab === 'pos' && <PosView />}
           {activeTab === 'debts' && <DebtsView />}
           {activeTab === 'reports' && <DailyReportView />}
