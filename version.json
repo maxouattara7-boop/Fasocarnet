@@ -1,9 +1,9 @@
 {
-  "version": "1.5.0",
-  "versionCode": 27,
+  "version": "1.5.1",
+  "versionCode": 28,
   "releaseDate": "2026-09-30",
-  "title": "Mise à Jour v1.5.0 : Gestion Commerciaux de Terrain & Authentification OTP WhatsApp",
-  "releaseNotes": "1. Gestion & Roster des Commerciaux : Création des commerciaux de terrain, génération automatique de code commercial unique (ex: MOUSSA226, ALI226) et envoi du pack d'accès en 1 clic sur WhatsApp.\n2. Authentification OTP WhatsApp à l'inscription : Validation sécurisée du numéro WhatsApp par code OTP à 4 chiffres lors de l'ouverture de boutique.",
+  "title": "Mise à Jour v1.5.1 : Interface Web Grand Écran, Approvisionnements & Facturation Pro",
+  "releaseNotes": "1. Interface Web Grand Écran : Navigation fluide, calculatrice statique à gauche et catalogue défilant à droite.\n2. Approvisionnements & Gestion de stock : Journal quotidien téléchargeable et imprimable.\n3. Factures & Devis : Refonte premium des cartes et documents.",
   "bundleUrl": "https://raw.githubusercontent.com/maxouattara7-boop/Fasocarnet/main/dist.zip",
   "apkUrl": "https://github.com/maxouattara7-boop/Fasocarnet/releases/latest/download/fasocarnet-release.apk",
   "mandatory": false

@@ -15,6 +15,8 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator && (import.met
     navigator.serviceWorker.register('/sw.js').then(
       (registration) => {
         console.log('[PWA] ServiceWorker actif avec succès:', registration.scope);
+        // Forcer la vérification immédiate d'une mise à jour
+        registration.update().catch(() => {});
       },
       (err) => {
         console.warn('[PWA] Échec enregistrement ServiceWorker:', err);
