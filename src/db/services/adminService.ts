@@ -167,23 +167,25 @@ export const adminService = {
       }
     });
 
-    // 2. Ajouter depuis le local si manquant
-    localShops.forEach(shop => {
-      if (!allShopsMap.has(shop.id)) {
-        const shopSales = localSales.filter(s => (s as any).shopId === shop.id);
-        const totalSalesVolume = shopSales.reduce((acc, s) => acc + s.totalAmount, 0);
-        const shopCustomers = localCustomers.filter(c => (c as any).shopId === shop.id);
-        const totalDebtsAmount = shopCustomers.reduce((acc, c) => acc + c.totalDebt, 0);
+    // 2. N'ajouter les boutiques locales que si Supabase n'est PAS configuré (environnement hors-ligne / tests)
+    if (!supabaseClient.isConfigured()) {
+      localShops.forEach(shop => {
+        if (!allShopsMap.has(shop.id)) {
+          const shopSales = localSales.filter(s => (s as any).shopId === shop.id);
+          const totalSalesVolume = shopSales.reduce((acc, s) => acc + s.totalAmount, 0);
+          const shopCustomers = localCustomers.filter(c => (c as any).shopId === shop.id);
+          const totalDebtsAmount = shopCustomers.reduce((acc, c) => acc + c.totalDebt, 0);
 
-        allShopsMap.set(shop.id, {
-          profile: shop,
-          salesCount: shopSales.length,
-          salesVolume: totalSalesVolume,
-          customersCount: shopCustomers.length,
-          debtsAmount: totalDebtsAmount
-        });
-      }
-    });
+          allShopsMap.set(shop.id, {
+            profile: shop,
+            salesCount: shopSales.length,
+            salesVolume: totalSalesVolume,
+            customersCount: shopCustomers.length,
+            debtsAmount: totalDebtsAmount
+          });
+        }
+      });
+    }
 
     return Array.from(allShopsMap.values()).map(({ profile, salesCount, salesVolume, customersCount, debtsAmount }) => {
       const info = subscriptionService.getSubscriptionInfo(profile);
