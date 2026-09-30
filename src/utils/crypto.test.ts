@@ -23,6 +23,9 @@ describe('crypto security utility', () => {
     expect(verifyHash('5678', hashed)).toBe(true);
     expect(verifyHash('0000', hashed)).toBe(false);
     expect(verifyHash('5679', hashed)).toBe(false);
+
+    const hash0001 = hashPin('0001');
+    expect(verifyHash('0001', hash0001)).toBe(true);
   });
 
   it('supports legacy cleartext PINs seamlessly for backward compatibility', () => {
