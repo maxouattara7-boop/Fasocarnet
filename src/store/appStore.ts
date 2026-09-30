@@ -160,7 +160,9 @@ export const useAppStore = create<AppState>((set, get) => {
           isLocked: false,
           isInitialized: true
         });
-        // Tenter une synchronisation automatique en arrière-plan
+        // Démarrer la synchronisation continue temps-réel (Téléphone ⇄ PC)
+        syncService.startAutoRealtimeSync(shop.id);
+        // Tenter une synchronisation initiale
         get().syncNow();
       } else {
         set({
@@ -218,6 +220,7 @@ export const useAppStore = create<AppState>((set, get) => {
               isInitialized: true,
               lastSyncedAt: new Date().toISOString()
             });
+            syncService.startAutoRealtimeSync(res.shop.id);
           }
         }
         return res;
@@ -242,6 +245,7 @@ export const useAppStore = create<AppState>((set, get) => {
           isInitialized: true,
           lastSyncedAt: new Date().toISOString()
         });
+        syncService.startAutoRealtimeSync(newShop.id);
         return newShop;
       } finally {
         set({ isSyncing: false });
@@ -305,7 +309,8 @@ export const useAppStore = create<AppState>((set, get) => {
         }
       }
 
-      // Vider les données locales de l'appareil
+      // Vider les données locales de l'appareil et stopper la synchronisation temps-réel
+      syncService.stopAutoRealtimeSync();
       await syncService.clearLocalData();
 
       if (typeof window !== 'undefined') {

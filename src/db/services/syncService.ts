@@ -35,6 +35,10 @@ let inMemoryCloudDb: Record<string, CloudShopData> = {};
 let inMemoryAuthToken: string | null = null;
 let inMemoryBroadcast: string | null = null;
 
+let activeRealtimeCleanup: (() => void) | null = null;
+let activePollingInterval: any = null;
+let isSyncingLoop = false;
+let autoPushTimer: any = null;
 
 /**
  * Moteur de synchronisation Cloud & Gestion du compte unique par appareil
@@ -248,9 +252,11 @@ export const syncService = {
     fullDb[shopId] = data;
     this.saveCloudDatabase(fullDb);
 
-    // 1. Sync Supabase
+    // 1. Sync Supabase & Diffusion Realtime immédiate
     if (supabaseClient.isConfigured()) {
-      supabaseClient.pushShop(data).catch(() => {});
+      supabaseClient.pushShop(data).then(() => {
+        supabaseClient.broadcastShopChange(shopId).catch(() => {});
+      }).catch(() => {});
     }
 
     // 2. Sync Serveur REST
@@ -271,6 +277,11 @@ export const syncService = {
       clearTimeout(timeoutId);
     } catch {
       // Offline fallback
+    }
+
+    // 3. Déclenchement de l'événement de mise à jour locale
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fasocarnet_database_updated', { detail: { shopId } }));
     }
   },
 
@@ -628,9 +639,9 @@ export const syncService = {
   /**
    * Récupère les données distantes du Cloud et les fusionne en local avec isolation multi-tenant
    */
-  async pullRemoteChanges(shopId: string) {
+  async pullRemoteChanges(shopId: string): Promise<boolean> {
     const remoteData = await this.fetchShopPartition(shopId);
-    if (!remoteData) return;
+    if (!remoteData) return false;
 
     await db.transaction('rw', [db.shopProfiles, db.products, db.customers, db.debts, db.debtPayments, db.sales, db.licenses], async () => {
       if (remoteData.profile) await db.shopProfiles.put(remoteData.profile);
@@ -641,6 +652,109 @@ export const syncService = {
       if (remoteData.sales?.length) await db.sales.bulkPut(remoteData.sales);
       if (remoteData.licenses?.length) await db.licenses.bulkPut(remoteData.licenses);
     });
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fasocarnet_database_updated', { detail: { shopId } }));
+    }
+    return true;
+  },
+
+  /**
+   * Déclenche un push immédiat et non-bloquant en arrière-plan suite à une création ou modification locale
+   */
+  triggerAutoPush(targetShopId?: string): void {
+    if (autoPushTimer) {
+      clearTimeout(autoPushTimer);
+    }
+    autoPushTimer = setTimeout(async () => {
+      try {
+        let id = targetShopId;
+        if (!id) {
+          const currentShop = await db.shopProfiles.toCollection().first();
+          id = currentShop?.id;
+        }
+        if (id) {
+          await this.pushLocalChanges(id);
+        }
+      } catch (err) {
+        console.warn('[Sync AutoPush] Erreur push:', err);
+      }
+    }, 80);
+  },
+
+  /**
+   * Démarre la synchronisation temps-réel continue (WebSocket Realtime Supabase + Polling intelligent)
+   */
+  startAutoRealtimeSync(shopId: string, onUpdate?: () => void): (() => void) {
+    if (activeRealtimeCleanup) {
+      activeRealtimeCleanup();
+      activeRealtimeCleanup = null;
+    }
+    if (activePollingInterval) {
+      clearInterval(activePollingInterval);
+      activePollingInterval = null;
+    }
+
+    const handleRemoteTrigger = async () => {
+      if (isSyncingLoop) return;
+      isSyncingLoop = true;
+      try {
+        await this.pullRemoteChanges(shopId);
+        if (onUpdate) onUpdate();
+      } catch (err) {
+        console.warn('[Sync Realtime] Erreur pull:', err);
+      } finally {
+        isSyncingLoop = false;
+      }
+    };
+
+    // 1. Abonnement WebSocket temps-réel Supabase
+    const unsubscribeSupabase = supabaseClient.subscribeToShopChanges(shopId, handleRemoteTrigger);
+
+    // 2. Polling rapide de secours (toutes les 4 secondes si connecté)
+    activePollingInterval = setInterval(async () => {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+      if (isSyncingLoop) return;
+      try {
+        await handleRemoteTrigger();
+      } catch {}
+    }, 4000);
+
+    // 3. Réaction instantanée dès que l'appareil redevient actif (focus fenêtre, déverrouillage téléphone)
+    const handleVisibilityOrFocus = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        handleRemoteTrigger();
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', handleVisibilityOrFocus);
+      window.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    }
+
+    activeRealtimeCleanup = () => {
+      unsubscribeSupabase();
+      if (activePollingInterval) {
+        clearInterval(activePollingInterval);
+        activePollingInterval = null;
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', handleVisibilityOrFocus);
+        window.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      }
+    };
+
+    return activeRealtimeCleanup;
+  },
+
+  /**
+   * Arrête la synchronisation temps-réel active
+   */
+  stopAutoRealtimeSync(): void {
+    if (activeRealtimeCleanup) {
+      activeRealtimeCleanup();
+      activeRealtimeCleanup = null;
+    }
   },
 
   /**

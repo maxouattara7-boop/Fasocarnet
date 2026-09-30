@@ -1,5 +1,6 @@
 import { db } from '../db';
 import { Expense, ExpenseCategory } from '../../types';
+import { syncService } from './syncService';
 
 export interface CreateExpenseDTO {
   title: string;
@@ -37,6 +38,7 @@ export const expensesService = {
     };
 
     await db.expenses.put(expense);
+    syncService.triggerAutoPush();
     return expense;
   },
 
@@ -123,5 +125,6 @@ export const expensesService = {
    */
   async delete(id: string): Promise<void> {
     await db.expenses.delete(id);
+    syncService.triggerAutoPush();
   }
 };

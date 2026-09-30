@@ -1,6 +1,7 @@
 import { db } from '../db';
 import { DebtPayment, DebtRecord } from '../../types';
 import { customersService } from './customersService';
+import { syncService } from './syncService';
 
 export const debtsService = {
   async getByCustomerId(customerId: string): Promise<DebtRecord[]> {
@@ -43,6 +44,7 @@ export const debtsService = {
 
     await db.debts.put(debt);
     await customersService.updateDebt(customerId, amount);
+    syncService.triggerAutoPush();
     return debt;
   },
 
@@ -79,6 +81,7 @@ export const debtsService = {
     await db.debts.put(updatedDebt);
     await db.debtPayments.put(payment);
     await customersService.updateDebt(debt.customerId, -effectivePay);
+    syncService.triggerAutoPush();
 
     return { payment, debt: updatedDebt };
   },
@@ -107,6 +110,7 @@ export const debtsService = {
         }
         await db.debts.delete(d.id);
       }
+      syncService.triggerAutoPush();
     } catch (error) {
       console.error('Erreur lors de l\'annulation de la dette liée à la vente:', error);
     }

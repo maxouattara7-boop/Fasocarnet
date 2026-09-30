@@ -422,6 +422,77 @@ export const supabaseClient = {
     } catch {
       return false;
     }
+  },
+
+  /**
+   * Abonne l'appareil aux modifications en temps réel de sa boutique (Multi-appareils Téléphone ⇄ PC)
+   */
+  subscribeToShopChanges(shopId: string, onRemoteChange: () => void): (() => void) {
+    const client = this.getClient();
+    if (!client || !shopId) return () => {};
+
+    try {
+      const channelName = `shop_realtime_${shopId}`;
+      const channel = client.channel(channelName);
+
+      // 1. Écoute des mutations directes sur la table shops de Supabase
+      channel.on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'shops',
+          filter: `id=eq.${shopId}`
+        },
+        () => {
+          onRemoteChange();
+        }
+      );
+
+      // 2. Écoute des messages de diffusion instantanée WebSocket (Broadcast ultra-rapide)
+      channel.on(
+        'broadcast',
+        { event: 'shop_sync' },
+        () => {
+          onRemoteChange();
+        }
+      );
+
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          // Connecté avec succès au flux temps réel
+        }
+      });
+
+      return () => {
+        try {
+          client.removeChannel(channel);
+        } catch {}
+      };
+    } catch (err) {
+      console.warn('[Supabase Realtime] Erreur abonnement canal:', err);
+      return () => {};
+    }
+  },
+
+  /**
+   * Diffuse un signal de synchronisation instantané aux autres appareils connectés sur le même compte
+   */
+  async broadcastShopChange(shopId: string): Promise<void> {
+    const client = this.getClient();
+    if (!client || !shopId) return;
+
+    try {
+      const channelName = `shop_realtime_${shopId}`;
+      const channel = client.channel(channelName);
+      await channel.send({
+        type: 'broadcast',
+        event: 'shop_sync',
+        payload: { shopId, timestamp: Date.now() }
+      });
+    } catch {
+      // Silencieux si échec d'envoi broadcast
+    }
   }
 };
 

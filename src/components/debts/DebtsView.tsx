@@ -40,6 +40,15 @@ export const DebtsView: React.FC = () => {
 
   useEffect(() => {
     loadData();
+
+    const handleDbUpdated = () => {
+      loadData();
+    };
+    window.addEventListener('fasocarnet_database_updated', handleDbUpdated);
+
+    return () => {
+      window.removeEventListener('fasocarnet_database_updated', handleDbUpdated);
+    };
   }, []);
 
   const loadData = async () => {

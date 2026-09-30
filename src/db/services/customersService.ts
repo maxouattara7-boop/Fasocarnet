@@ -1,5 +1,6 @@
 import { db } from '../db';
 import { Customer, DebtRecord } from '../../types';
+import { syncService } from './syncService';
 
 export const customersService = {
   async getAll(): Promise<Customer[]> {
@@ -53,6 +54,7 @@ export const customersService = {
         await db.debts.put(debtRecord);
       }
 
+      syncService.triggerAutoPush();
       return updatedCustomer;
     }
 
@@ -82,6 +84,7 @@ export const customersService = {
       await db.debts.put(debtRecord);
     }
 
+    syncService.triggerAutoPush();
     return newCustomer;
   },
 
@@ -95,6 +98,7 @@ export const customersService = {
       updatedAt: new Date().toISOString()
     };
     await db.customers.put(updatedCustomer);
+    syncService.triggerAutoPush();
     return updatedCustomer;
   },
 
@@ -102,5 +106,6 @@ export const customersService = {
     await db.customers.delete(customerId);
     await db.debts.where('customerId').equals(customerId).delete();
     await db.debtPayments.where('customerId').equals(customerId).delete();
+    syncService.triggerAutoPush();
   }
 };

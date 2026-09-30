@@ -232,6 +232,16 @@ export const SettingsView: React.FC = () => {
   useEffect(() => {
     loadProducts();
     loadSupplies();
+
+    const handleDbUpdated = () => {
+      loadProducts();
+      loadSupplies();
+    };
+    window.addEventListener('fasocarnet_database_updated', handleDbUpdated);
+
+    return () => {
+      window.removeEventListener('fasocarnet_database_updated', handleDbUpdated);
+    };
   }, []);
 
   const loadProducts = async () => {

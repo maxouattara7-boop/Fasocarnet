@@ -111,8 +111,17 @@ export const PosView: React.FC = () => {
       }
     };
 
+    // Écouteur pour actualisation temps-réel instantanée lors de la synchronisation (autre appareil ou local)
+    const handleDbUpdated = () => {
+      loadProducts();
+    };
+    window.addEventListener('fasocarnet_database_updated', handleDbUpdated);
+
     window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+      window.removeEventListener('fasocarnet_database_updated', handleDbUpdated);
+    };
   }, []);
 
   const loadProducts = async () => {

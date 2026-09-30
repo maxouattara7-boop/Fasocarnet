@@ -1,5 +1,6 @@
 import { db } from '../db';
 import { Product } from '../../types';
+import { syncService } from './syncService';
 
 export const productsService = {
   async getAll(): Promise<Product[]> {
@@ -67,6 +68,9 @@ export const productsService = {
       });
     }
 
+    // Déclenchement de la synchronisation temps-réel Cloud
+    syncService.triggerAutoPush();
+
     return newProduct;
   },
 
@@ -81,6 +85,7 @@ export const productsService = {
       ...updates,
       updatedAt: new Date().toISOString()
     });
+    syncService.triggerAutoPush();
   },
 
   /**
@@ -112,6 +117,7 @@ export const productsService = {
         });
       }
     }
+    syncService.triggerAutoPush();
   },
 
   /**
@@ -141,6 +147,7 @@ export const productsService = {
         });
       }
     }
+    syncService.triggerAutoPush();
   },
 
   /**
@@ -156,6 +163,7 @@ export const productsService = {
       stockQuantity: newStock,
       updatedAt: new Date().toISOString()
     });
+    syncService.triggerAutoPush();
     return newStock;
   },
 
@@ -168,6 +176,7 @@ export const productsService = {
       stockQuantity: validStock,
       updatedAt: new Date().toISOString()
     });
+    syncService.triggerAutoPush();
   },
 
   /**
@@ -180,5 +189,6 @@ export const productsService = {
 
   async delete(id: string): Promise<void> {
     await db.products.delete(id);
+    syncService.triggerAutoPush();
   }
 };

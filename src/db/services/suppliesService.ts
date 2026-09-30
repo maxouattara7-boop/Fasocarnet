@@ -1,5 +1,6 @@
 import { db } from '../db';
 import { StockSupply } from '../../types';
+import { syncService } from './syncService';
 
 export const suppliesService = {
   /**
@@ -95,6 +96,7 @@ export const suppliesService = {
     }
 
     await db.products.update(product.id, updates);
+    syncService.triggerAutoPush();
 
     return newSupply;
   },
@@ -104,5 +106,6 @@ export const suppliesService = {
    */
   async delete(id: string): Promise<void> {
     await db.supplies.delete(id);
+    syncService.triggerAutoPush();
   }
 };

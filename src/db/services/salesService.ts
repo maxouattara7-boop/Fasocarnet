@@ -3,6 +3,7 @@ import { DailySummary, PaymentMethod, Sale } from '../../types';
 import { debtsService } from './debtsService';
 import { productsService } from './productsService';
 import { expensesService } from './expensesService';
+import { syncService } from './syncService';
 
 export const salesService = {
   async recordSale(data: {
@@ -94,6 +95,9 @@ export const salesService = {
         sale.id
       );
     }
+
+    // Déclenchement de la synchronisation temps-réel Cloud
+    syncService.triggerAutoPush();
 
     return sale;
   },
@@ -231,6 +235,7 @@ export const salesService = {
       cancelReason: reason || 'Annulation par le commerçant'
     });
 
+    syncService.triggerAutoPush();
     return true;
   },
 
@@ -240,6 +245,7 @@ export const salesService = {
   async deleteSale(saleId: string): Promise<boolean> {
     await this.cancelSale(saleId);
     await db.sales.delete(saleId);
+    syncService.triggerAutoPush();
     return true;
   },
 

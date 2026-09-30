@@ -121,6 +121,15 @@ export const DailyReportView: React.FC = () => {
 
   useEffect(() => {
     loadReportData();
+
+    const handleDbUpdated = () => {
+      loadReportData();
+    };
+    window.addEventListener('fasocarnet_database_updated', handleDbUpdated);
+
+    return () => {
+      window.removeEventListener('fasocarnet_database_updated', handleDbUpdated);
+    };
   }, [reportPeriod, selectedDate, selectedMonth]);
 
   const handleDeleteExpense = async (id: string) => {
