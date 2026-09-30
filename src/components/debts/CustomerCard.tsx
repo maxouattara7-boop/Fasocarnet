@@ -64,17 +64,17 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt,
             {customer.name ? customer.name.slice(0, 2).toUpperCase() : <User className="w-4 h-4" />}
           </div>
           <div className="min-w-0">
-            <h4 className="font-bold text-gray-900 text-xs sm:text-sm font-display truncate">
+            <h4 className="font-bold text-gray-900 text-sm sm:text-base font-display truncate">
               {customer.name}
             </h4>
-            <div className="flex items-center space-x-1.5 text-[11px] text-gray-500 font-medium mt-0.5">
+            <div className="flex items-center space-x-1.5 text-xs text-gray-500 font-medium mt-0.5">
               <Phone className="w-3 h-3 text-gray-400" />
               <span>{customer.phone}</span>
             </div>
             {customer.notes && (
-              <p className="text-[10px] text-gray-400 italic mt-0.5 truncate">{customer.notes}</p>
+              <p className="text-xs text-gray-400 italic mt-0.5 truncate">{customer.notes}</p>
             )}
-            <div className="flex items-center space-x-1 text-[10px] text-slate-400 mt-1">
+            <div className="flex items-center space-x-1 text-xs text-slate-400 mt-1">
               <Calendar className="w-3 h-3 text-slate-400" />
               <span>Inscrit le {formatDateTime(customer.createdAt).split(' ')[0]}</span>
             </div>
@@ -83,10 +83,10 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt,
 
         <div className="flex items-center space-x-1.5 shrink-0">
           <div className="bg-amber-50/80 px-2.5 py-1.5 rounded-xl border border-amber-200/80 text-right">
-            <span className="text-[9px] uppercase font-black text-amber-800 tracking-wider block font-display">
+            <span className="text-xs uppercase font-black text-amber-800 tracking-wider block font-display">
               Dette Restante
             </span>
-            <span className="text-xs sm:text-sm font-black text-amber-700 font-display">
+            <span className="text-sm sm:text-base font-black text-amber-700 font-display">
               {formatCurrency(customer.totalDebt)}
             </span>
           </div>
@@ -108,7 +108,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt,
       <button
         type="button"
         onClick={handleToggleHistory}
-        className="w-full py-1.5 px-2.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/70 rounded-xl text-[11px] font-bold text-slate-600 flex items-center justify-between transition-colors cursor-pointer"
+        className="w-full py-1.5 px-2.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/70 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-between transition-colors cursor-pointer"
       >
         <div className="flex items-center space-x-1.5">
           <Clock className="w-3.5 h-3.5 text-amber-600" />
@@ -185,7 +185,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt,
         <button
           type="button"
           onClick={handleWhatsAppReminder}
-          className="py-2.5 px-2 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] font-bold rounded-xl text-[11px] flex items-center justify-center space-x-1.5 active:scale-95 transition-all cursor-pointer font-display"
+          className="py-2.5 px-2 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-1.5 active:scale-95 transition-all cursor-pointer font-display"
         >
           <MessageSquare className="w-3.5 h-3.5 fill-[#128C7E]" />
           <span>Relancer WhatsApp</span>
@@ -194,7 +194,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt,
         <button
           type="button"
           onClick={() => onPayDebt(customer)}
-          className="py-2.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-[11px] flex items-center justify-center space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
+          className="py-2.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
         >
           <ArrowDownRight className="w-3.5 h-3.5" />
           <span>Régler / Acompte</span>

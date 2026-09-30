@@ -146,7 +146,7 @@ export const Keypad: React.FC<KeypadProps> = ({ value, onChange, onClear }) => {
           title="Additionner un montant"
         >
           <Plus className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3.5]" />
-          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-emerald-100 font-display mt-0.5">Plus</span>
+          <span className="text-xs font-black uppercase tracking-wider text-emerald-100 font-display mt-0.5">Plus</span>
         </button>
 
         {/* Ligne 4 : 0, 00, 000 */}

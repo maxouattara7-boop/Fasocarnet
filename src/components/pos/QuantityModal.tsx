@@ -107,10 +107,10 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
               <Package className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-400 block">
                 Quantité d'article
               </span>
-              <h3 className="text-base font-extrabold text-slate-900 leading-tight">
+              <h3 className="text-lg font-extrabold text-slate-900 leading-tight">
                 {product.name}
               </h3>
             </div>
@@ -120,22 +120,22 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
             onClick={onClose}
             className="p-1.5 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Détails Prix Unitaire et Stock */}
         <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 flex items-center justify-between text-xs">
           <div>
-            <span className="text-[10px] font-bold uppercase text-slate-500 block">Prix unitaire</span>
-            <span className="font-extrabold text-slate-900 text-sm">
+            <span className="text-xs font-bold uppercase text-slate-500 block">Prix unitaire</span>
+            <span className="font-extrabold text-slate-900 text-base">
               {formatCurrency(product.price)}
             </span>
           </div>
           {maxAvailableStock !== undefined && (
             <div className="text-right">
-              <span className="text-[10px] font-bold uppercase text-slate-500 block">Stock disponible</span>
-              <span className={`font-black text-xs px-2 py-0.5 rounded-full ${
+              <span className="text-xs font-bold uppercase text-slate-500 block">Stock disponible</span>
+              <span className={`font-black text-xs px-2.5 py-1 rounded-full ${
                 isOutOfStock
                   ? 'bg-red-100 text-red-700 border border-red-200'
                   : maxAvailableStock <= (product.minStockAlert ?? 5)
@@ -150,7 +150,7 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
 
         {/* Sélecteur de Quantité Stepper & Clavier */}
         <div className="space-y-2">
-          <label className="block text-[11px] font-bold text-slate-700 text-center">
+          <label className="block text-sm font-bold text-slate-700 text-center">
             Précisez le nombre d'unités à ajouter :
           </label>
           <div className="flex items-center justify-center space-x-3">
@@ -193,7 +193,7 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
                 type="button"
                 disabled={isOutOfStock || (maxAvailableStock !== undefined && quantity + step > maxAvailableStock)}
                 onClick={() => handleIncrement(step)}
-                className="py-2 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-800 border border-emerald-200/80 rounded-xl text-xs font-black transition-all active:scale-95 cursor-pointer shadow-2xs font-display disabled:opacity-40"
+                className="py-2.5 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-800 border border-emerald-200/80 rounded-xl text-sm font-black transition-all active:scale-95 cursor-pointer shadow-2xs font-display disabled:opacity-40"
               >
                 +{step}
               </button>
@@ -203,12 +203,12 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
 
         {/* Alerte stock épuisé ou dépassé */}
         {isOutOfStock ? (
-          <div className="bg-red-50 border border-red-200 p-2.5 rounded-xl text-[11px] text-red-800 font-bold flex items-center space-x-2 animate-in fade-in">
+          <div className="bg-red-50 border border-red-200 p-2.5 rounded-xl text-xs sm:text-sm text-red-800 font-bold flex items-center space-x-2 animate-in fade-in">
             <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
             <span>Cet article est en rupture de stock (0 unité disponible). Vente bloquée.</span>
           </div>
         ) : isOverStock ? (
-          <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-[11px] text-amber-800 font-semibold flex items-center space-x-2 animate-in fade-in">
+          <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-xs sm:text-sm text-amber-800 font-semibold flex items-center space-x-2 animate-in fade-in">
             <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
             <span>Attention : la quantité demandée dépasse le stock disponible ({maxAvailableStock}).</span>
           </div>
@@ -217,12 +217,12 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
         {/* Sous-total calculé */}
         <div className="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-3.5 rounded-2xl flex items-center justify-between shadow-md">
           <div>
-            <span className="text-[10px] font-bold text-emerald-300 uppercase block">Total calculé</span>
-            <span className="text-xs font-semibold text-emerald-100">
+            <span className="text-xs font-bold text-emerald-300 uppercase block">Total calculé</span>
+            <span className="text-sm font-semibold text-emerald-100">
               {quantity} × {formatCurrency(product.price)}
             </span>
           </div>
-          <span className="text-xl font-extrabold text-white font-display">
+          <span className="text-xl sm:text-2xl font-extrabold text-white font-display">
             {formatCurrency(totalAmount)}
           </span>
         </div>
@@ -232,7 +232,7 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-xs transition-all active:scale-98 cursor-pointer"
+            className="py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-sm transition-all active:scale-98 cursor-pointer"
           >
             Annuler
           </button>
@@ -240,7 +240,7 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
             type="button"
             onClick={handleConfirm}
             disabled={isOutOfStock || isOverStock}
-            className="py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/30 transition-all active:scale-98 cursor-pointer font-display disabled:opacity-50 disabled:bg-slate-400"
+            className="py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl text-sm flex items-center justify-center space-x-1.5 shadow-md shadow-emerald-600/30 transition-all active:scale-98 cursor-pointer font-display disabled:opacity-50 disabled:bg-slate-400"
           >
             <Check className="w-4 h-4" />
             <span>Valider l'ajout</span>

@@ -32,7 +32,7 @@ export const BottomNav: React.FC = () => {
               <div className={`p-0.5 rounded-lg transition-transform duration-150 ${isActive ? 'scale-105 text-emerald-600' : 'text-slate-400'}`}>
                 {item.icon}
               </div>
-              <span className={`text-[10px] tracking-tight leading-none mt-0.5 ${isActive ? 'text-emerald-800 font-extrabold' : 'text-slate-500 font-medium'}`}>
+              <span className={`text-xs tracking-tight leading-none mt-1 ${isActive ? 'text-emerald-800 font-extrabold' : 'text-slate-600 font-semibold'}`}>
                 {item.label}
               </span>
             </button>

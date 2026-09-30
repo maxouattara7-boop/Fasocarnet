@@ -41,6 +41,26 @@
   }
 }
 
+/* Homogénéisation & Agrandissement Global des Polices (Mobile & Desktop) */
+@layer utilities {
+  .text-\[8px\],
+  .text-\[8\.5px\],
+  .text-\[9px\],
+  .text-\[9\.5px\] {
+    font-size: 0.75rem !important; /* 12px minimum vital pour lisibilité */
+    line-height: 1.15rem !important;
+  }
+  .text-\[10px\],
+  .text-\[10\.5px\] {
+    font-size: 0.8125rem !important; /* 13px pour les petits labels, badges et métadonnées */
+    line-height: 1.25rem !important;
+  }
+  .text-\[11px\] {
+    font-size: 0.875rem !important; /* 14px pour les sous-titres, aides et textes secondaires */
+    line-height: 1.35rem !important;
+  }
+}
+
 /* Custom Sleek Scrollbar */
 ::-webkit-scrollbar {
   width: 5px;

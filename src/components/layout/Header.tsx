@@ -31,10 +31,10 @@ export const Header: React.FC = () => {
           <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
             <Logo size="sm" showText={false} />
             <div className="min-w-0">
-              <span className="text-[10px] text-emerald-200/90 font-semibold block leading-tight truncate">
+              <span className="text-xs text-emerald-200 font-semibold block leading-tight truncate">
                 Bienvenue dans votre espace
               </span>
-              <h1 className="font-extrabold text-xs sm:text-base leading-tight truncate text-white tracking-tight font-display">
+              <h1 className="font-extrabold text-sm sm:text-lg leading-tight truncate text-white tracking-tight font-display">
                 {shopProfile?.name || 'FasoCarnet'}
               </h1>
             </div>
@@ -49,7 +49,7 @@ export const Header: React.FC = () => {
                   key={item.id}
                   type="button"
                   onClick={() => setActiveTab(item.id)}
-                  className={`px-3 lg:px-4 py-2 rounded-xl font-bold text-xs flex items-center space-x-2 transition-all cursor-pointer font-display ${
+                  className={`px-3 lg:px-4 py-2 rounded-xl font-bold text-sm flex items-center space-x-2 transition-all cursor-pointer font-display ${
                     isActive
                       ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-md shadow-emerald-500/25 font-black scale-102'
                       : 'text-emerald-200 hover:text-white hover:bg-emerald-800/50'
