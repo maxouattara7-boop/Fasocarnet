@@ -171,14 +171,17 @@ export const supabaseClient = {
 
     try {
       const profile = shopData.profile;
+      // Normaliser les numéros de téléphone (8 derniers chiffres) pour garantir la fiabilité des recherches ILIKE
+      const normalizePhoneCol = (p: string | undefined | null) =>
+        p ? p.replace(/\D/g, '').slice(-8) : null;
       const { error } = await client
         .from('shops')
         .upsert({
           id: profile.id,
           name: profile.name,
-          phone: profile.phone,
+          phone: normalizePhoneCol(profile.phone) || profile.phone || '',
           owner_name: profile.ownerName || null,
-          owner_phone: profile.ownerPhone || null,
+          owner_phone: normalizePhoneCol(profile.ownerPhone),
           city: profile.city || null,
           pin_code: profile.pinCode || null,
           subscription_plan: profile.subscriptionPlan || 'trial',
@@ -232,14 +235,31 @@ export const supabaseClient = {
     if (!clean || clean.length < 8) return null;
 
     try {
-      const { data, error } = await client
+      // Recherche 1 : numéro normalisé (les nouvelles lignes sont stockées sans espaces)
+      const { data: data1, error: err1 } = await client
         .from('shops')
         .select('data')
         .or(`phone.ilike.%${clean}%,owner_phone.ilike.%${clean}%`)
         .limit(1);
 
-      if (error || !data || data.length === 0) return null;
-      return (data[0].data as CloudShopData) || null;
+      if (!err1 && data1 && data1.length > 0) {
+        return (data1[0].data as CloudShopData) || null;
+      }
+
+      // Recherche 2 : pattern souple pour les anciens numéros stockés avec espaces (+226 65 61 61 34)
+      // On insère un % entre chaque chiffre pour tolérer n'importe quel séparateur
+      const spacedPattern = `%${clean.split('').join('%')}%`;
+      const { data: data2, error: err2 } = await client
+        .from('shops')
+        .select('data')
+        .or(`phone.ilike.${spacedPattern},owner_phone.ilike.${spacedPattern}`)
+        .limit(1);
+
+      if (!err2 && data2 && data2.length > 0) {
+        return (data2[0].data as CloudShopData) || null;
+      }
+
+      return null;
     } catch {
       return null;
     }

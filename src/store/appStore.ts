@@ -168,6 +168,28 @@ export const useAppStore = create<AppState>((set, get) => {
       // Sur cet appareil, charger l'unique profil existant
       const shop = await db.shopProfiles.toCollection().first();
       if (shop) {
+        // Vérification anti-résurrection : si Supabase est accessible, confirmer que le compte existe encore
+        // avant d'autoriser l'accès. Evite que les comptes supprimés restent connectés indéfiniment.
+        if (typeof navigator !== 'undefined' && navigator.onLine) {
+          try {
+            const remoteShop = await syncService.fetchShopPartition(shop.id);
+            if (!remoteShop) {
+              // Le compte n'existe plus dans le Cloud → wipe local et afficher l'écran de connexion
+              console.warn('[App] Compte supprimé détecté au démarrage, wipe local:', shop.id);
+              await syncService.clearLocalData();
+              set({
+                activeShopId: null,
+                shopProfile: null,
+                isLocked: false,
+                isInitialized: true
+              });
+              return;
+            }
+          } catch {
+            // Hors-ligne ou erreur réseau : on accorde le bénéfice du doute et on laisse entrer
+          }
+        }
+
         set({
           activeShopId: shop.id,
           shopProfile: shop,
