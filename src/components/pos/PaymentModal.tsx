@@ -67,6 +67,25 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   }, [isOpen, totalAmount]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === 'Enter') {
+        const activeEl = document.activeElement as HTMLElement;
+        if (activeEl?.tagName === 'TEXTAREA') return;
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, method, receivedAmountStr, downPaymentStr, selectedCustomer, newCustomerName, newCustomerPhone, transactionRef, notes, isSubmitting, totalAmount]);
+
   const loadCustomers = async () => {
     const list = await customersService.getAll();
     setCustomers(list);

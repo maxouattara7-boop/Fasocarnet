@@ -77,6 +77,23 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
     onConfirm(product, finalQty);
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        handleConfirm();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, quantity, product, isOutOfStock, isOverStock, maxAvailableStock, onConfirm, onClose]);
+
   const totalAmount = quantity * product.price;
 
   return (

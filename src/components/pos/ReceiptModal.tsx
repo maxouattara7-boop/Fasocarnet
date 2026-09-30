@@ -50,6 +50,20 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
     }
   };
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Enter') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen || !sale) return null;
 
   const handleDownloadImage = async (format: 'png' | 'jpeg' = selectedFormat) => {

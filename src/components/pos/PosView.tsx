@@ -24,8 +24,7 @@ import {
   Check, 
   Sparkles, 
   Tag, 
-  Trash2, 
-  Keyboard
+  Trash2
 } from 'lucide-react';
 import { evaluatePosExpression, formatPosExpressionDisplay } from '../../utils/calculator';
 
@@ -58,6 +57,35 @@ export const PosView: React.FC = () => {
   const barcodeBufferRef = useRef<string>('');
   const lastKeyTimeRef = useRef<number>(0);
 
+  const subtotalAmount = evaluatePosExpression(amountStr);
+  const discountAmount = discount ? discount.calculatedAmount : 0;
+  const finalPayableAmount = Math.max(0, subtotalAmount - discountAmount);
+
+  // Synchronisation des états pour l'écouteur clavier global (évite les fermetures obsolètes)
+  const finalPayableAmountRef = useRef(finalPayableAmount);
+  finalPayableAmountRef.current = finalPayableAmount;
+
+  const isPaymentModalOpenRef = useRef(isPaymentModalOpen);
+  isPaymentModalOpenRef.current = isPaymentModalOpen;
+
+  const isReceiptModalOpenRef = useRef(isReceiptModalOpen);
+  isReceiptModalOpenRef.current = isReceiptModalOpen;
+
+  const isArticlePickerOpenRef = useRef(isArticlePickerOpen);
+  isArticlePickerOpenRef.current = isArticlePickerOpen;
+
+  const isDiscountModalOpenRef = useRef(isDiscountModalOpen);
+  isDiscountModalOpenRef.current = isDiscountModalOpen;
+
+  const isBarcodeScannerOpenRef = useRef(isBarcodeScannerOpen);
+  isBarcodeScannerOpenRef.current = isBarcodeScannerOpen;
+
+  const scannedUnknownBarcodeRef = useRef(scannedUnknownBarcode);
+  scannedUnknownBarcodeRef.current = scannedUnknownBarcode;
+
+  const productForQuantityRef = useRef(productForQuantity);
+  productForQuantityRef.current = productForQuantity;
+
   useEffect(() => {
     loadProducts();
 
@@ -79,16 +107,63 @@ export const PosView: React.FC = () => {
           barcodeBufferRef.current = '';
           handleBarcodeScanned(scannedCode);
           return;
-        } else {
-          barcodeBufferRef.current = '';
         }
+        barcodeBufferRef.current = '';
+
+        // Si la modale de reçu est affichée, Entrée la ferme
+        if (isReceiptModalOpenRef.current) {
+          e.preventDefault();
+          setIsReceiptModalOpen(false);
+          return;
+        }
+
+        // Si aucune modale n'est ouverte et qu'un montant est présent, Entrée ouvre le paiement
+        if (
+          !isPaymentModalOpenRef.current &&
+          !isReceiptModalOpenRef.current &&
+          !isDiscountModalOpenRef.current &&
+          !productForQuantityRef.current &&
+          !isBarcodeScannerOpenRef.current &&
+          !isArticlePickerOpenRef.current &&
+          !scannedUnknownBarcodeRef.current
+        ) {
+          if (finalPayableAmountRef.current > 0) {
+            e.preventDefault();
+            triggerHaptic(40);
+            setIsPaymentModalOpen(true);
+          }
+        }
+        return;
       } else if (e.key.length === 1 && interval < 150) {
         barcodeBufferRef.current += e.key;
       } else if (interval >= 150) {
         barcodeBufferRef.current = e.key.length === 1 ? e.key : '';
       }
 
-      // Raccourcis clavier physiques pour la caisse
+      // Si une modale est ouverte, on laisse la gestion aux modales sauf pour Échap
+      if (
+        isPaymentModalOpenRef.current ||
+        isReceiptModalOpenRef.current ||
+        isDiscountModalOpenRef.current ||
+        productForQuantityRef.current ||
+        isBarcodeScannerOpenRef.current ||
+        isArticlePickerOpenRef.current ||
+        scannedUnknownBarcodeRef.current
+      ) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setIsPaymentModalOpen(false);
+          setIsReceiptModalOpen(false);
+          setIsDiscountModalOpen(false);
+          setProductForQuantity(null);
+          setIsBarcodeScannerOpen(false);
+          setIsArticlePickerOpen(false);
+          setScannedUnknownBarcode(null);
+        }
+        return;
+      }
+
+      // Raccourcis clavier physiques pour la caisse (en mode normal)
       if (e.key >= '0' && e.key <= '9') {
         e.preventDefault();
         setAmountStr((prev) => (prev === '0' ? e.key : prev + e.key));
@@ -111,7 +186,7 @@ export const PosView: React.FC = () => {
       }
     };
 
-    // Écouteur pour actualisation temps-réel instantanée lors de la synchronisation (autre appareil ou local)
+    // Écouteur pour actualisation temps-réel instantanée lors de la synchronisation
     const handleDbUpdated = () => {
       loadProducts();
     };
@@ -128,10 +203,6 @@ export const PosView: React.FC = () => {
     const list = await productsService.getAll();
     setProducts(list);
   };
-
-  const subtotalAmount = evaluatePosExpression(amountStr);
-  const discountAmount = discount ? discount.calculatedAmount : 0;
-  const finalPayableAmount = Math.max(0, subtotalAmount - discountAmount);
 
   const handleClear = () => {
     setAmountStr('0');
@@ -765,20 +836,6 @@ export const PosView: React.FC = () => {
               })}
             </div>
           )}
-
-          {/* Guide des raccourcis clavier */}
-          <div className="bg-slate-900 text-slate-300 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs shrink-0">
-            <div className="flex items-center space-x-2 text-amber-400">
-              <Keyboard className="w-3.5 h-3.5" />
-              <span className="font-bold text-[11px]">Raccourcis clavier :</span>
-            </div>
-            <div className="flex items-center space-x-2.5 text-[10.5px] font-mono">
-              <span><kbd className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-white">0-9</kbd> Montant</span>
-              <span><kbd className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-white">+</kbd> Addition</span>
-              <span><kbd className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-white">Entrée</kbd> Encaisser</span>
-              <span><kbd className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-white">Échap / C</kbd> Effacer</span>
-            </div>
-          </div>
         </div>
       </div>
 
