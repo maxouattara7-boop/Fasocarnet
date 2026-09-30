@@ -121,44 +121,44 @@ export const MiniAdminDashboard: React.FC = () => {
       {/* ========================================================= */}
       {/* EN-TÊTE SUPÉRIEUR MINI-ADMIN */}
       {/* ========================================================= */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 sm:px-6">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
-              <Crown className="w-5 h-5" />
+      <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 py-2.5 sm:px-6 sm:py-3.5">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20 shrink-0">
+              <Crown className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-display font-black text-white text-base tracking-tight">
+            <div className="min-w-0">
+              <div className="flex items-center space-x-1.5 sm:space-x-2">
+                <span className="font-display font-black text-white text-sm sm:text-base tracking-tight truncate">
                   FasoCarnet
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold">
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] sm:text-[10px] font-bold shrink-0">
                   Chef d'Équipe
                 </span>
               </div>
-              <p className="text-xs text-slate-400 flex items-center space-x-1.5 font-medium">
-                <span>👑 {activeTeamLeader.fullName}</span>
-                <span className="text-slate-600">•</span>
-                <span className="text-amber-400 font-bold">{data?.team.name || activeTeamLeader.teamName}</span>
+              <div className="text-[11px] sm:text-xs text-slate-400 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-medium leading-tight mt-0.5">
+                <span className="truncate max-w-[120px] sm:max-w-none">👑 {activeTeamLeader.fullName}</span>
+                <span className="text-slate-600 hidden xs:inline">•</span>
+                <span className="text-amber-400 font-bold truncate max-w-[130px] sm:max-w-none">{data?.team.name || activeTeamLeader.teamName}</span>
                 {activeTeamLeader.zone && (
                   <>
-                    <span className="text-slate-600">•</span>
-                    <span className="text-slate-400 flex items-center">
-                      <MapPin className="w-3 h-3 text-slate-500 mr-0.5 inline" />
+                    <span className="text-slate-600 hidden sm:inline">•</span>
+                    <span className="text-slate-400 flex items-center shrink-0">
+                      <MapPin className="w-3 h-3 text-slate-500 mr-0.5 inline shrink-0" />
                       {activeTeamLeader.zone}
                     </span>
                   </>
                 )}
-              </p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             <button
               type="button"
               onClick={loadLeaderData}
               disabled={isLoading}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+              className="p-2 sm:p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 transition-all cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center border border-slate-700/60"
               title="Actualiser les données"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-amber-400' : ''}`} />
@@ -167,9 +167,9 @@ export const MiniAdminDashboard: React.FC = () => {
             <button
               type="button"
               onClick={logoutMiniAdmin}
-              className="px-3 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 text-xs font-bold border border-red-800/40 transition-colors flex items-center space-x-1.5 cursor-pointer"
+              className="px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 active:scale-95 text-red-300 text-xs font-bold border border-red-800/40 transition-all flex items-center space-x-1.5 cursor-pointer min-h-[40px]"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">Déconnexion</span>
             </button>
           </div>
@@ -179,19 +179,19 @@ export const MiniAdminDashboard: React.FC = () => {
       {/* ========================================================= */}
       {/* CORPS DU TABLEAU DE BORD */}
       {/* ========================================================= */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-5 md:p-6 space-y-4 sm:space-y-6">
         
         {/* Bannière Bienvenue & Action Recrutement */}
-        <div className="bg-gradient-to-r from-amber-500/15 via-slate-900 to-slate-900 border border-amber-500/30 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
-          <div className="space-y-1">
-            <div className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-bold border border-amber-500/30">
+        <div className="bg-gradient-to-r from-amber-500/15 via-slate-900 to-slate-900 border border-amber-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+          <div className="space-y-1 sm:space-y-1.5">
+            <div className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[10px] sm:text-[11px] font-bold border border-amber-500/30">
               <Building className="w-3.5 h-3.5" />
               <span>{data?.team.name || activeTeamLeader.teamName}</span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-white font-display">
+            <h2 className="text-lg sm:text-2xl font-black text-white font-display">
               Gestion de votre Équipe Commerciale
             </h2>
-            <p className="text-xs text-slate-400 max-w-xl">
+            <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
               Suivez les résultats de vos commerciaux sur le terrain, recrutez de nouveaux agents et générez automatiquement leurs codes d'affiliation en direct.
             </p>
           </div>
@@ -199,65 +199,65 @@ export const MiniAdminDashboard: React.FC = () => {
           <button
             type="button"
             onClick={handleOpenRecruitModal}
-            className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/20 active:scale-98 transition-all cursor-pointer font-display shrink-0"
+            className="w-full sm:w-auto px-5 py-3 sm:py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl flex items-center justify-center space-x-2 shadow-lg shadow-amber-500/20 active:scale-98 transition-all cursor-pointer font-display shrink-0 min-h-[44px]"
           >
-            <UserPlus className="w-5 h-5" />
+            <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>+ RECRUTER UN COMMERCIAL</span>
           </button>
         </div>
 
         {/* Grille des 4 KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          <div className="bg-slate-900 border border-slate-800 p-3.5 sm:p-4 rounded-2xl space-y-1 shadow-sm">
             <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
               <span>Commerciaux</span>
               <Users className="w-4 h-4 text-amber-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-white font-display">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-black text-white font-display truncate">
               {data?.membersCount || 0}
             </div>
-            <p className="text-[11px] text-slate-500">Membres de votre flotte</p>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">Membres de votre flotte</p>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
+          <div className="bg-slate-900 border border-slate-800 p-3.5 sm:p-4 rounded-2xl space-y-1 shadow-sm">
             <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
               <span>Boutiques Inscrites</span>
               <Store className="w-4 h-4 text-emerald-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-white font-display">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-black text-white font-display truncate">
               {data?.totalShopsReferred || 0}
             </div>
-            <p className="text-[11px] text-slate-500">Recrutées par votre équipe</p>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">Recrutées par votre équipe</p>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
+          <div className="bg-slate-900 border border-slate-800 p-3.5 sm:p-4 rounded-2xl space-y-1 shadow-sm">
             <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
               <span>Abonnés Payants</span>
               <TrendingUp className="w-4 h-4 text-teal-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-white font-display">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-black text-white font-display truncate">
               {data?.activeSubscribedShops || 0}
             </div>
-            <p className="text-[11px] text-slate-500">Actifs ce mois-ci</p>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 truncate">Actifs ce mois-ci</p>
           </div>
 
-          <div className="bg-slate-900 border border-amber-500/30 bg-gradient-to-b from-slate-900 to-amber-950/20 p-4 rounded-2xl space-y-1">
+          <div className="bg-slate-900 border border-amber-500/30 bg-gradient-to-b from-slate-900 to-amber-950/20 p-3.5 sm:p-4 rounded-2xl space-y-1 shadow-sm">
             <div className="flex items-center justify-between text-amber-300 text-xs font-bold">
               <span>Commissions Semaine</span>
               <BarChart3 className="w-4 h-4 text-amber-400" />
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-amber-400 font-display">
+            <div className="text-xl sm:text-2xl lg:text-3xl font-black text-amber-400 font-display truncate">
               {formatCurrency(data?.currentWeekCommissionTotal || 0)}
             </div>
-            <p className="text-[11px] text-amber-200/60">À verser aux commerciaux (15%)</p>
+            <p className="text-[10px] sm:text-[11px] text-amber-200/60 truncate">À verser aux commerciaux (15%)</p>
           </div>
         </div>
 
         {/* Section Liste des Commerciaux de l'Équipe */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="space-y-3.5 sm:space-y-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
             <div>
-              <h3 className="text-lg font-black text-white font-display flex items-center space-x-2">
+              <h3 className="text-base sm:text-lg font-black text-white font-display flex items-center space-x-2">
                 <span>Commerciaux de votre Équipe</span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-sans">
                   {filteredCommercials.length}
@@ -281,8 +281,8 @@ export const MiniAdminDashboard: React.FC = () => {
           </div>
 
           {filteredCommercials.length === 0 ? (
-            <div className="bg-slate-900/60 border border-dashed border-slate-800 rounded-3xl p-10 text-center space-y-3">
-              <Users className="w-12 h-12 text-slate-600 mx-auto" />
+            <div className="bg-slate-900/60 border border-dashed border-slate-800 rounded-2xl sm:rounded-3xl p-8 sm:p-10 text-center space-y-3">
+              <Users className="w-10 h-10 sm:w-12 sm:h-12 text-slate-600 mx-auto" />
               <h4 className="font-bold text-slate-300 text-sm">
                 {searchQuery ? 'Aucun commercial ne correspond à votre recherche' : 'Aucun commercial dans votre équipe pour le moment'}
               </h4>
@@ -293,7 +293,7 @@ export const MiniAdminDashboard: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleOpenRecruitModal}
-                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl inline-flex items-center space-x-2 font-display cursor-pointer transition-all"
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl inline-flex items-center space-x-2 font-display cursor-pointer transition-all active:scale-95"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>Ajouter une première recrue</span>
@@ -301,7 +301,7 @@ export const MiniAdminDashboard: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               {filteredCommercials.map((comm) => {
                 const isCopied = copiedId === comm.code;
                 const agentObj: CommercialAgent = {
@@ -319,15 +319,15 @@ export const MiniAdminDashboard: React.FC = () => {
                 return (
                   <div
                     key={comm.code}
-                    className="bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-4 space-y-3 transition-all"
+                    className="bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-3.5 sm:p-4 space-y-3 transition-all flex flex-col justify-between shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="font-black text-white text-sm font-display">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                          <h4 className="font-black text-white text-sm font-display truncate">
                             {comm.name || `Commercial (${comm.code})`}
                           </h4>
-                          <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] sm:text-[10px] font-bold">
                             Actif
                           </span>
                         </div>
@@ -342,7 +342,7 @@ export const MiniAdminDashboard: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleCopy(comm.code, comm.code)}
-                        className="px-2.5 py-1 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 rounded-lg text-amber-300 font-mono font-black text-xs flex items-center space-x-1.5 transition-colors cursor-pointer"
+                        className="px-2.5 py-1 bg-amber-500/15 hover:bg-amber-500/25 active:scale-95 border border-amber-500/30 rounded-lg text-amber-300 font-mono font-black text-xs flex items-center space-x-1.5 transition-colors cursor-pointer shrink-0"
                         title="Copier le code d'affiliation"
                       >
                         <span>{comm.code}</span>
@@ -351,33 +351,33 @@ export const MiniAdminDashboard: React.FC = () => {
                     </div>
 
                     {/* Performances individuelles */}
-                    <div className="grid grid-cols-3 gap-2 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 text-center">
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2 bg-slate-950/60 p-2 sm:p-2.5 rounded-xl border border-slate-800/80 text-center">
                       <div>
-                        <div className="text-[10px] text-slate-500 font-semibold">Boutiques</div>
-                        <div className="text-sm font-black text-white">{comm.totalShopsReferred}</div>
+                        <div className="text-[9px] sm:text-[10px] text-slate-500 font-semibold truncate">Boutiques</div>
+                        <div className="text-xs sm:text-sm font-black text-white font-mono">{comm.totalShopsReferred}</div>
                       </div>
                       <div>
-                        <div className="text-[10px] text-slate-500 font-semibold">Abonnés</div>
-                        <div className="text-sm font-black text-emerald-400">{comm.activeSubscribedShops}</div>
+                        <div className="text-[9px] sm:text-[10px] text-slate-500 font-semibold truncate">Abonnés</div>
+                        <div className="text-xs sm:text-sm font-black text-emerald-400 font-mono">{comm.activeSubscribedShops}</div>
                       </div>
                       <div>
-                        <div className="text-[10px] text-slate-500 font-semibold">Commissions</div>
-                        <div className="text-sm font-black text-amber-400">
+                        <div className="text-[9px] sm:text-[10px] text-slate-500 font-semibold truncate">Commissions</div>
+                        <div className="text-xs sm:text-sm font-black text-amber-400 font-mono truncate">
                           {formatCurrency(comm.currentWeekCommissionDue)}
                         </div>
                       </div>
                     </div>
 
                     {/* Action WhatsApp Pack Onboarding */}
-                    <div className="pt-1 flex items-center justify-between">
-                      <span className="text-[11px] text-slate-500">
+                    <div className="pt-1 flex items-center justify-between gap-2">
+                      <span className="text-[10px] sm:text-[11px] text-slate-500 truncate">
                         {comm.referredShops.length} boutique(s) inscrite(s)
                       </span>
 
                       <button
                         type="button"
                         onClick={() => handleSendWhatsAppKit(agentObj)}
-                        className="px-3 py-1.5 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] text-xs font-bold rounded-xl border border-[#25D366]/30 flex items-center space-x-1.5 transition-all cursor-pointer font-display"
+                        className="px-3 py-1.5 sm:py-2 bg-[#25D366]/20 hover:bg-[#25D366]/30 active:scale-95 text-[#25D366] text-xs font-bold rounded-xl border border-[#25D366]/30 flex items-center space-x-1.5 transition-all cursor-pointer font-display shrink-0 min-h-[36px]"
                         title="Renvoyer le kit commercial WhatsApp avec son lien"
                       >
                         <MessageCircle className="w-3.5 h-3.5" />
@@ -396,15 +396,15 @@ export const MiniAdminDashboard: React.FC = () => {
       {/* MODALE RECRUTEMENT NOUVEAU COMMERCIAL */}
       {/* ========================================================= */}
       {isRecruitModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black">
+                <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0">
                   <UserPlus className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-white text-base font-display">
+                  <h3 className="font-black text-white text-sm sm:text-base font-display">
                     Recruter un Commercial
                   </h3>
                   <p className="text-[11px] text-slate-400">
@@ -415,7 +415,7 @@ export const MiniAdminDashboard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsRecruitModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800"
+                className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 min-h-[36px] min-w-[36px] flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -432,7 +432,7 @@ export const MiniAdminDashboard: React.FC = () => {
                   placeholder="Ex: Moussa Kaboré"
                   value={recruitFullName}
                   onChange={(e) => setRecruitFullName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-600 focus:border-amber-500 outline-none"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-white placeholder:text-slate-600 focus:border-amber-500 outline-none"
                 />
               </div>
 
@@ -441,7 +441,7 @@ export const MiniAdminDashboard: React.FC = () => {
                   Numéro WhatsApp (8 chiffres) *
                 </label>
                 <div className="flex items-center space-x-2">
-                  <span className="px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-400 font-mono font-bold">
+                  <span className="px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-slate-400 font-mono font-bold">
                     +226
                   </span>
                   <input
@@ -451,7 +451,7 @@ export const MiniAdminDashboard: React.FC = () => {
                     placeholder="70 12 34 56"
                     value={recruitPhone}
                     onChange={(e) => setRecruitPhone(e.target.value.replace(/\D/g, ''))}
-                    className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-600 focus:border-amber-500 outline-none font-mono"
+                    className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-white placeholder:text-slate-600 focus:border-amber-500 outline-none font-mono"
                   />
                 </div>
               </div>
@@ -465,7 +465,7 @@ export const MiniAdminDashboard: React.FC = () => {
                   placeholder="Ex: Grand Marché, Secteur 15..."
                   value={recruitZone}
                   onChange={(e) => setRecruitZone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder:text-slate-600 focus:border-amber-500 outline-none"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-white placeholder:text-slate-600 focus:border-amber-500 outline-none"
                 />
               </div>
 
@@ -510,14 +510,14 @@ export const MiniAdminDashboard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsRecruitModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition-colors cursor-pointer min-h-[40px]"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingRecruit}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black shadow-md flex items-center space-x-1.5 transition-all cursor-pointer font-display disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black shadow-md flex items-center space-x-1.5 transition-all cursor-pointer font-display disabled:opacity-50 min-h-[40px] active:scale-95"
                 >
                   {isSavingRecruit ? (
                     <>
@@ -541,14 +541,14 @@ export const MiniAdminDashboard: React.FC = () => {
       {/* MODALE SUCCÈS RECRUTEMENT & PARTAGE PACK WHATSAPP */}
       {/* ========================================================= */}
       {recruitSuccessModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
-          <div className="bg-slate-900 border border-amber-500/40 rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-slate-950 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
-              <CheckCircle2 className="w-8 h-8 text-white" />
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-2xl sm:rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95 text-center max-h-[92vh] overflow-y-auto">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-500 text-slate-950 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
+              <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
             </div>
 
             <div className="space-y-1">
-              <h3 className="font-black text-white text-lg font-display">
+              <h3 className="font-black text-white text-base sm:text-lg font-display">
                 Commercial Enregistré avec Succès !
               </h3>
               <p className="text-xs text-slate-400">
@@ -556,12 +556,12 @@ export const MiniAdminDashboard: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+            <div className="bg-slate-950 p-3.5 sm:p-4 rounded-2xl border border-slate-800 space-y-2">
               <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                 Code commercial unique généré
               </div>
               <div className="flex items-center justify-center space-x-2">
-                <span className="text-2xl font-mono font-black text-amber-400 tracking-wider">
+                <span className="text-xl sm:text-2xl font-mono font-black text-amber-400 tracking-wider">
                   {recruitSuccessModal.code}
                 </span>
                 <button
@@ -583,7 +583,7 @@ export const MiniAdminDashboard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleSendWhatsAppKit(recruitSuccessModal)}
-                className="w-full py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-black rounded-2xl text-xs sm:text-sm flex items-center justify-center space-x-2 shadow-lg shadow-[#25D366]/20 active:scale-98 transition-all cursor-pointer font-display"
+                className="w-full py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-black rounded-xl sm:rounded-2xl text-xs sm:text-sm flex items-center justify-center space-x-2 shadow-lg shadow-[#25D366]/20 active:scale-98 transition-all cursor-pointer font-display min-h-[44px]"
               >
                 <MessageCircle className="w-4 h-4" />
                 <span>Envoyer le Pack Onboarding par WhatsApp (+226 {recruitSuccessModal.phone})</span>
@@ -592,7 +592,7 @@ export const MiniAdminDashboard: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setRecruitSuccessModal(null)}
-                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-colors cursor-pointer min-h-[40px]"
               >
                 Fermer
               </button>
