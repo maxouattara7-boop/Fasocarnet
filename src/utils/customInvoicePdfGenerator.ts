@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { CustomInvoice, ShopProfile } from '../types';
 import { formatCurrency } from './formatters';
-import { downloadOrSharePdfBlob, FileActionResult } from './fileDownloader';
+import { downloadOrSharePdfBlob, downloadOrShareImage, FileActionResult } from './fileDownloader';
 import { getLegalArreteMention } from './numberToWords';
 
 export interface GeneratePdfOptions {
@@ -446,5 +446,318 @@ export async function downloadOrShareCustomInvoicePdf(
     title: `${prefix} N° ${invoice.number} - ${shop?.name || 'FasoCarnet'}`,
     text: `Veuillez trouver ci-joint votre ${prefix.toLowerCase()} N° ${invoice.number} émis par ${shop?.name || 'notre établissement'}.`,
     directShare: options.directShare
+  });
+}
+
+const loadInvoiceLogoImage = (dataUrl?: string): Promise<HTMLImageElement | null> => {
+  if (!dataUrl) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    let resolved = false;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      if (!resolved) {
+        resolved = true;
+        resolve(img);
+      }
+    };
+    img.onerror = () => {
+      if (!resolved) {
+        resolved = true;
+        resolve(null);
+      }
+    };
+    img.src = dataUrl;
+    setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve(null);
+      }
+    }, 250);
+  });
+};
+
+/**
+ * Génère une image haute définition (Canvas 2D) d'une facture, devis ou proforma
+ */
+export async function generateCustomInvoiceCanvas(
+  invoice: CustomInvoice,
+  shop?: Partial<ShopProfile>
+): Promise<HTMLCanvasElement> {
+  const isQuote = invoice.type === 'QUOTE';
+  const isProforma = invoice.type === 'PROFORMA';
+  const docTypeTitle = isQuote ? 'DEVIS ESTIMATIF' : isProforma ? 'FACTURE PROFORMA' : 'FACTURE COMMERCIALE';
+  const primaryColor = isQuote ? '#1d4ed8' : isProforma ? '#4f46e5' : '#047857';
+  const secondaryColor = isQuote ? '#eff6ff' : isProforma ? '#eef2ff' : '#ecfdf5';
+
+  const logoImg = await loadInvoiceLogoImage(shop?.logo);
+  const items = invoice.items || [];
+  const itemsCount = Math.max(1, items.length);
+
+  const width = 800;
+  const dynamicHeight = Math.max(1050, 680 + (itemsCount * 45) + (invoice.paymentTerms ? 60 : 0) + (invoice.notes ? 40 : 0));
+  const height = dynamicHeight;
+  const scale = 2; // Rétina 2x
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Impossible de créer le contexte 2D');
+  ctx.scale(scale, scale);
+
+  // 1. Fond blanc
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+
+  // Bordure élégante
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(15, 15, width - 30, height - 30);
+
+  // 2. En-tête : Boutique & Logo
+  let currentY = 35;
+  const marginX = 35;
+
+  if (logoImg) {
+    try {
+      ctx.drawImage(logoImg, marginX, currentY, 60, 60);
+    } catch {}
+  }
+
+  const shopTextX = logoImg ? marginX + 75 : marginX;
+  ctx.fillStyle = primaryColor;
+  ctx.font = 'bold 20px sans-serif';
+  ctx.textAlign = 'left';
+  const shopName = shop?.name || 'COMMERCE FASOCARNET';
+  ctx.fillText(shopName.toUpperCase(), shopTextX, currentY + 20);
+
+  ctx.fillStyle = '#475569';
+  ctx.font = '12px sans-serif';
+  let shopSubY = currentY + 38;
+  if (shop?.description) {
+    ctx.fillText(shop.description, shopTextX, shopSubY);
+    shopSubY += 16;
+  }
+  const shopContacts: string[] = [];
+  if (shop?.phone) shopContacts.push(`Tél : ${shop.phone}`);
+  if (shop?.city || shop?.address) shopContacts.push(`Ville : ${shop.city || shop.address}`);
+  if (shopContacts.length > 0) {
+    ctx.fillText(shopContacts.join('  •  '), shopTextX, shopSubY);
+    shopSubY += 16;
+  }
+  const shopLegals: string[] = [];
+  if (shop?.ifu) shopLegals.push(`IFU : ${shop.ifu}`);
+  if (shop?.rccm) shopLegals.push(`RCCM : ${shop.rccm}`);
+  if (shopLegals.length > 0) {
+    ctx.fillText(shopLegals.join('  •  '), shopTextX, shopSubY);
+  }
+
+  // 3. Bloc Document (Titre & Numéro à droite)
+  const rightColX = width - marginX;
+  ctx.textAlign = 'right';
+  ctx.fillStyle = primaryColor;
+  ctx.font = 'bold 18px sans-serif';
+  ctx.fillText(docTypeTitle, rightColX, currentY + 20);
+
+  ctx.fillStyle = '#0f172a';
+  ctx.font = 'bold 13px monospace';
+  ctx.fillText(`N° ${invoice.number}`, rightColX, currentY + 40);
+
+  ctx.fillStyle = '#64748b';
+  ctx.font = '11px sans-serif';
+  ctx.fillText(`Émis le : ${invoice.issueDate}`, rightColX, currentY + 58);
+  if (invoice.dueDate) {
+    ctx.fillText(`Échéance : ${invoice.dueDate}`, rightColX, currentY + 74);
+  }
+
+  currentY = Math.max(shopSubY + 25, currentY + 95);
+
+  // 4. Bloc Informations Client
+  ctx.fillStyle = secondaryColor;
+  ctx.beginPath();
+  ctx.roundRect(marginX, currentY, width - (marginX * 2), 70, 8);
+  ctx.fill();
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = primaryColor;
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText('FACTURÉ À / CLIENT :', marginX + 15, currentY + 20);
+
+  ctx.fillStyle = '#0f172a';
+  ctx.font = 'bold 14px sans-serif';
+  ctx.fillText(invoice.clientName || 'Client Comptant', marginX + 15, currentY + 40);
+
+  ctx.fillStyle = '#475569';
+  ctx.font = '11px sans-serif';
+  const clientDetails: string[] = [];
+  if (invoice.clientPhone) clientDetails.push(`Tél : ${invoice.clientPhone}`);
+  if (invoice.clientAddress) clientDetails.push(`Adresse : ${invoice.clientAddress}`);
+  if (clientDetails.length > 0) {
+    ctx.fillText(clientDetails.join('  •  '), marginX + 15, currentY + 58);
+  }
+
+  currentY += 85;
+
+  // 5. Tableau des articles
+  // Entête du tableau
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(marginX, currentY, width - (marginX * 2), 32);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('DÉSIGNATION', marginX + 12, currentY + 20);
+  ctx.textAlign = 'center';
+  ctx.fillText('QTÉ', width - 260, currentY + 20);
+  ctx.textAlign = 'right';
+  ctx.fillText('P.U. (FCFA)', width - 140, currentY + 20);
+  ctx.fillText('TOTAL (FCFA)', width - marginX - 12, currentY + 20);
+
+  currentY += 32;
+
+  // Lignes d'articles
+  items.forEach((item, idx) => {
+    const isEven = idx % 2 === 0;
+    if (isEven) {
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(marginX, currentY, width - (marginX * 2), 34);
+    }
+
+    ctx.fillStyle = '#1e293b';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(item.description, marginX + 12, currentY + 22);
+
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(item.quantity), width - 260, currentY + 22);
+
+    ctx.textAlign = 'right';
+    ctx.fillText(formatCurrency(item.unitPrice).replace(' FCFA', ''), width - 140, currentY + 22);
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText(formatCurrency(item.totalPrice).replace(' FCFA', ''), width - marginX - 12, currentY + 22);
+
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.beginPath();
+    ctx.moveTo(marginX, currentY + 34);
+    ctx.lineTo(width - marginX, currentY + 34);
+    ctx.stroke();
+
+    currentY += 34;
+  });
+
+  currentY += 15;
+
+  // 6. Récapitulatif Financier
+  const summaryBoxW = 280;
+  const summaryBoxX = width - marginX - summaryBoxW;
+
+  ctx.fillStyle = '#f8fafc';
+  ctx.beginPath();
+  ctx.roundRect(summaryBoxX, currentY, summaryBoxW, invoice.discountAmount ? 120 : 90, 8);
+  ctx.fill();
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.stroke();
+
+  let sumY = currentY + 24;
+  ctx.font = '12px sans-serif';
+  ctx.fillStyle = '#475569';
+  ctx.textAlign = 'left';
+  ctx.fillText('Sous-Total Brut :', summaryBoxX + 14, sumY);
+  ctx.textAlign = 'right';
+  ctx.fillText(formatCurrency(invoice.subtotal), summaryBoxX + summaryBoxW - 14, sumY);
+
+  if (invoice.discountAmount && invoice.discountAmount > 0) {
+    sumY += 24;
+    ctx.fillText('Remise accordée :', summaryBoxX + 14, sumY);
+    ctx.fillStyle = '#dc2626';
+    ctx.fillText(`-${formatCurrency(invoice.discountAmount)}`, summaryBoxX + summaryBoxW - 14, sumY);
+  }
+
+  sumY += 28;
+  ctx.fillStyle = primaryColor;
+  ctx.font = 'bold 13px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('NET À PAYER :', summaryBoxX + 14, sumY);
+  ctx.font = 'bold 16px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(formatCurrency(invoice.totalAmount), summaryBoxX + summaryBoxW - 14, sumY);
+
+  // Mention en toutes lettres à gauche
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#334155';
+  ctx.font = 'italic 11px sans-serif';
+  const arreteText = getLegalArreteMention(invoice.type, invoice.totalAmount).fullMention;
+  ctx.fillText(arreteText, marginX, currentY + 24);
+
+  if (invoice.paymentTerms) {
+    ctx.font = '10.5px sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText(`Modalités : ${invoice.paymentTerms}`, marginX, currentY + 46);
+  }
+
+  currentY = Math.max(currentY + 130, sumY + 40);
+
+  // 7. Signatures
+  const sigBoxW = (width - (marginX * 2) - 20) / 2;
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(marginX, currentY, sigBoxW, 60);
+  ctx.strokeRect(marginX + sigBoxW + 20, currentY, sigBoxW, 60);
+
+  ctx.fillStyle = '#64748b';
+  ctx.font = 'bold 10px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('SIGNATURE & CACHET CLIENT', marginX + 10, currentY + 16);
+  ctx.fillText(`POUR ${shopName.toUpperCase()}`, marginX + sigBoxW + 30, currentY + 16);
+
+  // 8. Pied de page
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${shopName} • Document certifié conforme généré sur l'application FasoCarnet`, width / 2, height - 25);
+
+  return canvas;
+}
+
+/**
+ * Exporte le document personnalisé sous forme de Data URL (PNG ou JPEG)
+ */
+export async function generateCustomInvoiceImageDataUrl(
+  invoice: CustomInvoice,
+  shop?: Partial<ShopProfile>,
+  format: 'png' | 'jpeg' = 'png'
+): Promise<string> {
+  const canvas = await generateCustomInvoiceCanvas(invoice, shop);
+  const mime = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+  return canvas.toDataURL(mime, 0.95);
+}
+
+/**
+ * Télécharge le document sous forme d'Image PNG ou JPEG directement dans les documents / fichiers
+ */
+export async function downloadOrShareCustomInvoiceImage(
+  invoice: CustomInvoice,
+  shop?: Partial<ShopProfile>,
+  format: 'png' | 'jpeg' = 'png',
+  options: GeneratePdfOptions = {}
+): Promise<FileActionResult> {
+  const isQuote = invoice.type === 'QUOTE';
+  const prefix = isQuote ? 'Devis' : invoice.type === 'PROFORMA' ? 'Proforma' : 'Facture';
+  const cleanNumber = invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_');
+  const ext = format === 'jpeg' ? 'jpg' : 'png';
+  const fileName = `${prefix}_${cleanNumber}.${ext}`;
+
+  const dataUrl = await generateCustomInvoiceImageDataUrl(invoice, shop, format);
+
+  return downloadOrShareImage({
+    fileName,
+    dataUrl,
+    title: `${prefix} N° ${invoice.number} - ${shop?.name || 'FasoCarnet'}`,
+    text: `Veuillez trouver ci-joint votre ${prefix.toLowerCase()} N° ${invoice.number} émis par ${shop?.name || 'notre établissement'}.`,
+    directShare: options.directShare,
+    mimeType: format === 'jpeg' ? 'image/jpeg' : 'image/png'
   });
 }

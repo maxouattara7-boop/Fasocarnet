@@ -6,7 +6,7 @@ import { customersService } from '../../db/services/customersService';
 import { useAppStore } from '../../store/appStore';
 import { formatCurrency } from '../../utils/formatters';
 import { generateCustomInvoiceWhatsAppMessage, printCustomInvoice } from '../../utils/customInvoiceRenderer';
-import { downloadOrShareCustomInvoicePdf } from '../../utils/customInvoicePdfGenerator';
+import { downloadOrShareCustomInvoicePdf, downloadOrShareCustomInvoiceImage } from '../../utils/customInvoicePdfGenerator';
 import { getLegalArreteMention } from '../../utils/numberToWords';
 import { openWhatsApp } from '../../utils/whatsapp';
 import { 
@@ -27,6 +27,7 @@ import {
   Clock,
   CheckCircle,
   FileCheck,
+  Image as ImageIcon,
   X
 } from 'lucide-react';
 
@@ -271,6 +272,19 @@ export const InvoicesView: React.FC = () => {
     } catch (err) {
       console.error('Erreur génération PDF:', err);
       alert('Erreur lors de la génération du PDF');
+    } finally {
+      setGeneratingPdfDocId(null);
+    }
+  };
+
+  const handleDownloadImage = async (doc: CustomInvoice, format: 'png' | 'jpeg' = 'png') => {
+    if (!shopProfile) return;
+    try {
+      setGeneratingPdfDocId(doc.id);
+      await downloadOrShareCustomInvoiceImage(doc, shopProfile, format);
+    } catch (err) {
+      console.error('Erreur téléchargement image facture:', err);
+      alert('Erreur lors du téléchargement de l\'image');
     } finally {
       setGeneratingPdfDocId(null);
     }
@@ -593,7 +607,7 @@ export const InvoicesView: React.FC = () => {
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-4 gap-1.5 pt-1">
+                      <div className="grid grid-cols-5 gap-1.5 pt-1">
                         {/* Partager WhatsApp */}
                         <button
                           type="button"
@@ -604,13 +618,28 @@ export const InvoicesView: React.FC = () => {
                           <Share2 className="w-4 h-4" />
                         </button>
 
+                        {/* Télécharger Image PNG / JPEG */}
+                        <button
+                          type="button"
+                          disabled={generatingPdfDocId === doc.id}
+                          onClick={() => handleDownloadImage(doc, 'png')}
+                          className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl text-xs font-bold flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50"
+                          title="Télécharger l'image (PNG / JPEG) dans vos fichiers"
+                        >
+                          {generatingPdfDocId === doc.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+                          ) : (
+                            <ImageIcon className="w-4 h-4" />
+                          )}
+                        </button>
+
                         {/* Télécharger PDF */}
                         <button
                           type="button"
                           disabled={generatingPdfDocId === doc.id}
                           onClick={() => handleDownloadPdf(doc)}
                           className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50"
-                          title="Télécharger la version PDF A4"
+                          title="Télécharger le document PDF A4"
                         >
                           {generatingPdfDocId === doc.id ? (
                             <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />

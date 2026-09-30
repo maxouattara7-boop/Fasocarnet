@@ -511,28 +511,39 @@ export async function generateReceiptCanvas(
 }
 
 /**
- * Exporte le reçu sous forme de Data URL (base64 PNG)
+ * Exporte le reçu sous forme de Data URL (base64 PNG ou JPEG)
  */
-export async function generateReceiptDataUrl(sale: Sale, shop?: Partial<ShopProfile>): Promise<string> {
+export async function generateReceiptDataUrl(
+  sale: Sale, 
+  shop?: Partial<ShopProfile>, 
+  format: 'png' | 'jpeg' = 'png'
+): Promise<string> {
   const canvas = await generateReceiptCanvas(sale, shop);
-  return canvas.toDataURL('image/png');
+  const mime = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+  return canvas.toDataURL(mime, 0.95);
 }
 
 /**
- * Exporte le reçu sous forme de File Blob (pour partage natif mobile WhatsApp)
+ * Exporte le reçu sous forme de File Blob (pour téléchargement ou partage)
  */
-export async function generateReceiptFile(sale: Sale, shop?: Partial<ShopProfile>): Promise<File> {
+export async function generateReceiptFile(
+  sale: Sale, 
+  shop?: Partial<ShopProfile>, 
+  format: 'png' | 'jpeg' = 'png'
+): Promise<File> {
   const canvas = await generateReceiptCanvas(sale, shop);
+  const mime = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+  const ext = format === 'jpeg' ? 'jpg' : 'png';
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) {
         reject(new Error('Erreur lors de la conversion en image'));
         return;
       }
-      const file = new File([blob], `recu-fasocarnet-${sale.id.slice(-6)}.png`, {
-        type: 'image/png'
+      const file = new File([blob], `recu-fasocarnet-${sale.id.slice(-6)}.${ext}`, {
+        type: mime
       });
       resolve(file);
-    }, 'image/png');
+    }, mime, 0.95);
   });
 }

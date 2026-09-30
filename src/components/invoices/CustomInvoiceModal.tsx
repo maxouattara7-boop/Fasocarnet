@@ -6,7 +6,7 @@ import { customersService } from '../../db/services/customersService';
 import { useAppStore } from '../../store/appStore';
 import { formatCurrency } from '../../utils/formatters';
 import { generateCustomInvoiceWhatsAppMessage, printCustomInvoice } from '../../utils/customInvoiceRenderer';
-import { downloadOrShareCustomInvoicePdf } from '../../utils/customInvoicePdfGenerator';
+import { downloadOrShareCustomInvoicePdf, downloadOrShareCustomInvoiceImage } from '../../utils/customInvoicePdfGenerator';
 import { getLegalArreteMention } from '../../utils/numberToWords';
 import { openWhatsApp } from '../../utils/whatsapp';
 import { 
@@ -21,12 +21,13 @@ import {
   Phone, 
   CheckCircle2, 
   Edit3, 
-  ArrowLeft,
-  Package,
-  Layers,
-  Download,
-  FileDown,
-  Loader2
+  ArrowLeft, 
+  Package, 
+  Layers, 
+  Download, 
+  FileDown, 
+  Loader2,
+  Image as ImageIcon
 } from 'lucide-react';
 
 interface CustomInvoiceModalProps {
@@ -302,6 +303,25 @@ export const CustomInvoiceModal: React.FC<CustomInvoiceModalProps> = ({
     }
   };
 
+  const handleDownloadImage = async (docToDownload?: CustomInvoice, format: 'png' | 'jpeg' = 'png') => {
+    let targetDoc = docToDownload;
+    if (!targetDoc) {
+      const saved = await handleSaveDoc();
+      if (!saved) return;
+      targetDoc = saved;
+    }
+
+    setGeneratingPdfDocId(targetDoc.id || 'editor');
+    try {
+      await downloadOrShareCustomInvoiceImage(targetDoc, shopProfile || undefined, format, { directShare: false });
+    } catch (err) {
+      console.error('Erreur téléchargement image facture:', err);
+      alert('Impossible de générer le fichier image.');
+    } finally {
+      setGeneratingPdfDocId(null);
+    }
+  };
+
   const handleSharePdf = async (docToShare?: CustomInvoice) => {
     let targetDoc = docToShare;
     if (!targetDoc) {
@@ -542,6 +562,21 @@ export const CustomInvoiceModal: React.FC<CustomInvoiceModalProps> = ({
                       {/* Barre d'actions */}
                       <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
                         <div className="flex items-center space-x-1 flex-wrap gap-y-1">
+                          <button
+                            type="button"
+                            disabled={generatingPdfDocId === doc.id}
+                            onClick={() => handleDownloadImage(doc, 'png')}
+                            className="p-1.5 text-slate-700 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer flex items-center space-x-1 text-xs font-bold"
+                            title="Télécharger l'image (PNG / JPEG) dans vos fichiers"
+                          >
+                            {generatingPdfDocId === doc.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
+                            ) : (
+                              <ImageIcon className="w-3.5 h-3.5 text-amber-600" />
+                            )}
+                            <span className="text-[11px]">Image</span>
+                          </button>
+
                           <button
                             type="button"
                             disabled={generatingPdfDocId === doc.id}
@@ -1000,7 +1035,22 @@ export const CustomInvoiceModal: React.FC<CustomInvoiceModalProps> = ({
               <div className="flex items-center space-x-1.5 flex-wrap gap-y-1.5 justify-end">
                 <button
                   type="button"
-                  disabled={generatingPdfDocId === 'editor' || generatingPdfDocId === editingId}
+                  disabled={generatingPdfDocId === 'editor' || (Boolean(editingId) && generatingPdfDocId === editingId)}
+                  onClick={() => handleDownloadImage(undefined, 'png')}
+                  className="px-3 py-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1 shadow-xs transition-all cursor-pointer font-display"
+                  title="Télécharger l'image (PNG / JPEG) dans vos fichiers"
+                >
+                  {generatingPdfDocId === 'editor' || (editingId && generatingPdfDocId === editingId) ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <ImageIcon className="w-3.5 h-3.5" />
+                  )}
+                  <span>Image PNG</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={generatingPdfDocId === 'editor' || (Boolean(editingId) && generatingPdfDocId === editingId)}
                   onClick={() => handleDownloadPdf()}
                   className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white rounded-xl text-xs font-extrabold flex items-center space-x-1 shadow-xs transition-all cursor-pointer font-display"
                   title="Enregistrer et télécharger en PDF A4"

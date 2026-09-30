@@ -24,22 +24,24 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
   const [printStatus, setPrintStatus] = useState<string | null>(null);
   const [isFullscreenImageOpen, setIsFullscreenImageOpen] = useState(false);
 
+  const [selectedFormat, setSelectedFormat] = useState<'png' | 'jpeg'>('png');
+
   useEffect(() => {
     if (isOpen && sale) {
-      generateImage();
+      generateImage(selectedFormat);
       setPrintStatus(null);
     } else {
       setReceiptImageUrl(null);
       setPrintStatus(null);
       setIsFullscreenImageOpen(false);
     }
-  }, [isOpen, sale]);
+  }, [isOpen, sale, selectedFormat]);
 
-  const generateImage = async () => {
+  const generateImage = async (format: 'png' | 'jpeg' = selectedFormat) => {
     if (!sale) return;
     setIsGenerating(true);
     try {
-      const url = await generateReceiptDataUrl(sale, shopProfile || undefined);
+      const url = await generateReceiptDataUrl(sale, shopProfile || undefined, format);
       setReceiptImageUrl(url);
     } catch (err) {
       console.error('Erreur génération image reçu:', err);
@@ -50,35 +52,30 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
   if (!isOpen || !sale) return null;
 
-  const handleDownloadImage = async () => {
-    if (!receiptImageUrl) {
-      if (isGenerating) {
-        setPrintStatus('⏳ Génération du reçu en cours...');
-        return;
-      }
-      return;
-    }
-
+  const handleDownloadImage = async (format: 'png' | 'jpeg' = selectedFormat) => {
     setIsDownloading(true);
-    setPrintStatus('💾 Enregistrement dans votre galerie...');
+    setPrintStatus('💾 Téléchargement du fichier image en cours...');
 
     const safeShop = (shopProfile?.name || 'fasocarnet').toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const fileName = `recu_${safeShop}_${sale.id.slice(-6)}.png`;
+    const ext = format === 'jpeg' ? 'jpg' : 'png';
+    const fileName = `recu_${safeShop}_${sale.id.slice(-6)}.${ext}`;
 
     try {
+      const currentUrl = await generateReceiptDataUrl(sale, shopProfile || undefined, format);
       const result = await downloadOrShareImage({
         fileName,
-        dataUrl: receiptImageUrl,
+        dataUrl: currentUrl,
         title: `Reçu de caisse - ${shopProfile?.name || 'FasoCarnet'}`,
         text: `Reçu de paiement #${sale.id.slice(-6).toUpperCase()}`,
-        directShare: false
+        directShare: false,
+        mimeType: format === 'jpeg' ? 'image/jpeg' : 'image/png'
       });
 
       if (result.success) {
-        setPrintStatus('✓ Photo du reçu enregistrée dans votre galerie !');
+        setPrintStatus(`✓ Reçu (${format.toUpperCase()}) téléchargé dans vos fichiers !`);
       } else {
         setIsFullscreenImageOpen(true);
-        setPrintStatus('💡 Maintenez le doigt sur l\'image pour l\'enregistrer');
+        setPrintStatus('💡 Cliquez sur l\'image pour la visualiser ou l\'enregistrer');
       }
       setTimeout(() => setPrintStatus(null), 4000);
     } catch (err) {
@@ -377,19 +374,49 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
           {/* BOUTONS D'ACTION */}
           <div className="space-y-2 pt-0.5">
-            {/* 1. Bouton Principal : Télécharger le Reçu dans la Galerie */}
+            {/* Sélecteur de Format (PNG HD vs JPEG Léger) */}
+            <div className="flex items-center justify-between bg-slate-100 p-1 rounded-xl text-[11px] font-bold">
+              <span className="text-slate-500 pl-2 font-medium">Format Image :</span>
+              <div className="flex items-center space-x-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedFormat('png')}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                    selectedFormat === 'png'
+                      ? 'bg-emerald-700 text-white font-black shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  PNG (HD)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedFormat('jpeg')}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                    selectedFormat === 'jpeg'
+                      ? 'bg-emerald-700 text-white font-black shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  JPEG / JPG
+                </button>
+              </div>
+            </div>
+
+            {/* 1. Bouton Principal : Télécharger le Reçu dans les Fichiers */}
             <button
               type="button"
               disabled={isDownloading || isGenerating}
-              onClick={handleDownloadImage}
+              onClick={() => handleDownloadImage(selectedFormat)}
               className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black rounded-xl shadow-md shadow-emerald-600/25 active:scale-98 transition-all flex items-center justify-center space-x-2 text-xs cursor-pointer disabled:opacity-60 font-display"
+              title="Télécharger l'image directement dans vos documents / téléchargements"
             >
               {isDownloading ? (
                 <Loader2 className="w-4 h-4 animate-spin text-white" />
               ) : (
                 <Download className="w-4 h-4 text-amber-300" />
               )}
-              <span>{isDownloading ? 'Enregistrement dans la galerie...' : '📥 Télécharger le Reçu (Galerie Photo)'}</span>
+              <span>{isDownloading ? 'Téléchargement du fichier...' : `📥 Télécharger le Reçu (${selectedFormat.toUpperCase()})`}</span>
             </button>
 
             {/* 2. Grille 2 boutons : Ouvrir WhatsApp & Imprimer */}
@@ -467,7 +494,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={handleDownloadImage}
+                onClick={() => handleDownloadImage(selectedFormat)}
                 className="py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 font-display cursor-pointer"
               >
                 <Download className="w-4 h-4" />

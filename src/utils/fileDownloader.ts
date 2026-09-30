@@ -80,7 +80,7 @@ export async function downloadOrShareTextFile(params: {
 }
 
 /**
- * Sauvegarde la photo du reçu dans le stockage / Galerie de l'appareil
+ * Sauvegarde une image (PNG ou JPEG) directement dans les fichiers de l'appareil (Téléchargements / Documents)
  */
 export async function downloadOrShareImage(params: {
   fileName: string;
@@ -88,80 +88,87 @@ export async function downloadOrShareImage(params: {
   title?: string;
   text?: string;
   directShare?: boolean;
+  mimeType?: string;
 }): Promise<FileActionResult> {
-  const { fileName, dataUrl, title = 'Reçu de caisse', text = 'Votre reçu de caisse', directShare = false } = params;
+  const { fileName, dataUrl, title = 'Reçu de caisse', text = 'Votre reçu de caisse', directShare = false, mimeType = fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ? 'image/jpeg' : 'image/png' } = params;
 
-  // 1. Tenter les plugins natifs Capacitor pour écrire dans Documents / Galerie
-  if (Capacitor.isPluginAvailable('Filesystem')) {
+  // CAS 1 : Partage explicite demandé (WhatsApp, Bluetooth ou Partage système)
+  if (directShare) {
+    if (Capacitor.isPluginAvailable('Filesystem') && Capacitor.isPluginAvailable('Share')) {
+      try {
+        const base64 = dataUrlToBase64(dataUrl);
+        const writeResult = await Filesystem.writeFile({
+          path: fileName,
+          data: base64,
+          directory: Directory.Cache
+        });
+
+        await Share.share({
+          title,
+          text,
+          url: writeResult.uri,
+          dialogTitle: 'Envoyer ou partager l\'image'
+        });
+
+        return { success: true, method: 'native' };
+      } catch (err: any) {
+        if (err?.name === 'AbortError' || err?.message?.includes('canceled')) {
+          return { success: true, method: 'native' };
+        }
+        console.warn('[Downloader] Erreur partage natif image:', err);
+      }
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        const blob = dataUrlToBlob(dataUrl);
+        const file = new File([blob], fileName, { type: mimeType });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title,
+            text
+          });
+          return { success: true, method: 'web-share' };
+        }
+      } catch (shareErr: any) {
+        if (shareErr?.name === 'AbortError') {
+          return { success: true, method: 'web-share' };
+        }
+        console.warn('[Downloader] navigator.share non disponible:', shareErr);
+      }
+    }
+  }
+
+  // CAS 2 : Téléchargement direct standard (Ordinateur & Téléphone -> Dossier Documents / Téléchargements)
+  // 1. Si environnement natif Android APK, écrire dans le dossier Documents de l'appareil
+  if (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('Filesystem')) {
     try {
       const base64 = dataUrlToBase64(dataUrl);
-
-      // Écriture dans Documents (accessible dans la mémoire de l'appareil)
-      const writeResult = await Filesystem.writeFile({
+      await Filesystem.writeFile({
         path: fileName,
         data: base64,
         directory: Directory.Documents,
         recursive: true
       });
-
-      // Également dans Cache pour partage immédiat si besoin
-      await Filesystem.writeFile({
-        path: fileName,
-        data: base64,
-        directory: Directory.Cache
-      });
-
-      if (Capacitor.isPluginAvailable('Share')) {
-        await Share.share({
-          title,
-          text,
-          url: writeResult.uri,
-          dialogTitle: directShare ? 'Envoyer la photo sur WhatsApp / Galerie' : 'Enregistrer dans la Galerie / Photos'
-        });
-      }
-
-      return { success: true, method: 'native' };
-    } catch (err: any) {
-      if (err?.name === 'AbortError' || err?.message?.includes('canceled')) {
-        return { success: true, method: 'native' };
-      }
-      console.warn('[Downloader] Erreur native Filesystem/Share image:', err);
+    } catch (fsErr) {
+      console.warn('[Downloader] Écriture native Documents:', fsErr);
     }
   }
 
-  // 2. Web Share API avec fichier réel Image PNG
-  if (typeof navigator !== 'undefined' && navigator.share) {
-    try {
-      const blob = dataUrlToBlob(dataUrl);
-      const file = new File([blob], fileName, { type: 'image/png' });
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title,
-          text
-        });
-        return { success: true, method: 'web-share' };
-      }
-    } catch (shareErr: any) {
-      if (shareErr.name === 'AbortError') {
-        return { success: true, method: 'web-share' };
-      }
-      console.warn('[Downloader] navigator.share image non disponible:', shareErr);
-    }
-  }
-
-  // 3. Téléchargement navigateur classique (PC / Navigateur standard)
+  // 2. Déclencher le téléchargement navigateur standard
   try {
     const blob = dataUrlToBlob(dataUrl);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = fileName;
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
     return { success: true, method: 'download' };
   } catch (err: any) {
     console.error('[Downloader] Échec téléchargement image web:', err);
@@ -170,7 +177,7 @@ export async function downloadOrShareImage(params: {
 }
 
 /**
- * Sauvegarde et/ou partage un fichier PDF (Facture, Devis, Bilan) sur Android ou le Web
+ * Sauvegarde et/ou partage un fichier PDF (Facture, Devis, Bilan) directement dans les documents
  */
 export async function downloadOrSharePdfBlob(params: {
   fileName: string;
@@ -182,8 +189,67 @@ export async function downloadOrSharePdfBlob(params: {
 }): Promise<FileActionResult> {
   const { fileName, blob, base64Data, title = 'Document PDF', text = 'Votre document', directShare = false } = params;
 
-  // 1. Capacitor Filesystem / Share sur Android APK
-  if (Capacitor.isPluginAvailable('Filesystem')) {
+  // CAS 1 : Partage explicite demandé
+  if (directShare) {
+    if (Capacitor.isPluginAvailable('Filesystem') && Capacitor.isPluginAvailable('Share')) {
+      try {
+        let b64 = base64Data;
+        if (!b64) {
+          const reader = new FileReader();
+          b64 = await new Promise<string>((resolve, reject) => {
+            reader.onloadend = () => {
+              const res = reader.result as string;
+              resolve(res.split(',')[1] || res);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        }
+
+        const writeResult = await Filesystem.writeFile({
+          path: fileName,
+          data: b64,
+          directory: Directory.Cache
+        });
+
+        await Share.share({
+          title,
+          text,
+          url: writeResult.uri,
+          dialogTitle: `Partager ${fileName}`
+        });
+
+        return { success: true, method: 'native' };
+      } catch (err: any) {
+        if (err?.name === 'AbortError' || err?.message?.includes('canceled')) {
+          return { success: true, method: 'native' };
+        }
+        console.warn('[Downloader] Erreur partage natif PDF:', err);
+      }
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title,
+            text
+          });
+          return { success: true, method: 'web-share' };
+        }
+      } catch (shareErr: any) {
+        if (shareErr?.name === 'AbortError') {
+          return { success: true, method: 'web-share' };
+        }
+        console.warn('[Downloader] navigator.share PDF non disponible:', shareErr);
+      }
+    }
+  }
+
+  // CAS 2 : Téléchargement direct standard (Ordinateur & Téléphone -> Dossier Documents / Téléchargements)
+  if (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('Filesystem')) {
     try {
       let b64 = base64Data;
       if (!b64) {
@@ -198,68 +264,27 @@ export async function downloadOrSharePdfBlob(params: {
         });
       }
 
-      const writeResult = await Filesystem.writeFile({
+      await Filesystem.writeFile({
         path: fileName,
         data: b64,
         directory: Directory.Documents,
         recursive: true
       });
-
-      // Également dans le Cache pour partage immédiat
-      await Filesystem.writeFile({
-        path: fileName,
-        data: b64,
-        directory: Directory.Cache
-      });
-
-      if (Capacitor.isPluginAvailable('Share')) {
-        await Share.share({
-          title,
-          text,
-          url: writeResult.uri,
-          dialogTitle: directShare ? `Partager ${fileName} sur WhatsApp / Email` : `Enregistrer ${fileName}`
-        });
-      }
-
-      return { success: true, method: 'native' };
-    } catch (err: any) {
-      if (err?.name === 'AbortError' || err?.message?.includes('canceled')) {
-        return { success: true, method: 'native' };
-      }
-      console.warn('[Downloader] Erreur native Filesystem/Share PDF:', err);
+    } catch (fsErr) {
+      console.warn('[Downloader] Écriture native PDF Documents:', fsErr);
     }
   }
 
-  // 2. Web Share API avec fichier réel PDF
-  if (typeof navigator !== 'undefined' && navigator.share) {
-    try {
-      const file = new File([blob], fileName, { type: 'application/pdf' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title,
-          text
-        });
-        return { success: true, method: 'web-share' };
-      }
-    } catch (shareErr: any) {
-      if (shareErr?.name === 'AbortError') {
-        return { success: true, method: 'web-share' };
-      }
-      console.warn('[Downloader] navigator.share PDF non disponible:', shareErr);
-    }
-  }
-
-  // 3. Téléchargement direct standard (PC / Web / Navigateur)
   try {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = fileName;
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
     return { success: true, method: 'download' };
   } catch (err: any) {
     console.error('[Downloader] Échec téléchargement PDF web:', err);
