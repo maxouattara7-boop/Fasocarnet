@@ -276,10 +276,12 @@ export const syncService = {
           console.error('[Sync] CRITIQUE: Impossible d\'enregistrer le compte dans Supabase après 3 tentatives. Le compte risque de ne pas être accessible sur d\'autres appareils.');
         }
       } else {
-        // Pour les mises à jour normales : fire-and-forget (acceptable)
+      // Pour les mises à jour normales : push synchrone (garantit que Supabase reçoit l'update)
         supabaseClient.pushShop(data).then(() => {
           supabaseClient.broadcastShopChange(shopId).catch(() => {});
-        }).catch(() => {});
+        }).catch((err) => {
+          console.warn('[Sync] Push Supabase non critique échoué (sera retenté au prochain sync):', err);
+        });
       }
     }
 
