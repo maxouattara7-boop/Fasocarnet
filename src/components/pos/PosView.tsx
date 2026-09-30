@@ -345,10 +345,10 @@ export const PosView: React.FC = () => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto p-3.5 sm:p-6 lg:p-8 pb-28 lg:pb-12 space-y-6">
+    <div className="max-w-7xl mx-auto p-3.5 sm:p-6 lg:p-5 pb-28 lg:pb-3 lg:h-[calc(100vh-4.25rem)] lg:overflow-hidden flex flex-col justify-start space-y-4">
       {/* Toast de Notification */}
       {scanToast && (
-        <div className="bg-emerald-900 text-white text-xs sm:text-sm font-bold px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between animate-in fade-in slide-in-from-top duration-200 border border-emerald-500/40">
+        <div className="bg-emerald-900 text-white text-xs sm:text-sm font-bold px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between animate-in fade-in slide-in-from-top duration-200 border border-emerald-500/40 shrink-0">
           <div className="flex items-center space-x-2.5">
             <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 animate-spin" />
             <span>{scanToast}</span>
@@ -358,14 +358,14 @@ export const PosView: React.FC = () => {
       )}
 
       {/* DISPOSITION RESPONSIVE : CALCULATRICE STATIQUE À GAUCHE & CATALOGUE DÉFILANT À DROITE */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start relative">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start lg:h-full lg:overflow-hidden">
         
         {/* ======================================================== */}
         {/* COLONNE GAUCHE (DESKTOP) : CALCULATRICE STATIQUE & FIXE  */}
         {/* ======================================================== */}
-        <div className="lg:col-span-5 space-y-3 lg:sticky lg:top-4 lg:self-start z-10">
+        <div className="lg:col-span-5 space-y-2.5 lg:h-full lg:overflow-hidden flex flex-col justify-between shrink-0">
           {/* Écran d'affichage du montant, de la remise et du calcul */}
-          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-4 sm:p-4.5 rounded-3xl shadow-xl flex flex-col justify-between min-h-[120px] sm:min-h-[130px] border border-emerald-700/50">
+          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-3.5 sm:p-4 rounded-3xl shadow-xl flex flex-col justify-between min-h-[110px] sm:min-h-[120px] border border-emerald-700/50 shrink-0">
             <div className="flex items-center justify-between text-emerald-300 text-[11px] font-bold tracking-wider uppercase">
               <div className="flex items-center space-x-1.5">
                 {hasCalculation ? (
@@ -404,11 +404,11 @@ export const PosView: React.FC = () => {
                 </div>
               )}
 
-              <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white drop-shadow-sm truncate leading-tight font-display">
+              <div className="text-3xl sm:text-4xl lg:text-4.5xl font-extrabold tracking-tight text-white drop-shadow-sm truncate leading-tight font-display">
                 {formatCurrency(finalPayableAmount).replace(' FCFA', '')}
               </div>
 
-              <div className="text-[11px] text-emerald-200/80 mt-1">
+              <div className="text-[10.5px] text-emerald-200/80 mt-0.5">
                 {discount && discount.calculatedAmount > 0 ? (
                   <span className="font-bold text-amber-300">
                     Remise appliquée : -{formatCurrency(discountAmount)} ({discount.type === 'PERCENT' ? `${discount.value}%` : 'Montant fixe'})
@@ -426,8 +426,8 @@ export const PosView: React.FC = () => {
 
           {/* DÉTAIL DU PANIER EN COURS (SI ARTICLES CHOISIS) */}
           {selectedItems.length > 0 && (
-            <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2 animate-in fade-in">
-              <div className="flex items-center justify-between text-xs font-extrabold text-slate-800 border-b border-slate-100 pb-2">
+            <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs space-y-1.5 animate-in fade-in shrink-0">
+              <div className="flex items-center justify-between text-xs font-extrabold text-slate-800 border-b border-slate-100 pb-1.5">
                 <div className="flex items-center space-x-1.5">
                   <ShoppingCart className="w-3.5 h-3.5 text-emerald-600" />
                   <span>Panier ({selectedItems.length} article{selectedItems.length > 1 ? 's' : ''})</span>
@@ -442,9 +442,9 @@ export const PosView: React.FC = () => {
                 </button>
               </div>
 
-              <div className="max-h-36 overflow-y-auto divide-y divide-slate-100 pr-1 space-y-1">
+              <div className="max-h-28 overflow-y-auto divide-y divide-slate-100 pr-1 space-y-1 scrollbar-thin">
                 {selectedItems.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between py-1.5 text-xs">
+                  <div key={idx} className="flex items-center justify-between py-1 text-xs">
                     <div className="min-w-0 flex-1 pr-2">
                       <p className="font-bold text-slate-900 truncate">{item.description}</p>
                       <p className="text-[10px] text-slate-500 font-mono">
@@ -473,15 +473,15 @@ export const PosView: React.FC = () => {
           {/* ======================================================== */}
           {/* TOUCHES D'ACTION ALLONGÉES & VISIBLES : SCANNER & REMISE */}
           {/* ======================================================== */}
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 gap-2 shrink-0">
             {/* Bouton Scanner Caméra Code-Barres grand format allongé */}
             <button
               type="button"
               onClick={() => setIsBarcodeScannerOpen(true)}
-              className="h-14 sm:h-16 px-3 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:from-amber-700 active:to-amber-800 text-white rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center space-x-2 shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer font-display"
+              className="h-12 sm:h-13 px-3 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:from-amber-700 active:to-amber-800 text-white rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center space-x-2 shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer font-display"
               title="Scanner un code-barres avec la caméra ou douchette"
             >
-              <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-amber-100 shrink-0" />
+              <Camera className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-amber-100 shrink-0" />
               <span className="tracking-wide">Scanner Code-Barres</span>
             </button>
 
@@ -492,14 +492,14 @@ export const PosView: React.FC = () => {
                 triggerHaptic(30);
                 setIsDiscountModalOpen(true);
               }}
-              className={`h-14 sm:h-16 px-3 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center space-x-2 shadow-md active:scale-95 transition-all cursor-pointer font-display ${
+              className={`h-12 sm:h-13 px-3 rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center space-x-2 shadow-md active:scale-95 transition-all cursor-pointer font-display ${
                 discount && discount.calculatedAmount > 0
                   ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-500 shadow-amber-400/30'
                   : 'bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white shadow-slate-900/20'
               }`}
               title="Appliquer une remise en % ou FCFA"
             >
-              <Tag className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300 shrink-0" />
+              <Tag className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-amber-300 shrink-0" />
               <span className="tracking-wide">{discount && discount.calculatedAmount > 0 ? `Remise (-${formatCurrency(discountAmount)})` : 'Remise Client'}</span>
             </button>
           </div>
@@ -547,7 +547,7 @@ export const PosView: React.FC = () => {
           </div>
 
           {/* Clavier tactile avec touche + et vibreur */}
-          <div className="bg-white p-3.5 sm:p-4 rounded-3xl shadow-xs border border-slate-200/80">
+          <div className="bg-white p-3 sm:p-3.5 rounded-3xl shadow-xs border border-slate-200/80 shrink-0">
             <Keypad
               value={amountStr}
               onChange={setAmountStr}
@@ -560,7 +560,7 @@ export const PosView: React.FC = () => {
             type="button"
             disabled={finalPayableAmount <= 0}
             onClick={handleOpenPayment}
-            className={`w-full py-4 sm:py-5 rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg shadow-xl flex items-center justify-center space-x-2 transition-all cursor-pointer font-display ${
+            className={`w-full py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg shadow-xl flex items-center justify-center space-x-2 transition-all cursor-pointer font-display shrink-0 ${
               finalPayableAmount > 0
                 ? 'bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white shadow-emerald-700/30 active:scale-98'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
@@ -574,17 +574,17 @@ export const PosView: React.FC = () => {
         {/* ======================================================== */}
         {/* COLONNE DROITE (DESKTOP) : CATALOGUE D'ARTICLES & RECHERCHE */}
         {/* ======================================================== */}
-        <div className="hidden lg:block lg:col-span-7 space-y-4">
+        <div className="hidden lg:flex lg:col-span-7 flex-col lg:h-full space-y-3.5 overflow-hidden">
           {/* Barre supérieure du Catalogue */}
-          <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs space-y-3.5">
+          <div className="bg-white p-3.5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shadow-inner">
-                  <Package className="w-5 h-5" />
+                <div className="w-8.5 h-8.5 rounded-2xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shadow-inner">
+                  <Package className="w-4.5 h-4.5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-extrabold text-slate-900 font-display">Catalogue d'Articles</h2>
-                  <p className="text-xs text-slate-500 font-medium">{products.length} article(s) enregistrés</p>
+                  <h2 className="text-sm font-extrabold text-slate-900 font-display">Catalogue d'Articles</h2>
+                  <p className="text-[11px] text-slate-500 font-medium">{products.length} article(s) enregistrés</p>
                 </div>
               </div>
 
@@ -592,7 +592,7 @@ export const PosView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsBarcodeScannerOpen(true)}
-                  className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black flex items-center space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
+                  className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black flex items-center space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
                   title="Scanner un code-barres"
                 >
                   <Camera className="w-3.5 h-3.5 text-amber-400" />
@@ -610,7 +610,7 @@ export const PosView: React.FC = () => {
                   placeholder="Rechercher par nom d'article ou code-barres..."
                   value={articleSearch}
                   onChange={(e) => setArticleSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
                 />
                 {articleSearch && (
                   <button
@@ -664,7 +664,7 @@ export const PosView: React.FC = () => {
 
           {/* Grille des Articles */}
           {filteredProducts.length === 0 ? (
-            <div className="bg-white p-10 rounded-3xl text-center space-y-3 border border-slate-200/80 shadow-xs">
+            <div className="bg-white p-10 rounded-3xl text-center space-y-3 border border-slate-200/80 shadow-xs flex-1 flex flex-col items-center justify-center">
               <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
                 <Package className="w-7 h-7" />
               </div>
@@ -676,7 +676,7 @@ export const PosView: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 xl:grid-cols-3 gap-3.5 lg:max-h-[calc(100vh-210px)] max-h-[580px] overflow-y-auto pr-1.5 scrollbar-thin">
+            <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 overflow-y-auto pr-1.5 pb-2 scrollbar-thin flex-1 min-h-0">
               {filteredProducts.map((prod) => {
                 const stock = prod.stockQuantity ?? 0;
                 const isZeroStock = stock <= 0;

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fasocarnet-v1.5.1';
+const CACHE_NAME = 'fasocarnet-v1.5.2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

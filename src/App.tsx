@@ -322,7 +322,7 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        <main className="flex-1 w-full">
+        <main className={`flex-1 w-full ${activeTab === 'pos' ? 'lg:overflow-hidden' : ''}`}>
           {activeTab === 'pos' && <PosView />}
           {activeTab === 'debts' && <DebtsView />}
           {activeTab === 'reports' && <DailyReportView />}
