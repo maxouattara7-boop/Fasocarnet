@@ -254,16 +254,33 @@ export const syncService = {
   /**
    * Sauvegarde la partition d'une boutique isolée
    */
-  async pushShopPartition(shopId: string, data: CloudShopData, token?: string): Promise<void> {
+  async pushShopPartition(shopId: string, data: CloudShopData, token?: string, isRegistration: boolean = false): Promise<void> {
     const fullDb = this.getCloudDatabase();
     fullDb[shopId] = data;
     this.saveCloudDatabase(fullDb);
 
-    // 1. Sync Supabase & Diffusion Realtime immédiate
+    // 1. Sync Supabase — CRITIQUE lors de la création de compte : on attend le résultat
     if (supabaseClient.isConfigured()) {
-      supabaseClient.pushShop(data).then(() => {
-        supabaseClient.broadcastShopChange(shopId).catch(() => {});
-      }).catch(() => {});
+      if (isRegistration) {
+        // Lors de l'inscription, on retente jusqu'à 3 fois pour garantir que le compte est bien enregistré
+        let pushed = false;
+        for (let attempt = 1; attempt <= 3 && !pushed; attempt++) {
+          pushed = await supabaseClient.pushShop(data);
+          if (!pushed && attempt < 3) {
+            await new Promise(r => setTimeout(r, 500 * attempt));
+          }
+        }
+        if (pushed) {
+          supabaseClient.broadcastShopChange(shopId).catch(() => {});
+        } else {
+          console.error('[Sync] CRITIQUE: Impossible d\'enregistrer le compte dans Supabase après 3 tentatives. Le compte risque de ne pas être accessible sur d\'autres appareils.');
+        }
+      } else {
+        // Pour les mises à jour normales : fire-and-forget (acceptable)
+        supabaseClient.pushShop(data).then(() => {
+          supabaseClient.broadcastShopChange(shopId).catch(() => {});
+        }).catch(() => {});
+      }
     }
 
     // 2. Sync Serveur REST
@@ -538,7 +555,7 @@ export const syncService = {
       telemetry,
       lastUpdatedAt: new Date().toISOString()
     };
-    await this.pushShopPartition(newShop.id, shopPartition, authToken);
+    await this.pushShopPartition(newShop.id, shopPartition, authToken, true);
 
     return newShop;
   },
