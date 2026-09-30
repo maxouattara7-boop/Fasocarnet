@@ -273,7 +273,8 @@ export const syncService = {
         if (pushed) {
           supabaseClient.broadcastShopChange(shopId).catch(() => {});
         } else {
-          console.error('[Sync] CRITIQUE: Impossible d\'enregistrer le compte dans Supabase après 3 tentatives. Le compte risque de ne pas être accessible sur d\'autres appareils.');
+          console.error('[Sync] CRITIQUE: Échec enregistrement Supabase après 3 tentatives.');
+          throw new Error('Échec de synchronisation avec la base de données centrale. Veuillez vérifier votre connexion Internet et réessayer.');
         }
       } else {
       // Pour les mises à jour normales : push synchrone (garantit que Supabase reçoit l'update)
