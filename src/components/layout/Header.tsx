@@ -10,11 +10,11 @@ export const Header: React.FC = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const desktopNavItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'pos', label: 'Caisse Tactile', icon: <Calculator className="w-4 h-4" /> },
-    { id: 'debts', label: 'Carnet de Dettes', icon: <BookOpen className="w-4 h-4" /> },
-    { id: 'reports', label: 'Bilan & Ventes', icon: <BarChart3 className="w-4 h-4" /> },
-    { id: 'invoices', label: 'Factures & Devis', icon: <FileText className="w-4 h-4" /> },
-    { id: 'settings', label: 'Ma Boutique', icon: <Settings className="w-4 h-4" /> },
+    { id: 'pos', label: 'Caisse', icon: <Calculator className="w-4 h-4 shrink-0" /> },
+    { id: 'debts', label: 'Carnet de Dettes', icon: <BookOpen className="w-4 h-4 shrink-0" /> },
+    { id: 'reports', label: 'Bilan & Ventes', icon: <BarChart3 className="w-4 h-4 shrink-0" /> },
+    { id: 'invoices', label: 'Factures & Devis', icon: <FileText className="w-4 h-4 shrink-0" /> },
+    { id: 'settings', label: 'Ma Boutique', icon: <Settings className="w-4 h-4 shrink-0" /> },
   ];
 
   const handleConfirmLogout = () => {
@@ -41,7 +41,7 @@ export const Header: React.FC = () => {
           </div>
 
           {/* Navigation Bureau Desktop (Visible sur tablette et PC) */}
-          <nav className="hidden md:flex items-center space-x-1 bg-emerald-950/60 p-1.5 rounded-2xl border border-emerald-700/50 shadow-inner">
+          <nav className="hidden md:flex items-center space-x-1 lg:space-x-1.5 bg-emerald-950/60 p-1.5 rounded-2xl border border-emerald-700/50 shadow-inner shrink-0">
             {desktopNavItems.map((item) => {
               const isActive = activeTab === item.id;
               return (
@@ -49,7 +49,7 @@ export const Header: React.FC = () => {
                   key={item.id}
                   type="button"
                   onClick={() => setActiveTab(item.id)}
-                  className={`px-3 lg:px-4 py-2 rounded-xl font-bold text-sm flex items-center space-x-2 transition-all cursor-pointer font-display ${
+                  className={`px-2.5 lg:px-3.5 py-1.5 lg:py-2 rounded-xl font-bold text-xs lg:text-[13px] flex items-center space-x-1.5 lg:space-x-2 transition-all cursor-pointer font-display whitespace-nowrap shrink-0 ${
                     isActive
                       ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-md shadow-emerald-500/25 font-black scale-102'
                       : 'text-emerald-200 hover:text-white hover:bg-emerald-800/50'
@@ -58,7 +58,7 @@ export const Header: React.FC = () => {
                   <span className={isActive ? 'text-slate-950' : 'text-emerald-300'}>
                     {item.icon}
                   </span>
-                  <span>{item.label}</span>
+                  <span className="whitespace-nowrap">{item.label}</span>
                 </button>
               );
             })}
