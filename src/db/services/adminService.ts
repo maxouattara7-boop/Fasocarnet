@@ -1543,5 +1543,14 @@ export const adminService = {
     return phoneParam
       ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
       : `https://wa.me/?text=${encodeURIComponent(message)}`;
+  },
+
+  /**
+   * Génère le lien WhatsApp pour contacter directement le Support afin d'obtenir le code d'activation
+   */
+  getWhatsAppSupportOtpRequestUrl(phone: string, shopName: string): string {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const message = `Bonjour le Support FasoCarnet 🇧🇫,\nJe crée actuellement mon espace boutique *${shopName}* avec le numéro WhatsApp *${cleanPhone}*.\nMerci de me transmettre mon code d'activation sécurisé.`;
+    return `https://wa.me/22665616134?text=${encodeURIComponent(message)}`;
   }
 };

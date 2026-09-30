@@ -26,7 +26,6 @@ import {
   X,
   ShieldCheck,
   MessageCircle,
-  Copy,
   Check
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
@@ -75,7 +74,6 @@ export const OnboardingView: React.FC = () => {
   const [otpInputCode, setOtpInputCode] = useState('');
   const [otpError, setOtpError] = useState('');
   const [otpSentFeedback, setOtpSentFeedback] = useState(false);
-  const [otpCodeCopied, setOtpCodeCopied] = useState(false);
   const [isSubmittingRegistration, setIsSubmittingRegistration] = useState(false);
 
   // Décompte anti-bruteforce pour la connexion
@@ -248,10 +246,9 @@ export const OnboardingView: React.FC = () => {
     setTimeout(() => setOtpSentFeedback(false), 4000);
   };
 
-  const handleCopyOtpCode = () => {
-    navigator.clipboard.writeText(otpGeneratedCode);
-    setOtpCodeCopied(true);
-    setTimeout(() => setOtpCodeCopied(false), 3000);
+  const handleContactSupportWhatsApp = () => {
+    const url = adminService.getWhatsAppSupportOtpRequestUrl(phone.trim(), shopName.trim());
+    window.open(url, '_blank');
   };
 
   const handleConfirmOtpAndCreateShop = async (e: React.FormEvent) => {
@@ -872,14 +869,25 @@ export const OnboardingView: React.FC = () => {
               <div className="p-3 bg-emerald-50/70 border border-emerald-200/70 rounded-2xl space-y-1.5 text-xs">
                 <div className="flex items-center justify-between text-emerald-950 font-semibold">
                   <span>Commerce : <strong className="text-emerald-800">{shopName}</strong></span>
-                  <span className="font-mono text-emerald-700">📞 {phone}</span>
+                  <span className="font-mono text-emerald-700">📞 +226 {phone}</span>
                 </div>
                 <p className="text-[11px] text-emerald-800/90 leading-relaxed">
-                  Pour valider votre compte, confirmez le code de sécurité envoyé sur votre numéro WhatsApp.
+                  Un code de confirmation à 4 chiffres a été généré pour votre numéro WhatsApp. Veuillez le saisir pour finaliser l'ouverture de votre commerce.
                 </p>
               </div>
 
-              {/* Bouton d'envoi rapide WhatsApp */}
+              {/* Note de sécurité : code confidentiel non visible à l'écran */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1.5 text-xs text-slate-700">
+                <div className="flex items-center space-x-2 font-bold text-slate-800">
+                  <Lock className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Code de sécurité confidentiel</span>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Par mesure de sécurité, le code d'authentification n'est pas affiché sur cet écran. Il est transmis directement sur votre WhatsApp ou par le support officiel FasoCarnet.
+                </p>
+              </div>
+
+              {/* Boutons d'action WhatsApp & Support */}
               <div className="space-y-2">
                 <button
                   type="button"
@@ -894,35 +902,26 @@ export const OnboardingView: React.FC = () => {
                   ) : (
                     <>
                       <MessageCircle className="w-4 h-4" />
-                      <span>Envoyer / Ouvrir mon code sur WhatsApp</span>
+                      <span>Recevoir mon code sur WhatsApp (+226 {phone})</span>
                     </>
                   )}
                 </button>
 
-                {/* Badge code visible + Copier */}
-                <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-                  <span className="text-slate-600 font-medium">Votre code de validation :</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="font-mono font-black text-base text-emerald-700 tracking-wider bg-white px-2.5 py-0.5 rounded-lg border border-slate-200 shadow-xs">
-                      {otpGeneratedCode}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleCopyOtpCode}
-                      className="p-1 text-slate-500 hover:text-emerald-700 rounded-lg hover:bg-white border border-transparent hover:border-slate-200 transition-all"
-                      title="Copier le code"
-                    >
-                      {otpCodeCopied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleContactSupportWhatsApp}
+                  className="w-full py-2 px-3 bg-emerald-50 hover:bg-emerald-100/80 text-emerald-800 font-bold rounded-xl text-xs flex items-center justify-center space-x-2 border border-emerald-200 transition-all cursor-pointer font-display"
+                >
+                  <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Demander mon code au Support WhatsApp</span>
+                </button>
               </div>
 
               {/* Formulaire de saisie du code */}
               <form onSubmit={handleConfirmOtpAndCreateShop} className="space-y-3 pt-1">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
-                    Saisissez le code à 4 chiffres *
+                    Saisissez le code à 4 chiffres reçu *
                   </label>
                   <input
                     type="tel"
@@ -972,7 +971,13 @@ export const OnboardingView: React.FC = () => {
                 >
                   Renvoyer un nouveau code
                 </button>
-                <span className="text-slate-400 font-mono">Support : 65616134</span>
+                <button
+                  type="button"
+                  onClick={handleContactSupportWhatsApp}
+                  className="text-slate-500 hover:text-slate-700 font-mono flex items-center space-x-1"
+                >
+                  <span>Support : 65616134</span>
+                </button>
               </div>
             </div>
           </div>
