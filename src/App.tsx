@@ -115,7 +115,7 @@ export const App: React.FC = () => {
 
   let mainContent: React.ReactNode = null;
 
-  if (isLandingOpen || isLandingParam || (!isExplicitAppMode && !activeShopId && !activeTeamLeader && !isAdminOpen)) {
+  if (((isLandingOpen && !activeShopId) || isLandingParam || (!isExplicitAppMode && !activeShopId && !activeTeamLeader && !isAdminOpen))) {
     mainContent = (
       <LandingPageView
         onOpenApp={(targetMode) => {

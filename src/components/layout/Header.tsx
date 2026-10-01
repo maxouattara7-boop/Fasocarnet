@@ -5,7 +5,7 @@ import { Logo } from '../common/Logo';
 import { HelpGuideModal } from '../common/HelpGuideModal';
 
 export const Header: React.FC = () => {
-  const { shopProfile, setIsLocked, isOnline, isSyncing, hasPendingOfflineData, syncNow, activeTab, setActiveTab, logout, setIsLandingOpen } = useAppStore();
+  const { shopProfile, setIsLocked, isOnline, isSyncing, hasPendingOfflineData, syncNow, activeTab, setActiveTab, logout } = useAppStore();
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -27,20 +27,20 @@ export const Header: React.FC = () => {
       <header className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white px-3.5 sm:px-6 py-2.5 sm:py-3 shadow-md sticky top-0 z-30 border-b border-emerald-700/40 backdrop-blur-md">
         <div className="max-w-[1680px] mx-auto flex items-center justify-between gap-4">
           
-          {/* Logo & Nom de la boutique cliquable vers la page vitrine */}
+          {/* Logo & Nom de la boutique (redirection vers la caisse au clic, sans quitter l'espace) */}
           <div 
-            onClick={() => setIsLandingOpen(true)}
-            className="flex items-center space-x-2.5 sm:space-x-3 min-w-0 cursor-pointer group hover:opacity-90 active:scale-95 transition-all select-none"
-            title="Cliquez pour voir la page vitrine FasoCarnet"
+            onClick={() => setActiveTab('pos')}
+            className="flex items-center space-x-2.5 sm:space-x-3 min-w-0 cursor-pointer select-none group"
+            title="Revenir à la Caisse"
           >
             <div className="group-hover:scale-105 transition-transform shrink-0">
               <Logo size="sm" showText={false} />
             </div>
             <div className="min-w-0">
-              <span className="text-xs text-emerald-200/90 group-hover:text-emerald-100 font-semibold block leading-tight truncate transition-colors">
+              <span className="text-xs text-emerald-200/90 font-semibold block leading-tight truncate">
                 Bienvenue dans votre espace
               </span>
-              <h1 className="font-extrabold text-sm sm:text-lg leading-tight truncate text-white group-hover:text-amber-300 tracking-tight font-display transition-colors">
+              <h1 className="font-extrabold text-sm sm:text-lg leading-tight truncate text-white tracking-tight font-display">
                 {shopProfile?.name || 'FasoCarnet'}
               </h1>
             </div>
