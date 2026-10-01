@@ -19,7 +19,6 @@ import {
   Share2,
   PlusSquare,
   ArrowRight,
-  Image as ImageIcon,
   Printer
 } from 'lucide-react';
 import { Logo } from '../common/Logo';
@@ -271,44 +270,31 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) =
 
               </div>
 
-              {/* Colonne Droite : Cadre Visuel Pro (Placeholder en attente de l'image) */}
+              {/* Colonne Droite : Visuel Hero */}
               <div className="flex-1 w-full flex items-center justify-center pt-2 lg:pt-0">
-                <div className="relative w-full max-w-[340px] sm:max-w-[420px] aspect-[4/5] sm:aspect-[3/4] rounded-3xl sm:rounded-[36px] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 p-4 sm:p-5 shadow-2xl border border-slate-800 flex flex-col justify-between overflow-hidden group">
-                  
-                  {/* Lueur décorative discrète */}
-                  <div className="absolute -top-24 -right-24 w-56 h-56 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-                  <div className="absolute -bottom-24 -left-24 w-56 h-56 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="relative w-full max-w-[340px] sm:max-w-[440px] rounded-3xl sm:rounded-[36px] overflow-hidden shadow-2xl border border-slate-200/60 group">
 
-                  {/* En-tête du device mock */}
-                  <div className="relative z-10 flex items-center justify-between px-2 pt-1 border-b border-slate-800 pb-3">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-slate-700" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-slate-800" />
-                      <div className="w-2.5 h-2.5 rounded-full bg-slate-800" />
-                    </div>
-                    <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/30 text-[10px] font-bold text-emerald-400">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span>FasoCarnet PWA</span>
-                    </div>
+                  {/* Logo FasoCarnet — haut droite */}
+                  <div className="absolute top-3 right-3 z-20 bg-white/90 backdrop-blur-sm rounded-xl p-1.5 shadow-md">
+                    <Logo size="sm" showText={false} />
                   </div>
 
-                  {/* Zone d'accueil pour l'image de démonstration */}
-                  <div className="relative z-10 flex-1 my-4 rounded-2xl border-2 border-dashed border-slate-800 bg-slate-950/60 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center transition-colors">
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mb-3 shadow-inner">
-                      <ImageIcon className="w-7 h-7 sm:w-8 sm:h-8" />
-                    </div>
-                    <p className="text-xs sm:text-sm font-bold text-slate-300">
-                      Aperçu de l'Application
-                    </p>
-                    <p className="text-[11px] text-slate-500 max-w-[220px] mt-1 leading-snug">
-                      Emplacement réservé pour le visuel de l'interface
-                    </p>
-                  </div>
+                  {/* Image hero principale */}
+                  <img
+                    src="/hero-fasocarnet.jpg"
+                    alt="Commerçante sereine gérant sa boutique avec FasoCarnet sur smartphone et ordinateur"
+                    className="w-full h-auto object-cover block"
+                    loading="eager"
+                  />
 
-                  {/* Pied du device mock */}
-                  <div className="relative z-10 px-2 pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-500 font-medium">
-                    <span>Mode Hors-Ligne</span>
-                    <span className="text-emerald-400 font-bold">100% Opérationnel</span>
+                  {/* Overlay texte en bas — centré pleine largeur, texte agrandi */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950/90 via-slate-950/50 to-transparent px-4 pt-14 pb-6 text-center">
+                    <p className="text-white font-black text-base sm:text-lg leading-snug tracking-tight">
+                      Zéro stress, 100% contrôle
+                    </p>
+                    <p className="text-emerald-400 text-sm font-semibold mt-1.5">
+                      Caisse · Dettes · Bilan — tout géré
+                    </p>
                   </div>
                 </div>
               </div>
