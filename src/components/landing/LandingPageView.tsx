@@ -37,6 +37,26 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) =
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [pwaPlatformTab, setPwaPlatformTab] = useState<'android' | 'ios' | 'pc'>('android');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [commercialReferralCode, setCommercialReferralCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref') || params.get('aff') || params.get('code') || params.get('parrain');
+      if (ref && ref.trim()) {
+        const cleanRef = ref.trim().toUpperCase().replace(/\s/g, '');
+        setCommercialReferralCode(cleanRef);
+        localStorage.setItem('fasocarnet_referral_code', cleanRef);
+        localStorage.setItem('fasocarnet_referral_locked', 'true');
+      } else {
+        const stored = localStorage.getItem('fasocarnet_referral_code');
+        const locked = localStorage.getItem('fasocarnet_referral_locked') === 'true';
+        if (stored && locked) {
+          setCommercialReferralCode(stored);
+        }
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
@@ -108,6 +128,23 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) =
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-emerald-500 selection:text-white flex flex-col justify-between overflow-x-hidden">
       
+      {/* Bandeau d'affiliation officiel si scanné via badge commercial */}
+      {commercialReferralCode && (
+        <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-900 text-white text-xs sm:text-sm py-2 px-4 text-center font-bold flex items-center justify-center gap-2 border-b border-emerald-700/60 shadow-xs z-50">
+          <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>
+            Parrainage officiel activé : Conseiller commercial certifié <strong>{commercialReferralCode}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => handleLaunchApp('register')}
+            className="ml-2 px-2.5 py-0.5 bg-amber-400 hover:bg-amber-300 text-emerald-950 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all shadow-2xs cursor-pointer"
+          >
+            Créer ma boutique →
+          </button>
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* 1. BARRE DE NAVIGATION MINIMALISTE ET HAUT DE GAMME                       */}
       {/* ========================================================================= */}

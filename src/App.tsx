@@ -57,6 +57,19 @@ export const App: React.FC = () => {
     return false;
   });
 
+  // Capture et verrouillage automatique du code commercial scanné via QR Code
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref') || params.get('aff') || params.get('code') || params.get('parrain');
+      if (ref && ref.trim()) {
+        const cleanRef = ref.trim().toUpperCase().replace(/\s/g, '');
+        localStorage.setItem('fasocarnet_referral_code', cleanRef);
+        localStorage.setItem('fasocarnet_referral_locked', 'true');
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (!shopProfile || !shopProfile.isConfigured) return;
     if (shopProfile.debtAlarmEnabled === false) return;

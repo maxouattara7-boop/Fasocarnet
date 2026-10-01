@@ -53,6 +53,7 @@ export const OnboardingView: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [referralCode, setReferralCode] = useState('');
+  const [isReferralLocked, setIsReferralLocked] = useState(false);
   const [city, setCity] = useState('Ouagadougou');
   const [customCity, setCustomCity] = useState('');
   const [pinCode, setPinCode] = useState('');
@@ -84,13 +85,28 @@ export const OnboardingView: React.FC = () => {
     return () => clearInterval(interval);
   }, [loginLockoutSeconds]);
 
-  // Détection automatique du code d'affiliation / commercial depuis l'URL (?ref=CODE ou ?aff=CODE)
+  // Détection automatique et verrouillage du code d'affiliation / commercial depuis l'URL ou le stockage PWA
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      const ref = params.get('ref') || params.get('aff') || params.get('code') || params.get('parrain');
-      if (ref) {
-        setReferralCode(ref.trim().toUpperCase());
+      const urlRef = params.get('ref') || params.get('aff') || params.get('code') || params.get('parrain');
+      const storedRef = localStorage.getItem('fasocarnet_referral_code');
+      const wasLocked = localStorage.getItem('fasocarnet_referral_locked') === 'true';
+
+      if (urlRef && urlRef.trim()) {
+        const cleanRef = urlRef.trim().toUpperCase().replace(/\s/g, '');
+        setReferralCode(cleanRef);
+        setIsReferralLocked(true);
+        localStorage.setItem('fasocarnet_referral_code', cleanRef);
+        localStorage.setItem('fasocarnet_referral_locked', 'true');
+        // Ouvrir directement l'onglet d'inscription pour le commerçant parrainé
+        setAuthMode('register');
+      } else if (storedRef && storedRef.trim()) {
+        const cleanRef = storedRef.trim().toUpperCase().replace(/\s/g, '');
+        setReferralCode(cleanRef);
+        if (wasLocked) {
+          setIsReferralLocked(true);
+        }
       }
     }
   }, []);
@@ -554,21 +570,51 @@ export const OnboardingView: React.FC = () => {
                   </button>
                 </div>
 
-                {/* 5. Code Commercial / Parrain (Optionnel) */}
-                <div className="relative flex items-center">
-                  <div className="absolute left-3.5 flex items-center pointer-events-none text-emerald-600">
-                    <Users className="w-5 h-5" />
+                {/* 5. Code Commercial / Parrain (Verrouillé en gris si scan QR badge) */}
+                <div className="space-y-1">
+                  <div className="relative flex items-center">
+                    <div className={`absolute left-3.5 flex items-center pointer-events-none ${isReferralLocked ? 'text-slate-500' : 'text-emerald-600'}`}>
+                      {isReferralLocked ? <Lock className="w-5 h-5 text-slate-500" /> : <Users className="w-5 h-5" />}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Code Commercial / Parrain (Optionnel)"
+                      value={referralCode}
+                      readOnly={isReferralLocked}
+                      disabled={isReferralLocked}
+                      tabIndex={isReferralLocked ? -1 : 0}
+                      onChange={(e) => {
+                        if (!isReferralLocked) {
+                          setReferralCode(e.target.value.toUpperCase().replace(/\s/g, ''));
+                        }
+                      }}
+                      className={`w-full pl-12 pr-28 py-2.5 sm:py-3 rounded-2xl text-xs sm:text-sm font-bold tracking-wider outline-none transition-all shadow-2xs ${
+                        isReferralLocked
+                          ? 'bg-slate-200/90 text-slate-700 border border-slate-300/90 cursor-not-allowed select-none font-extrabold shadow-inner'
+                          : 'bg-emerald-50/20 hover:bg-emerald-50/40 focus:bg-white border border-emerald-200/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-slate-900 placeholder:text-slate-400 placeholder:font-normal placeholder:tracking-normal'
+                      }`}
+                    />
+                    {referralCode && (
+                      <div className={`absolute right-3 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-1 shadow-2xs ${
+                        isReferralLocked
+                          ? 'bg-slate-300 text-slate-700 border border-slate-400/60'
+                          : 'bg-emerald-100 text-emerald-800'
+                      }`}>
+                        {isReferralLocked ? (
+                          <>
+                            <Lock className="w-2.5 h-2.5 text-slate-600" />
+                            <span>Verrouillé 🔒</span>
+                          </>
+                        ) : (
+                          <span>Appliqué ✓</span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <input
-                    type="text"
-                    placeholder="Code Commercial / Parrain (Optionnel)"
-                    value={referralCode}
-                    onChange={(e) => setReferralCode(e.target.value.toUpperCase().replace(/\s/g, ''))}
-                    className="w-full pl-12 pr-4 py-2.5 sm:py-3 bg-emerald-50/20 hover:bg-emerald-50/40 focus:bg-white border border-emerald-200/80 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-2xl text-xs sm:text-sm font-bold tracking-wider text-slate-900 outline-none transition-all placeholder:text-slate-400 placeholder:font-normal placeholder:tracking-normal shadow-2xs"
-                  />
-                  {referralCode && (
-                    <div className="absolute right-3 px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-black uppercase">
-                      Appliqué ✓
+                  {isReferralLocked && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100/90 border border-slate-200 rounded-xl text-[10px] sm:text-[11px] font-semibold text-slate-600">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Code rattaché à votre conseiller <strong>{referralCode}</strong> (Verrouillé via scan du badge).</span>
                     </div>
                   )}
                 </div>
