@@ -246,9 +246,9 @@ export const OnboardingView: React.FC = () => {
       <div className="w-full max-w-md mx-auto my-auto py-4 sm:py-6">
         
         {/* ======================================================================= */}
-        {/* EN-TÊTE : LOGO, TITRE & BADGE CENTRÉS EN HAUT                           */}
+        {/* EN-TÊTE : LOGO ET TITRE CENTRÉS EN HAUT                                 */}
         {/* ======================================================================= */}
-        <div className="flex flex-col items-center justify-center space-y-3 mb-6 text-center">
+        <div className="flex flex-col items-center justify-center mb-4 text-center">
           <div 
             onClick={() => setIsLandingOpen(true)}
             className="flex items-center space-x-3 cursor-pointer group hover:scale-102 active:scale-98 transition-all select-none"
@@ -266,11 +266,6 @@ export const OnboardingView: React.FC = () => {
               </span>
             </div>
           </div>
-
-          <div className="inline-flex items-center space-x-1.5 px-3.5 py-1 bg-emerald-500/15 border border-emerald-400/30 rounded-full text-xs font-bold text-emerald-300 shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>La Solution Digitale des Commerçants</span>
-          </div>
         </div>
 
         {/* Bouton de secours pour les tests automatisés */}
@@ -287,17 +282,9 @@ export const OnboardingView: React.FC = () => {
         {/* ======================================================================= */}
         <div id="auth-card-container" className="w-full">
           
-          <div className="space-y-3 text-center mb-3">
-            <h2 className="text-base sm:text-lg font-black tracking-tight leading-tight text-white font-display">
-              Se connecter ou créer son espace
-            </h2>
-            <p className="text-xs font-semibold text-emerald-300/80">
-              {authMode === 'login' ? 'Connexion à votre Espace' : 'Création de votre Espace'}
-            </p>
-
-            {/* SÉLECTEUR D'ONGLETS (CONNEXION / CRÉER UN ESPACE) */}
-            <div className="bg-emerald-900/80 backdrop-blur-md p-1 rounded-2xl flex border border-emerald-700/50 shadow-inner">
-              <button
+          {/* SÉLECTEUR D'ONGLETS (CONNEXION / CRÉER UN ESPACE) */}
+          <div className="bg-emerald-900/80 backdrop-blur-md p-1 rounded-2xl flex border border-emerald-700/50 shadow-inner mb-4">
+            <button
                 type="button"
                 data-testid="tab-login"
                 onClick={() => {
@@ -333,7 +320,6 @@ export const OnboardingView: React.FC = () => {
                 <span>Créer un Espace</span>
               </button>
             </div>
-          </div>
 
             {/* ======================================================== */}
             {/* ONGLET 1 : SE CONNECTER                                   */}

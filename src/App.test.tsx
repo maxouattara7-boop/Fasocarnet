@@ -47,7 +47,7 @@ describe('FasoCarnet App Component', () => {
     // 1. Présentation de la solution et phrase d'accroche Option 1
     await waitFor(() => {
       expect(screen.getByText(/FasoCarnet/i)).toBeInTheDocument();
-      expect(screen.getByText(/La Solution Digitale des Commerçants/i)).toBeInTheDocument();
+      expect(screen.getByText(/CAISSE & CARNET DIGITAL/i)).toBeInTheDocument();
       expect(screen.getByTestId('btn-continue')).toBeInTheDocument();
     });
 
@@ -55,7 +55,7 @@ describe('FasoCarnet App Component', () => {
     fireEvent.click(screen.getByTestId('btn-continue'));
 
     await waitFor(() => {
-      expect(screen.getByText(/Se connecter ou créer son espace/i)).toBeInTheDocument();
+      expect(screen.getByTestId('tab-register')).toBeInTheDocument();
     });
 
     // Clic sur l'onglet "Créer un Espace"
@@ -129,8 +129,7 @@ describe('FasoCarnet App Component', () => {
 
     // L'onglet connexion est actif sur ce nouvel appareil
     await waitFor(() => {
-      expect(screen.getByText(/Se connecter ou créer son espace/i)).toBeInTheDocument();
-      expect(screen.getByText(/Connexion à votre Espace/i)).toBeInTheDocument();
+      expect(screen.getByTestId('tab-login')).toBeInTheDocument();
     });
 
     const phoneInput = screen.getByPlaceholderText(/70 12 34 56/i);
@@ -157,7 +156,7 @@ describe('FasoCarnet App Component', () => {
     fireEvent.click(screen.getByTestId('btn-continue'));
 
     await waitFor(() => {
-      expect(screen.getByText(/Se connecter ou créer son espace/i)).toBeInTheDocument();
+      expect(screen.getByTestId('tab-login')).toBeInTheDocument();
     });
 
     const phoneInput = screen.getByPlaceholderText(/70 12 34 56/i);
@@ -256,7 +255,7 @@ describe('FasoCarnet App Component', () => {
     fireEvent.click(screen.getByTestId('btn-continue'));
 
     await waitFor(() => {
-      expect(screen.getByText(/Se connecter ou créer son espace/i)).toBeInTheDocument();
+      expect(screen.getByTestId('tab-login')).toBeInTheDocument();
     });
 
     const phoneInput = screen.getByPlaceholderText(/70 12 34 56/i);
