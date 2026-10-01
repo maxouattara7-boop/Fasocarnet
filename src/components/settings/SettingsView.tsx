@@ -38,7 +38,9 @@ import {
   TrendingUp,
   FileSpreadsheet,
   Printer,
-  Calendar
+  Calendar,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { SuppliesHistoryModal } from '../inventory/SuppliesHistoryModal';
 import { suppliesService } from '../../db/services/suppliesService';
@@ -104,6 +106,12 @@ export const SettingsView: React.FC = () => {
   const [showPaymentConfirmModal, setShowPaymentConfirmModal] = useState(false);
   const [confirmPinInput, setConfirmPinInput] = useState('');
   const [confirmPinError, setConfirmPinError] = useState('');
+
+  // Sécurisation & Verrouillage en gris des numéros de dépôt marchands
+  const [isPaymentNumbersUnlocked, setIsPaymentNumbersUnlocked] = useState(false);
+  const [showUnlockPaymentModal, setShowUnlockPaymentModal] = useState(false);
+  const [unlockPaymentPin, setUnlockPaymentPin] = useState('');
+  const [unlockPaymentPinError, setUnlockPaymentPinError] = useState('');
 
   useEffect(() => {
     if (shopProfile) {
@@ -488,12 +496,43 @@ export const SettingsView: React.FC = () => {
       debtAlarmDay: debtAlarmDay,
       pinCode: updatedPin
     });
+    setIsPaymentNumbersUnlocked(false);
     setSavedSuccess(true);
     setPhoneError(null);
     setShowPaymentConfirmModal(false);
     setConfirmPinInput('');
     setConfirmPinError('');
     setTimeout(() => setSavedSuccess(false), 2500);
+  };
+
+  const handleUnlockPaymentNumbers = (e: React.FormEvent) => {
+    e.preventDefault();
+    setUnlockPaymentPinError('');
+
+    if (shopProfile?.pinCode) {
+      if (!unlockPaymentPin.trim()) {
+        setUnlockPaymentPinError('Veuillez saisir votre code PIN.');
+        return;
+      }
+      const isValid = verifyHash(unlockPaymentPin, shopProfile.pinCode);
+      if (!isValid) {
+        setUnlockPaymentPinError('Code PIN incorrect.');
+        return;
+      }
+    }
+
+    setIsPaymentNumbersUnlocked(true);
+    setShowUnlockPaymentModal(false);
+    setUnlockPaymentPin('');
+    setUnlockPaymentPinError('');
+  };
+
+  const handleCancelPaymentUnlock = () => {
+    setOmNumber(shopProfile?.orangeMoneyNumber || '');
+    setMoovNumber(shopProfile?.moovMoneyNumber || '');
+    setWaveNumber(shopProfile?.waveNumber || '');
+    setIsPaymentNumbersUnlocked(false);
+    setPhoneError(null);
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -537,19 +576,6 @@ export const SettingsView: React.FC = () => {
       }
     }
 
-    // Sécurité : si modification des numéros marchands, demander confirmation
-    if (activeSubTab === 'payments') {
-      const hasChanged =
-        cleanPhoneNumber(omNumber) !== (shopProfile?.orangeMoneyNumber || '') ||
-        cleanPhoneNumber(moovNumber) !== (shopProfile?.moovMoneyNumber || '') ||
-        cleanPhoneNumber(waveNumber) !== (shopProfile?.waveNumber || '');
-
-      if (hasChanged) {
-        setShowPaymentConfirmModal(true);
-        return;
-      }
-    }
-
     await executeSaveProfile();
   };
 
@@ -567,6 +593,13 @@ export const SettingsView: React.FC = () => {
     }
     await executeSaveProfile();
   };
+
+  const hasConfiguredPaymentNumbers = Boolean(
+    shopProfile?.orangeMoneyNumber ||
+    shopProfile?.moovMoneyNumber ||
+    shopProfile?.waveNumber
+  );
+  const isPaymentInputsLocked = hasConfiguredPaymentNumbers && !isPaymentNumbersUnlocked;
 
   const lowStockCount = products.filter(
     (p) => p.stockQuantity !== undefined && p.stockQuantity <= (p.minStockAlert ?? 5)
@@ -2009,61 +2042,248 @@ export const SettingsView: React.FC = () => {
               </div>
             )}
 
+            {/* État de verrouillage sécurisé */}
+            {hasConfiguredPaymentNumbers && (
+              <div className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
+                isPaymentInputsLocked 
+                  ? 'bg-slate-50 border-slate-200' 
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              }`}>
+                <div className="flex items-center space-x-2.5">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                    isPaymentInputsLocked ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 text-white shadow-xs'
+                  }`}>
+                    {isPaymentInputsLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                  </div>
+                  <div>
+                    <p className="text-xs font-extrabold text-slate-800 font-display">
+                      {isPaymentInputsLocked ? 'Numéros enregistrés et sécurisés' : 'Numéros déverrouillés pour modification'}
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      {isPaymentInputsLocked 
+                        ? 'Affichage en gris verrouillé. Code PIN requis pour modifier.' 
+                        : 'Vous pouvez modifier les numéros puis cliquer sur Enregistrer.'}
+                    </p>
+                  </div>
+                </div>
+
+                {isPaymentInputsLocked ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnlockPaymentPin('');
+                      setUnlockPaymentPinError('');
+                      setShowUnlockPaymentModal(true);
+                    }}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black rounded-xl text-xs flex items-center space-x-1.5 shadow-xs cursor-pointer font-display transition-all"
+                  >
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Modifier</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleCancelPaymentUnlock}
+                    className="px-2.5 py-1 text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
+                  >
+                    Reverrouiller
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Numéro Orange Money */}
             <div>
-              <label className="block text-[10px] font-bold text-[#ff6600] uppercase tracking-wider mb-1 font-display">
-                Numéro Orange Money (Burkina Faso)
-              </label>
-              <input
-                type="tel"
-                value={omNumber}
-                onChange={(e) => {
-                  setPhoneError(null);
-                  setOmNumber(cleanPhoneNumber(e.target.value));
-                }}
-                className="w-full px-3 py-2 bg-orange-50/40 border border-orange-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#ff6600]/30 outline-none transition-all placeholder:text-slate-400"
-                placeholder="Ex: 70 12 34 56"
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[10px] font-bold text-[#ff6600] uppercase tracking-wider font-display">
+                  Numéro Orange Money (Burkina Faso)
+                </label>
+                {isPaymentInputsLocked && omNumber && (
+                  <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-md">
+                    <Lock className="w-3 h-3" />
+                    <span>Verrouillé</span>
+                  </span>
+                )}
+              </div>
+              <div className="relative flex items-center">
+                <input
+                  type="tel"
+                  value={omNumber}
+                  readOnly={isPaymentInputsLocked}
+                  disabled={isPaymentInputsLocked}
+                  onClick={isPaymentInputsLocked ? () => {
+                    setUnlockPaymentPin('');
+                    setUnlockPaymentPinError('');
+                    setShowUnlockPaymentModal(true);
+                  } : undefined}
+                  onChange={(e) => {
+                    setPhoneError(null);
+                    setOmNumber(cleanPhoneNumber(e.target.value));
+                  }}
+                  className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none transition-all ${
+                    isPaymentInputsLocked
+                      ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed select-none font-mono placeholder:text-slate-400'
+                      : 'bg-orange-50/40 border border-orange-200 text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#ff6600]/30 placeholder:text-slate-400'
+                  }`}
+                  placeholder="Ex: 70 12 34 56"
+                />
+                {isPaymentInputsLocked && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnlockPaymentPin('');
+                      setUnlockPaymentPinError('');
+                      setShowUnlockPaymentModal(true);
+                    }}
+                    className="absolute right-2 px-2 py-1 text-[10px] font-bold text-slate-500 hover:text-emerald-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors cursor-pointer flex items-center space-x-1"
+                    title="Cliquer pour déverrouiller avec le code PIN"
+                  >
+                    <Lock className="w-3 h-3 text-slate-400" />
+                    <span>Modifier</span>
+                  </button>
+                )}
+              </div>
             </div>
 
+            {/* Numéro Moov Money */}
             <div>
-              <label className="block text-[10px] font-bold text-[#005baa] uppercase tracking-wider mb-1 font-display">
-                Numéro Moov Money (Burkina Faso)
-              </label>
-              <input
-                type="tel"
-                value={moovNumber}
-                onChange={(e) => {
-                  setPhoneError(null);
-                  setMoovNumber(cleanPhoneNumber(e.target.value));
-                }}
-                className="w-full px-3 py-2 bg-blue-50/40 border border-blue-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#005baa]/30 outline-none transition-all placeholder:text-slate-400"
-                placeholder="Ex: 60 12 34 56"
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[10px] font-bold text-[#005baa] uppercase tracking-wider font-display">
+                  Numéro Moov Money (Burkina Faso)
+                </label>
+                {isPaymentInputsLocked && moovNumber && (
+                  <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-md">
+                    <Lock className="w-3 h-3" />
+                    <span>Verrouillé</span>
+                  </span>
+                )}
+              </div>
+              <div className="relative flex items-center">
+                <input
+                  type="tel"
+                  value={moovNumber}
+                  readOnly={isPaymentInputsLocked}
+                  disabled={isPaymentInputsLocked}
+                  onClick={isPaymentInputsLocked ? () => {
+                    setUnlockPaymentPin('');
+                    setUnlockPaymentPinError('');
+                    setShowUnlockPaymentModal(true);
+                  } : undefined}
+                  onChange={(e) => {
+                    setPhoneError(null);
+                    setMoovNumber(cleanPhoneNumber(e.target.value));
+                  }}
+                  className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none transition-all ${
+                    isPaymentInputsLocked
+                      ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed select-none font-mono placeholder:text-slate-400'
+                      : 'bg-blue-50/40 border border-blue-200 text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#005baa]/30 placeholder:text-slate-400'
+                  }`}
+                  placeholder="Ex: 60 12 34 56"
+                />
+                {isPaymentInputsLocked && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnlockPaymentPin('');
+                      setUnlockPaymentPinError('');
+                      setShowUnlockPaymentModal(true);
+                    }}
+                    className="absolute right-2 px-2 py-1 text-[10px] font-bold text-slate-500 hover:text-emerald-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors cursor-pointer flex items-center space-x-1"
+                    title="Cliquer pour déverrouiller avec le code PIN"
+                  >
+                    <Lock className="w-3 h-3 text-slate-400" />
+                    <span>Modifier</span>
+                  </button>
+                )}
+              </div>
             </div>
 
+            {/* Numéro Wave */}
             <div>
-              <label className="block text-[10px] font-bold text-[#1dc4fe] uppercase tracking-wider mb-1 font-display">
-                Numéro Wave
-              </label>
-              <input
-                type="tel"
-                value={waveNumber}
-                onChange={(e) => {
-                  setPhoneError(null);
-                  setWaveNumber(cleanPhoneNumber(e.target.value));
-                }}
-                className="w-full px-3 py-2 bg-sky-50/40 border border-sky-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#1dc4fe]/30 outline-none transition-all placeholder:text-slate-400"
-                placeholder="Ex: 70 12 34 56"
-              />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[10px] font-bold text-[#1dc4fe] uppercase tracking-wider font-display">
+                  Numéro Wave
+                </label>
+                {isPaymentInputsLocked && waveNumber && (
+                  <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-md">
+                    <Lock className="w-3 h-3" />
+                    <span>Verrouillé</span>
+                  </span>
+                )}
+              </div>
+              <div className="relative flex items-center">
+                <input
+                  type="tel"
+                  value={waveNumber}
+                  readOnly={isPaymentInputsLocked}
+                  disabled={isPaymentInputsLocked}
+                  onClick={isPaymentInputsLocked ? () => {
+                    setUnlockPaymentPin('');
+                    setUnlockPaymentPinError('');
+                    setShowUnlockPaymentModal(true);
+                  } : undefined}
+                  onChange={(e) => {
+                    setPhoneError(null);
+                    setWaveNumber(cleanPhoneNumber(e.target.value));
+                  }}
+                  className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none transition-all ${
+                    isPaymentInputsLocked
+                      ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed select-none font-mono placeholder:text-slate-400'
+                      : 'bg-sky-50/40 border border-sky-200 text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#1dc4fe]/30 placeholder:text-slate-400'
+                  }`}
+                  placeholder="Ex: 70 12 34 56"
+                />
+                {isPaymentInputsLocked && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnlockPaymentPin('');
+                      setUnlockPaymentPinError('');
+                      setShowUnlockPaymentModal(true);
+                    }}
+                    className="absolute right-2 px-2 py-1 text-[10px] font-bold text-slate-500 hover:text-emerald-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors cursor-pointer flex items-center space-x-1"
+                    title="Cliquer pour déverrouiller avec le code PIN"
+                  >
+                    <Lock className="w-3 h-3 text-slate-400" />
+                    <span>Modifier</span>
+                  </button>
+                )}
+              </div>
             </div>
 
-            <button
-              type="submit"
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs sm:text-sm cursor-pointer font-display"
-            >
-              <Save className="w-4 h-4" />
-              <span>Enregistrer les Numéros de Paiement</span>
-            </button>
+            {isPaymentInputsLocked ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setUnlockPaymentPin('');
+                  setUnlockPaymentPinError('');
+                  setShowUnlockPaymentModal(true);
+                }}
+                className="w-full py-3 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs sm:text-sm cursor-pointer font-display border border-slate-200"
+              >
+                <Lock className="w-4 h-4 text-emerald-600" />
+                <span>Modifier les numéros (Code PIN requis)</span>
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs sm:text-sm cursor-pointer font-display"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Enregistrer les Numéros de Paiement</span>
+                </button>
+                {hasConfiguredPaymentNumbers && (
+                  <button
+                    type="button"
+                    onClick={handleCancelPaymentUnlock}
+                    className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+                  >
+                    Annuler et Reverrouiller
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Aperçu Reçu */}
@@ -2173,6 +2393,85 @@ export const SettingsView: React.FC = () => {
                 <span>Confirmer</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Déverrouillage par Code PIN pour les Numéros de Paiement */}
+      {showUnlockPaymentModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-150 border border-slate-100">
+            <div className="flex items-center space-x-3 text-slate-900 border-b border-slate-100 pb-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-600 shrink-0 shadow-xs">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-extrabold text-sm tracking-tight text-slate-900 font-display">Déverrouillage Sécurisé</h3>
+                <p className="text-[10px] text-slate-500 font-medium">Modification des numéros de dépôt</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUnlockPaymentModal(false);
+                  setUnlockPaymentPin('');
+                  setUnlockPaymentPinError('');
+                }}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed text-center">
+              Pour des raisons de sécurité, veuillez saisir votre <strong>Code PIN à 4 chiffres</strong> pour déverrouiller et modifier vos numéros de réception marchands :
+            </p>
+
+            <form onSubmit={handleUnlockPaymentNumbers} className="space-y-4">
+              <div>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  autoFocus
+                  required
+                  value={unlockPaymentPin}
+                  onChange={(e) => {
+                    setUnlockPaymentPinError('');
+                    setUnlockPaymentPin(e.target.value.replace(/\D/g, ''));
+                  }}
+                  className="w-full py-3 px-4 bg-slate-50 border-2 border-emerald-500/40 focus:border-emerald-600 rounded-2xl text-center font-mono font-black text-2xl tracking-[0.35em] text-slate-900 outline-none transition-all placeholder:tracking-normal placeholder:font-normal placeholder:text-sm placeholder:text-slate-300"
+                  placeholder="••••"
+                />
+              </div>
+
+              {unlockPaymentPinError && (
+                <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700 flex items-center justify-center space-x-1.5 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                  <span>{unlockPaymentPinError}</span>
+                </div>
+              )}
+
+              <div className="flex space-x-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUnlockPaymentModal(false);
+                    setUnlockPaymentPin('');
+                    setUnlockPaymentPinError('');
+                  }}
+                  className="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer font-display"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="w-1/2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-md shadow-emerald-600/20 font-display flex items-center justify-center space-x-1.5"
+                >
+                  <Unlock className="w-4 h-4" />
+                  <span>Déverrouiller</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
