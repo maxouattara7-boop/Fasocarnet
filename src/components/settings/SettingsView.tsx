@@ -95,6 +95,7 @@ export const SettingsView: React.FC = () => {
   const [rccm, setRccm] = useState(shopProfile?.rccm || '');
   const [logo, setLogo] = useState<string | null>(shopProfile?.logo || null);
   const [primaryColor, setPrimaryColor] = useState<string>(shopProfile?.primaryColor || '#047857');
+  const [receiptPaperWidth, setReceiptPaperWidth] = useState<'58mm' | '80mm'>(shopProfile?.receiptPaperWidth || '58mm');
   const [debtAlarmEnabled, setDebtAlarmEnabled] = useState(shopProfile?.debtAlarmEnabled !== false);
   const [debtAlarmDay, setDebtAlarmDay] = useState(shopProfile?.debtAlarmDay ?? 1);
   const [pin, setNewPin] = useState(shopProfile?.pinCode || '');
@@ -118,6 +119,7 @@ export const SettingsView: React.FC = () => {
       setRccm(shopProfile.rccm || '');
       setLogo(shopProfile.logo || null);
       setPrimaryColor(shopProfile.primaryColor || '#047857');
+      setReceiptPaperWidth(shopProfile.receiptPaperWidth || '58mm');
       setDebtAlarmEnabled(shopProfile.debtAlarmEnabled !== false);
       setDebtAlarmDay(shopProfile.debtAlarmDay ?? 1);
       setNewPin(shopProfile.pinCode || '');
@@ -481,6 +483,7 @@ export const SettingsView: React.FC = () => {
       rccm: rccm.trim() || undefined,
       logo: logo || undefined,
       primaryColor: primaryColor || undefined,
+      receiptPaperWidth: receiptPaperWidth || '58mm',
       debtAlarmEnabled: debtAlarmEnabled,
       debtAlarmDay: debtAlarmDay,
       pinCode: updatedPin
@@ -839,6 +842,58 @@ export const SettingsView: React.FC = () => {
                 shopName={name}
                 showPreview={true}
               />
+            </div>
+
+            {/* Format d'impression des Tickets de Caisse (Rouleau Thermique) */}
+            <div className="pt-3 border-t border-slate-100 space-y-2">
+              <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider font-display">
+                Format des Tickets de Caisse (Rouleau Thermique)
+              </label>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setReceiptPaperWidth('58mm')}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    receiptPaperWidth === '58mm'
+                      ? 'border-emerald-500 bg-emerald-50/70 ring-2 ring-emerald-500/20'
+                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100/60 text-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-extrabold text-xs text-slate-900 font-display">Rouleau 58 mm</span>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase ${
+                      receiptPaperWidth === '58mm' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      Par défaut
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 leading-tight">
+                    Mini-imprimantes portables Bluetooth de poche (Le standard le plus économique)
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setReceiptPaperWidth('80mm')}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    receiptPaperWidth === '80mm'
+                      ? 'border-emerald-500 bg-emerald-50/70 ring-2 ring-emerald-500/20'
+                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100/60 text-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-extrabold text-xs text-slate-900 font-display">Rouleau 80 mm</span>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase ${
+                      receiptPaperWidth === '80mm' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      Large
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 leading-tight">
+                    Imprimantes de caisse de comptoir (Epson, Xprinter, supermarchés)
+                  </p>
+                </button>
+              </div>
             </div>
 
             <button

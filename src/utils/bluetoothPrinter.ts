@@ -128,12 +128,17 @@ export function buildEscPosPayload(
   write(CMD.BOLD_OFF);
   writeLine('--------------------------------');
 
-  // 3. Métadonnées (Date, Réf, Client)
+  // 3. Métadonnées (Date, Heure, Réf, Client)
+  const dObj = new Date(sale.createdAt);
+  const isValidDate = !isNaN(dObj.getTime());
+  const dStr = isValidDate ? dObj.toLocaleDateString('fr-FR') : formatDateTime(sale.createdAt);
+  const tStr = isValidDate ? dObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+
   write(CMD.ALIGN_LEFT);
-  writeLine(`Date : ${formatDateTime(sale.createdAt)}`);
-  writeLine(`Ref  : #${sale.id.slice(-8).toUpperCase()}`);
+  writeLine(formatTwoColumns(`Date : ${dStr}`, `Heure: ${tStr || '--:--'}`, maxCols));
+  writeLine(`Ticket: #${sale.id.slice(-8).toUpperCase()}`);
   if (sale.customerName) {
-    writeLine(`Client : ${sale.customerName}`);
+    writeLine(`Client: ${sale.customerName}`);
   }
 
   writeLine('--------------------------------');

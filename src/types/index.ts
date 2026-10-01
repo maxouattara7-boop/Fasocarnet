@@ -20,6 +20,7 @@ export interface ShopProfile {
   rccm?: string; // Numéro RCCM officiel de l'entreprise
   logo?: string; // Logo de l'entreprise (Base64 data URL)
   primaryColor?: string; // Couleur thème / marque de l'entreprise (ex: #047857)
+  receiptPaperWidth?: '58mm' | '80mm'; // Format du rouleau thermique (58mm par défaut, ou 80mm)
   debtAlarmEnabled?: boolean; // Alarme automatique de rappel de dettes
   debtAlarmDay?: number; // Jour de la semaine pour l'alarme (1 = Lundi)
   subscriptionPlan?: 'trial' | 'monthly' | 'semi-annual' | 'annual';

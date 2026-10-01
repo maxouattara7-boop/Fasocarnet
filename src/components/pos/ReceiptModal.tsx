@@ -106,16 +106,31 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
     const city = shopProfile?.city || '';
     const ifu = shopProfile?.ifu || '';
     const rccm = shopProfile?.rccm || '';
-    const dateStr = formatDateTime(sale.createdAt);
+    
+    // Date et Heure bien formatées et dissociées
+    const dateObj = new Date(sale.createdAt);
+    const isValidDate = !isNaN(dateObj.getTime());
+    const dateStr = isValidDate
+      ? dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : formatDateTime(sale.createdAt);
+    const timeStr = isValidDate
+      ? dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      : '';
+
+    const paperSize = shopProfile?.receiptPaperWidth || '58mm';
+    const rollWidthMm = paperSize === '80mm' ? '80mm' : '58mm';
+    const printableWidthMm = paperSize === '80mm' ? '76mm' : '52mm';
+    const fontSize = paperSize === '80mm' ? '13px' : '11.5px';
+
     const items = extractReceiptItems(sale);
 
     const itemsHtml = items.map(it => `
-      <div style="margin: 4px 0; border-bottom: 1px dotted #ccc; padding-bottom: 3px;">
+      <div style="margin: 4px 0; border-bottom: 1px dotted #bbb; padding-bottom: 3px;">
         <div class="row bold">
           <span>${it.description}</span>
           <span>${it.total.toLocaleString('fr-FR')} F</span>
         </div>
-        <div style="font-size: 11px; color: #444; display: flex; justify-content: space-between;">
+        <div style="font-size: 10.5px; color: #333; display: flex; justify-content: space-between;">
           <span>Qté: ${it.quantity} x ${it.unitPrice.toLocaleString('fr-FR')} F</span>
         </div>
       </div>
@@ -128,16 +143,26 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
           <meta charset="utf-8">
           <title>Ticket #${sale.id.slice(-6).toUpperCase()}</title>
           <style>
-            @page { margin: 0; size: auto; }
+            @page {
+              size: ${rollWidthMm} auto;
+              margin: 0;
+            }
+            @media print {
+              html, body {
+                width: ${printableWidthMm} !important;
+                margin: 0 auto !important;
+                padding: 4px 2px 14px 2px !important;
+              }
+            }
             body {
-              font-family: 'Courier New', Courier, monospace;
-              font-size: 13px;
+              font-family: 'Courier New', Courier, monospace, 'Consolas';
+              font-size: ${fontSize};
               font-weight: 600;
-              line-height: 1.35;
-              width: 58mm;
+              line-height: 1.32;
+              width: ${printableWidthMm};
               max-width: 100%;
               margin: 0 auto;
-              padding: 8px 4px;
+              padding: 6px 4px 16px 4px;
               color: #000;
               background: #fff;
             }
@@ -146,9 +171,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             .bold { font-weight: 900; }
             .shop-title { font-size: 16px; font-weight: 900; margin-bottom: 2px; }
             .shop-desc { font-size: 11px; font-style: italic; color: #333; margin-bottom: 3px; }
-            .divider { border-top: 1px dashed #000; margin: 6px 0; }
+            .divider { border-top: 1px dashed #000; margin: 5px 0; }
             .double-divider { border-top: 2px solid #000; margin: 6px 0; }
-            .row { display: flex; justify-content: space-between; margin: 3px 0; }
+            .row { display: flex; justify-content: space-between; margin: 2.5px 0; }
             .total-row { font-size: 15px; font-weight: 900; margin: 6px 0; }
             .footer { font-size: 10px; margin-top: 10px; text-align: center; }
           </style>
@@ -162,24 +187,28 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             ${ifu ? `<div style="font-size: 11px;">IFU : ${ifu}</div>` : ''}
             ${rccm ? `<div style="font-size: 11px;">RCCM : ${rccm}</div>` : ''}
             <div style="font-size: 11px; margin-top: 3px; font-weight: 900; letter-spacing: 0.5px;">
-              ${sale.isCredit ? 'FACTURE COMMERCIALE & CRÉDIT' : sale.isPartialCredit ? 'FACTURE COMMERCIALE (ACOMPTE & CRÉDIT)' : 'REÇU DE CAISSE'}
+              ${sale.isCredit ? 'FACTURE COMMERCIALE & CRÉDIT' : sale.isPartialCredit ? 'FACTURE COMMERCIALE (ACOMPTE & CRÉDIT)' : 'TICKET DE CAISSE'}
             </div>
           </div>
 
           <div class="divider"></div>
 
           <div class="row">
-            <span>Date :</span>
-            <span>${dateStr}</span>
+            <span>Date  :</span>
+            <span class="bold">${dateStr}</span>
           </div>
           <div class="row">
-            <span>Réf :</span>
+            <span>Heure :</span>
+            <span class="bold">${timeStr || '--:--'}</span>
+          </div>
+          <div class="row">
+            <span>Ticket:</span>
             <span>#${sale.id.slice(-8).toUpperCase()}</span>
           </div>
           ${sale.customerName ? `
           <div class="row">
-            <span>Client :</span>
-            <span>${sale.customerName}${sale.customerPhone ? ` (${sale.customerPhone})` : ''}</span>
+            <span>Client:</span>
+            <span class="bold">${sale.customerName}${sale.customerPhone ? ` (${sale.customerPhone})` : ''}</span>
           </div>` : ''}
 
           <div class="divider"></div>
@@ -286,10 +315,11 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
   const handlePrintReceipt = async () => {
     setIsPrinting(true);
 
+    const paperSize = shopProfile?.receiptPaperWidth || '58mm';
     if (isBluetoothSupported()) {
       setPrintStatus('Recherche des imprimantes Bluetooth...');
       try {
-        const res = await printViaBluetooth(sale, shopProfile || undefined);
+        const res = await printViaBluetooth(sale, shopProfile || undefined, paperSize);
         if (res.success) {
           setPrintStatus('✓ Ticket imprimé avec succès !');
           setTimeout(() => {
@@ -309,7 +339,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
 
     if (Capacitor.isNativePlatform()) {
       setPrintStatus('Envoi vers l\'imprimante Bluetooth...');
-      printViaRawBt(sale, shopProfile || undefined);
+      printViaRawBt(sale, shopProfile || undefined, paperSize);
     }
 
     const html = buildReceiptHtml();
@@ -335,31 +365,31 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             </span>
           </div>
 
-          {/* APERÇU DU REÇU IMAGE COMPACT AVEC LOGO & TAMPON */}
+          {/* APERÇU DU TICKET DE CAISSE RÉALISTE (BANDE BLANCHE ROULEAU THERMIQUE) */}
           <div 
             onClick={() => receiptImageUrl && setIsFullscreenImageOpen(true)}
-            className="relative group bg-slate-50 rounded-2xl p-1.5 border border-slate-200/80 overflow-hidden max-h-44 sm:max-h-52 flex items-center justify-center shadow-inner cursor-pointer"
+            className="relative group bg-slate-200/80 p-2 sm:p-2.5 rounded-2xl flex items-center justify-center overflow-hidden max-h-52 sm:max-h-60 shadow-inner cursor-pointer"
             title="Cliquer pour voir en grand"
           >
             {isGenerating ? (
-              <div className="py-10 text-xs text-slate-500 font-semibold animate-pulse flex items-center space-x-2">
+              <div className="py-12 text-xs text-slate-500 font-semibold animate-pulse flex items-center space-x-2">
                 <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-                <span>Génération du ticket stylisé...</span>
+                <span>Génération du ticket de caisse...</span>
               </div>
             ) : receiptImageUrl ? (
-              <>
+              <div className="relative py-0.5">
                 <img
                   src={receiptImageUrl}
-                  alt="Reçu de Caisse"
-                  className="max-h-40 sm:max-h-48 rounded-xl shadow-xs object-contain"
+                  alt="Ticket de Caisse Rouleau"
+                  className="max-h-48 sm:max-h-56 rounded-xs shadow-md object-contain transition-transform group-hover:scale-[1.02]"
                 />
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
-                  <span className="bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded-lg flex items-center space-x-1">
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-xs flex items-center justify-center">
+                  <span className="bg-black/80 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center space-x-1">
                     <Maximize2 className="w-3 h-3" />
                     <span>Agrandir</span>
                   </span>
                 </div>
-              </>
+              </div>
             ) : null}
           </div>
 
