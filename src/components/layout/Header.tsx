@@ -25,7 +25,7 @@ export const Header: React.FC = () => {
   return (
     <>
       <header className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white px-3.5 sm:px-6 py-2.5 sm:py-3 shadow-md sticky top-0 z-30 border-b border-emerald-700/40 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <div className="max-w-[1680px] mx-auto flex items-center justify-between gap-4">
           
           {/* Logo & Nom de la boutique */}
           <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">

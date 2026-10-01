@@ -425,15 +425,15 @@ export const PosView: React.FC = () => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto w-full p-2.5 sm:p-4 lg:p-4 pb-20 md:pb-3 h-full max-h-full flex flex-col min-h-0 overflow-hidden space-y-2.5">
+    <div className="max-w-[1680px] mx-auto w-full p-2.5 sm:p-3.5 lg:p-4 pb-20 md:pb-3 h-full max-h-full flex flex-col min-h-0 overflow-hidden space-y-2">
       {/* Toast de Notification */}
       {scanToast && (
-        <div className="bg-emerald-900 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xl flex items-center justify-between animate-in fade-in slide-in-from-top duration-200 border border-emerald-500/40 shrink-0">
+        <div className="bg-emerald-900 text-white text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl shadow-xl flex items-center justify-between animate-in fade-in slide-in-from-top duration-200 border border-emerald-500/40 shrink-0">
           <div className="flex items-center space-x-2">
             <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
             <span>{scanToast}</span>
           </div>
-          <span className="text-[10px] bg-emerald-700/80 px-2 py-0.5 rounded-md font-mono">OK</span>
+          <span className="text-xs bg-emerald-700/80 px-2.5 py-0.5 rounded-md font-mono font-bold">OK</span>
         </div>
       )}
 
@@ -444,18 +444,18 @@ export const PosView: React.FC = () => {
         {/* COLONNE GAUCHE (DESKTOP) : CALCULATRICE STATIQUE & FIXE  */}
         {/* ======================================================== */}
         <div 
-          className="lg:col-span-5 h-full max-h-full flex flex-col justify-between shrink-0 overflow-hidden select-none space-y-2"
+          className="lg:col-span-5 xl:col-span-5 2xl:col-span-4 h-full max-h-full flex flex-col justify-between shrink-0 overflow-hidden select-none space-y-2"
           onWheel={(e) => e.stopPropagation()}
           style={{ overscrollBehavior: 'none' }}
         >
           {/* Écran d'affichage du montant, de la remise et du calcul */}
-          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-3 sm:p-3.5 rounded-2xl sm:rounded-3xl shadow-lg flex flex-col justify-between border border-emerald-700/50 shrink-0">
-            <div className="flex items-center justify-between text-emerald-300 text-[10.5px] sm:text-[11px] font-bold tracking-wider uppercase">
-              <div className="flex items-center space-x-1.5">
+          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-lg flex flex-col justify-between border border-emerald-700/50 shrink-0">
+            <div className="flex items-center justify-between text-emerald-300 text-xs sm:text-sm font-black tracking-wider uppercase">
+              <div className="flex items-center space-x-2">
                 {hasCalculation ? (
-                  <Calculator className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                  <Calculator className="w-4 h-4 text-amber-400 animate-pulse" />
                 ) : (
-                  <ShoppingCart className="w-3.5 h-3.5" />
+                  <ShoppingCart className="w-4 h-4" />
                 )}
                 <span>{hasCalculation ? 'Total Additionné' : 'Montant à Encaisser'}</span>
               </div>
@@ -463,42 +463,42 @@ export const PosView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsDiscountModalOpen(true)}
-                  className="bg-amber-400 hover:bg-amber-300 text-amber-950 px-2.5 py-0.5 rounded-lg text-[10px] font-black tracking-wide flex items-center space-x-1 transition-all cursor-pointer"
+                  className="bg-amber-400 hover:bg-amber-300 text-amber-950 px-2.5 py-1 rounded-lg text-xs font-black tracking-wide flex items-center space-x-1.5 transition-all cursor-pointer"
                 >
-                  <Tag className="w-3 h-3" />
+                  <Tag className="w-3.5 h-3.5" />
                   <span>Remise -{formatCurrency(discountAmount)}</span>
                 </button>
               ) : (
-                <span className="bg-emerald-700/70 px-2 py-0.5 rounded-lg text-[10px] font-black tracking-wide">FCFA (XOF)</span>
+                <span className="bg-emerald-700/80 px-2.5 py-1 rounded-lg text-xs font-black tracking-wide">FCFA (XOF)</span>
               )}
             </div>
 
-            <div className="text-right mt-1">
+            <div className="text-right mt-1.5">
               {/* Formule de calcul si addition en cours */}
               {hasCalculation && (
-                <div className="text-[10px] sm:text-xs font-semibold text-amber-300 bg-amber-950/40 px-2.5 py-0.5 rounded-lg inline-block max-w-full truncate mb-0.5 border border-amber-500/30">
+                <div className="text-xs sm:text-sm font-bold text-amber-300 bg-amber-950/50 px-3 py-1 rounded-xl inline-block max-w-full truncate mb-1 border border-amber-500/30">
                   {formatPosExpressionDisplay(amountStr)} {/[+]\s*$/.test(amountStr) ? '...' : '='}
                 </div>
               )}
 
               {/* Affichage du sous-total barré si remise active */}
               {discount && discount.calculatedAmount > 0 && (
-                <div className="text-xs font-semibold text-emerald-300/80 line-through">
+                <div className="text-sm font-bold text-emerald-300/80 line-through">
                   {formatCurrency(subtotalAmount)}
                 </div>
               )}
 
-              <div className="text-2.5xl sm:text-3xl lg:text-3.5xl xl:text-4xl font-extrabold tracking-tight text-white drop-shadow-sm truncate leading-tight font-display">
+              <div className="text-3xl sm:text-4xl lg:text-3.5xl xl:text-4.5xl 2xl:text-5xl font-black tracking-tight text-white drop-shadow-sm truncate leading-tight font-display">
                 {formatCurrency(finalPayableAmount).replace(' FCFA', '')}
               </div>
 
-              <div className="text-[10px] sm:text-[10.5px] text-emerald-200/80 mt-0.5">
+              <div className="text-xs sm:text-sm text-emerald-200/90 mt-1 font-semibold">
                 {discount && discount.calculatedAmount > 0 ? (
                   <span className="font-bold text-amber-300">
                     Remise : -{formatCurrency(discountAmount)} ({discount.type === 'PERCENT' ? `${discount.value}%` : 'Fixe'})
                   </span>
                 ) : selectedItems.length > 0 ? (
-                  <span className="font-semibold text-amber-300 truncate block">
+                  <span className="font-bold text-amber-300 truncate block">
                     {selectedItems.length} article(s) dans le panier en cours
                   </span>
                 ) : (
@@ -510,42 +510,42 @@ export const PosView: React.FC = () => {
 
           {/* DÉTAIL DU PANIER EN COURS (SI ARTICLES CHOISIS) */}
           {selectedItems.length > 0 && (
-            <div className="bg-white p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1 animate-in fade-in shrink-0">
-              <div className="flex items-center justify-between text-xs sm:text-sm font-extrabold text-slate-800 border-b border-slate-100 pb-1">
-                <div className="flex items-center space-x-1.5">
-                  <ShoppingCart className="w-4 h-4 text-emerald-600" />
+            <div className="bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200/80 shadow-xs space-y-1 animate-in fade-in shrink-0">
+              <div className="flex items-center justify-between text-sm sm:text-base font-black text-slate-800 border-b border-slate-100 pb-1.5">
+                <div className="flex items-center space-x-2">
+                  <ShoppingCart className="w-4.5 h-4.5 text-emerald-600" />
                   <span>Panier ({selectedItems.length} article{selectedItems.length > 1 ? 's' : ''})</span>
                 </div>
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="text-xs text-red-600 hover:text-red-700 font-bold flex items-center space-x-1 cursor-pointer"
+                  className="text-xs sm:text-sm text-red-600 hover:text-red-700 font-black flex items-center space-x-1 cursor-pointer"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4" />
                   <span>Vider</span>
                 </button>
               </div>
 
-              <div className="max-h-24 sm:max-h-28 overflow-y-auto divide-y divide-slate-100 pr-1 space-y-1 scrollbar-thin">
+              <div className="max-h-24 sm:max-h-32 overflow-y-auto divide-y divide-slate-100 pr-1 space-y-1 scrollbar-thin">
                 {selectedItems.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between py-1 text-xs sm:text-sm">
+                  <div key={idx} className="flex items-center justify-between py-1.5 text-sm sm:text-base">
                     <div className="min-w-0 flex-1 pr-2">
-                      <p className="font-bold text-slate-900 truncate text-xs sm:text-sm">{item.description}</p>
-                      <p className="text-xs text-slate-500 font-mono">
+                      <p className="font-black text-slate-900 truncate text-sm sm:text-base">{item.description}</p>
+                      <p className="text-xs sm:text-sm text-slate-500 font-mono font-medium">
                         {item.quantity} x {formatCurrency(item.unitPrice)}
                       </p>
                     </div>
                     <div className="flex items-center space-x-2 shrink-0">
-                      <span className="font-extrabold text-emerald-700 font-display text-xs sm:text-sm">
+                      <span className="font-black text-emerald-700 font-display text-sm sm:text-base">
                         {formatCurrency(item.unitPrice * item.quantity)}
                       </span>
                       <button
                         type="button"
                         onClick={() => handleRemoveItem(idx)}
-                        className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                         title="Retirer cet article"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -557,15 +557,15 @@ export const PosView: React.FC = () => {
           {/* ======================================================== */}
           {/* TOUCHES D'ACTION ALLONGÉES & VISIBLES : SCANNER & REMISE */}
           {/* ======================================================== */}
-          <div className="grid grid-cols-2 gap-1.5 sm:gap-2 shrink-0">
+          <div className="grid grid-cols-2 gap-2 shrink-0">
             {/* Bouton Scanner Caméra Code-Barres grand format allongé */}
             <button
               type="button"
               onClick={() => setIsBarcodeScannerOpen(true)}
-              className="h-11 sm:h-12 lg:h-11 xl:h-12 px-3 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:from-amber-700 active:to-amber-800 text-white rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center space-x-1.5 shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer font-display"
+              className="h-12 sm:h-13 lg:h-12 xl:h-13 px-3 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:from-amber-700 active:to-amber-800 text-white rounded-xl sm:rounded-2xl text-sm sm:text-base font-black flex items-center justify-center space-x-2 shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer font-display"
               title="Scanner un code-barres avec la caméra ou douchette"
             >
-              <Camera className="w-4.5 h-4.5 text-amber-100 shrink-0" />
+              <Camera className="w-5 h-5 text-amber-100 shrink-0" />
               <span className="tracking-wide">Scanner</span>
             </button>
 
@@ -576,14 +576,14 @@ export const PosView: React.FC = () => {
                 triggerHaptic(30);
                 setIsDiscountModalOpen(true);
               }}
-              className={`h-11 sm:h-12 lg:h-11 xl:h-12 px-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black flex items-center justify-center space-x-1.5 shadow-md active:scale-95 transition-all cursor-pointer font-display ${
+              className={`h-12 sm:h-13 lg:h-12 xl:h-13 px-3 rounded-xl sm:rounded-2xl text-sm sm:text-base font-black flex items-center justify-center space-x-2 shadow-md active:scale-95 transition-all cursor-pointer font-display ${
                 discount && discount.calculatedAmount > 0
                   ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-500 shadow-amber-400/30'
                   : 'bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white shadow-slate-900/20'
               }`}
               title="Appliquer une remise en % ou FCFA"
             >
-              <Tag className="w-4.5 h-4.5 text-amber-300 shrink-0" />
+              <Tag className="w-5 h-5 text-amber-300 shrink-0" />
               <span className="tracking-wide truncate">{discount && discount.calculatedAmount > 0 ? `Remise (-${formatCurrency(discountAmount)})` : 'Remise Client'}</span>
             </button>
           </div>
@@ -597,23 +597,23 @@ export const PosView: React.FC = () => {
                   setArticleSearch('');
                   setIsArticlePickerOpen(true);
                 }}
-                className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-sm font-extrabold flex items-center justify-center space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
+                className="w-full py-3 px-4 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-base font-black flex items-center justify-center space-x-2 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
                 title="Ouvrir le catalogue d'articles"
               >
-                <Package className="w-4 h-4 text-amber-300" />
+                <Package className="w-5 h-5 text-amber-300" />
                 <span>Consulter le Catalogue ({products.length} articles)</span>
-                <ChevronDown className="w-4 h-4 text-emerald-200" />
+                <ChevronDown className="w-5 h-5 text-emerald-200" />
               </button>
             )}
 
             {/* Puces des articles fréquents en 1-tap direct (Sur mobile) */}
-            <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none">
               {products.slice(0, 6).map((prod) => (
                 <button
                   key={prod.id}
                   type="button"
                   onClick={() => handleSelectProduct(prod.id)}
-                  className={`px-3 py-1.5 bg-white hover:bg-emerald-50/70 text-slate-800 border rounded-xl text-xs sm:text-sm font-semibold flex items-center space-x-1.5 shrink-0 shadow-2xs active:scale-95 transition-all cursor-pointer ${
+                  className={`px-3.5 py-2 bg-white hover:bg-emerald-50/70 text-slate-800 border rounded-xl text-sm sm:text-base font-bold flex items-center space-x-2 shrink-0 shadow-2xs active:scale-95 transition-all cursor-pointer ${
                     typeof prod.stockQuantity === 'number' && prod.stockQuantity <= 0
                       ? 'border-red-300 bg-red-50/30'
                       : typeof prod.stockQuantity === 'number' && prod.stockQuantity <= (prod.minStockAlert ?? 5)
@@ -621,8 +621,8 @@ export const PosView: React.FC = () => {
                       : 'border-slate-200 hover:border-emerald-400'
                   }`}
                 >
-                  <span className="font-extrabold text-slate-900">{prod.name}</span>
-                  <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md">
+                  <span className="font-black text-slate-900">{prod.name}</span>
+                  <span className="text-xs sm:text-sm font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
                     {formatCurrency(prod.price).replace(' FCFA', '')}
                   </span>
                 </button>
@@ -631,7 +631,7 @@ export const PosView: React.FC = () => {
           </div>
 
           {/* Clavier tactile avec touche + et vibreur */}
-          <div className="bg-white p-2 sm:p-2.5 lg:p-2 xl:p-2.5 rounded-2xl sm:rounded-3xl shadow-xs border border-slate-200/80 shrink-0">
+          <div className="bg-white p-2.5 sm:p-3 lg:p-2.5 xl:p-3 rounded-2xl sm:rounded-3xl shadow-xs border border-slate-200/80 shrink-0">
             <Keypad
               value={amountStr}
               onChange={setAmountStr}
@@ -644,31 +644,31 @@ export const PosView: React.FC = () => {
             type="button"
             disabled={finalPayableAmount <= 0}
             onClick={handleOpenPayment}
-            className={`w-full py-3 sm:py-3.5 lg:py-3 xl:py-3.5 rounded-2xl sm:rounded-3xl font-black text-sm sm:text-base lg:text-base xl:text-lg shadow-lg flex items-center justify-center space-x-2 transition-all cursor-pointer font-display shrink-0 ${
+            className={`w-full py-3.5 sm:py-4 lg:py-3.5 xl:py-4 rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg lg:text-lg xl:text-xl shadow-lg flex items-center justify-center space-x-2.5 transition-all cursor-pointer font-display shrink-0 ${
               finalPayableAmount > 0
                 ? 'bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white shadow-emerald-700/30 active:scale-98'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
             }`}
           >
             <span>ENCAISSER ({formatCurrency(finalPayableAmount)})</span>
-            <ArrowRight className="w-4.5 h-4.5 sm:w-5 sm:h-5 stroke-[2.5]" />
+            <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3]" />
           </button>
         </div>
 
         {/* ======================================================== */}
         {/* COLONNE DROITE (DESKTOP) : CATALOGUE D'ARTICLES & RECHERCHE */}
         {/* ======================================================== */}
-        <div className="hidden lg:flex lg:col-span-7 flex-col h-full max-h-full min-h-0 space-y-2.5 overflow-hidden">
+        <div className="hidden lg:flex lg:col-span-7 xl:col-span-7 2xl:col-span-8 flex-col h-full max-h-full min-h-0 space-y-2.5 overflow-hidden">
           {/* Barre supérieure du Catalogue */}
-          <div className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs space-y-2.5 shrink-0">
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2.5 shrink-0">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-7.5 h-7.5 rounded-xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shadow-inner">
-                  <Package className="w-4 h-4" />
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8.5 h-8.5 rounded-xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shadow-inner">
+                  <Package className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-extrabold text-slate-900 font-display">Catalogue d'Articles</h2>
-                  <p className="text-xs text-slate-500 font-medium">{products.length} article(s) enregistrés</p>
+                  <h2 className="text-base sm:text-lg font-black text-slate-900 font-display">Catalogue d'Articles</h2>
+                  <p className="text-xs sm:text-sm text-slate-500 font-semibold">{products.length} article(s) enregistrés</p>
                 </div>
               </div>
 
@@ -676,10 +676,10 @@ export const PosView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsBarcodeScannerOpen(true)}
-                  className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black flex items-center space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
+                  className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs sm:text-sm font-black flex items-center space-x-2 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
                   title="Scanner un code-barres"
                 >
-                  <Camera className="w-4 h-4 text-amber-400" />
+                  <Camera className="w-4.5 h-4.5 text-amber-400" />
                   <span>Scanner Code-Barres</span>
                 </button>
               </div>
@@ -688,33 +688,33 @@ export const PosView: React.FC = () => {
             {/* Barre de Recherche & Filtres */}
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Rechercher par nom d'article ou code-barres..."
                   value={articleSearch}
                   onChange={(e) => setArticleSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                  className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm sm:text-base font-bold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
                 />
                 {articleSearch && (
                   <button
                     type="button"
                     onClick={() => setArticleSearch('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-full"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-full"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
 
               {/* Filtres de Stock */}
-              <div className="flex items-center bg-slate-100 p-0.5 rounded-xl gap-0.5 text-xs font-bold">
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl gap-1 text-xs sm:text-sm font-bold">
                 <button
                   type="button"
                   onClick={() => setSelectedCategory('all')}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                  className={`px-3.5 py-1.5 rounded-lg transition-all ${
                     selectedCategory === 'all'
-                      ? 'bg-white text-emerald-800 shadow-xs font-extrabold'
+                      ? 'bg-white text-emerald-800 shadow-xs font-black'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -723,9 +723,9 @@ export const PosView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedCategory('in_stock')}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                  className={`px-3.5 py-1.5 rounded-lg transition-all ${
                     selectedCategory === 'in_stock'
-                      ? 'bg-white text-emerald-800 shadow-xs font-extrabold'
+                      ? 'bg-white text-emerald-800 shadow-xs font-black'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -734,9 +734,9 @@ export const PosView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedCategory('low_stock')}
-                  className={`px-3 py-1.5 rounded-lg transition-all ${
+                  className={`px-3.5 py-1.5 rounded-lg transition-all ${
                     selectedCategory === 'low_stock'
-                      ? 'bg-white text-amber-700 shadow-xs font-extrabold'
+                      ? 'bg-white text-amber-700 shadow-xs font-black'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -748,19 +748,19 @@ export const PosView: React.FC = () => {
 
           {/* Grille des Articles défilante avec survol molette fluide */}
           {filteredProducts.length === 0 ? (
-            <div className="bg-white p-8 rounded-2xl text-center space-y-2.5 border border-slate-200/80 shadow-xs flex-1 flex flex-col items-center justify-center">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
-                <Package className="w-6 h-6" />
+            <div className="bg-white p-8 rounded-2xl text-center space-y-3 border border-slate-200/80 shadow-xs flex-1 flex flex-col items-center justify-center">
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
+                <Package className="w-7 h-7" />
               </div>
-              <h3 className="font-extrabold text-xs text-slate-800">Aucun article trouvé</h3>
-              <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+              <h3 className="font-black text-sm sm:text-base text-slate-800">Aucun article trouvé</h3>
+              <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
                 {articleSearch 
                   ? `Aucun article ne correspond à "${articleSearch}".` 
                   : "Ajoutez des articles dans votre catalogue depuis l'onglet Boutique ou en scannant un code-barres."}
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 xl:grid-cols-3 gap-2.5 overflow-y-auto pr-1.5 pb-2 scrollbar-thin flex-1 min-h-0 overscroll-contain content-start auto-rows-max items-start">
+            <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 overflow-y-auto pr-1.5 pb-2 scrollbar-thin flex-1 min-h-0 overscroll-contain content-start auto-rows-max items-start">
               {filteredProducts.map((prod) => {
                 const stock = prod.stockQuantity ?? 0;
                 const isZeroStock = stock <= 0;
@@ -778,7 +778,7 @@ export const PosView: React.FC = () => {
                       }
                       handleSelectProduct(prod.id);
                     }}
-                    className={`bg-white p-3 rounded-2xl border text-left flex flex-col justify-between transition-all group shadow-2xs hover:shadow-md cursor-pointer min-h-[110px] ${
+                    className={`bg-white p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all group shadow-2xs hover:shadow-md cursor-pointer min-h-[125px] ${
                       isZeroStock
                         ? 'border-red-200 bg-red-50/20 opacity-70 cursor-not-allowed'
                         : isLowStock
@@ -786,9 +786,9 @@ export const PosView: React.FC = () => {
                         : 'border-slate-200/80 hover:border-emerald-500 hover:bg-emerald-50/30'
                     }`}
                   >
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <div className="flex items-start justify-between gap-1.5">
-                        <div className={`w-7 h-7 rounded-lg font-black text-xs flex items-center justify-center shadow-xs shrink-0 font-display ${
+                        <div className={`w-8 h-8 rounded-xl font-black text-sm flex items-center justify-center shadow-xs shrink-0 font-display ${
                           isZeroStock
                             ? 'bg-red-100 text-red-700'
                             : 'bg-emerald-100 text-emerald-800'
@@ -797,7 +797,7 @@ export const PosView: React.FC = () => {
                         </div>
 
                         <span
-                          className={`text-xs font-black px-2 py-0.5 rounded-md border shrink-0 ${
+                          className={`text-xs font-black px-2.5 py-1 rounded-lg border shrink-0 ${
                             isZeroStock
                               ? 'bg-red-100 text-red-800 border-red-200'
                               : isLowStock
@@ -810,20 +810,20 @@ export const PosView: React.FC = () => {
                       </div>
 
                       <div>
-                        <h4 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-800 line-clamp-2 leading-snug">
+                        <h4 className="font-black text-sm sm:text-base text-slate-900 group-hover:text-emerald-800 line-clamp-2 leading-snug">
                           {prod.name}
                         </h4>
                         {prod.barcode && (
-                          <p className="text-xs text-slate-400 font-mono mt-0.5 truncate">{prod.barcode}</p>
+                          <p className="text-xs sm:text-sm text-slate-400 font-mono mt-0.5 truncate">{prod.barcode}</p>
                         )}
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between mt-1.5">
-                      <span className="text-sm font-black text-emerald-700 font-display">
+                    <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between mt-2">
+                      <span className="text-base sm:text-lg font-black text-emerald-700 font-display">
                         {formatCurrency(prod.price)}
                       </span>
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-lg transition-colors ${
+                      <span className={`text-xs sm:text-sm font-black px-3 py-1.5 rounded-xl transition-colors ${
                         isZeroStock
                           ? 'bg-red-100 text-red-700'
                           : 'bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white'

@@ -8,6 +8,25 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    font-size: 16.5px;
+  }
+
+  @media (min-width: 640px) {
+    html {
+      font-size: 17px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      font-size: 17.5px;
+    }
+  }
+
+  @media (min-width: 1440px) {
+    html {
+      font-size: 18px;
+    }
   }
 
   body {
@@ -47,17 +66,17 @@
   .text-\[8\.5px\],
   .text-\[9px\],
   .text-\[9\.5px\] {
-    font-size: 0.75rem !important; /* 12px minimum vital pour lisibilité */
-    line-height: 1.15rem !important;
+    font-size: 0.8125rem !important; /* Minimum 13.5px pour lisibilité immédiate */
+    line-height: 1.25rem !important;
   }
   .text-\[10px\],
   .text-\[10\.5px\] {
-    font-size: 0.8125rem !important; /* 13px pour les petits labels, badges et métadonnées */
-    line-height: 1.25rem !important;
+    font-size: 0.875rem !important; /* 14.5px pour badges, labels et métadonnées */
+    line-height: 1.35rem !important;
   }
   .text-\[11px\] {
-    font-size: 0.875rem !important; /* 14px pour les sous-titres, aides et textes secondaires */
-    line-height: 1.35rem !important;
+    font-size: 0.9375rem !important; /* 15.5px pour sous-titres et aides */
+    line-height: 1.45rem !important;
   }
 }
 
