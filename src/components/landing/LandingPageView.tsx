@@ -337,7 +337,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) =
         </section>
 
         {/* ========================================================================= */}
-        {/* BANDEAU COMMERCES CIBLES : ANCRAGE CONCRET                                */}
+        {/* BANDEAU MODÈLES DE COMMERCE : COUVERTURE UNIVERSELLE                      */}
         {/* ========================================================================= */}
         <section className="py-6 border-b border-slate-200/70 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
@@ -345,12 +345,18 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) =
               Conçu pour vos activités :
             </div>
             <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 text-xs font-semibold text-slate-700">
-              <span className="px-3 py-1 rounded-lg bg-slate-50 border border-slate-200/80">Quincailleries</span>
-              <span className="px-3 py-1 rounded-lg bg-slate-50 border border-slate-200/80">Alimentations</span>
-              <span className="px-3 py-1 rounded-lg bg-slate-50 border border-slate-200/80">Boutiques Prêt-à-Porter</span>
-              <span className="px-3 py-1 rounded-lg bg-slate-50 border border-slate-200/80">Orange &amp; Moov Money</span>
-              <span className="px-3 py-1 rounded-lg bg-slate-50 border border-slate-200/80">Librairies</span>
-              <span className="px-3 py-1 rounded-lg bg-slate-50 border border-slate-200/80">Salons &amp; Ateliers</span>
+              <span className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 shadow-2xs">
+                Vente au détail &amp; Boutiques
+              </span>
+              <span className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 shadow-2xs">
+                Artisans, Services &amp; Ateliers
+              </span>
+              <span className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 shadow-2xs">
+                Dépôts, Matériaux &amp; Demi-gros
+              </span>
+              <span className="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200/80 text-emerald-800 font-bold shadow-2xs">
+                + Tout commerce de proximité
+              </span>
             </div>
           </div>
         </section>
