@@ -10,7 +10,7 @@
   <style>
     @page {
       size: A4 portrait;
-      margin: 14mm 14mm 16mm 14mm;
+      margin: 12mm 14mm 14mm 14mm;
     }
     * {
       box-sizing: border-box;
@@ -19,7 +19,7 @@
     }
     body {
       font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-      font-size: 14px;
+      font-size: 13.5px;
       line-height: 1.5;
       color: #0f172a;
       background-color: #f1f5f9;
@@ -29,7 +29,7 @@
       background: #ffffff;
       width: 210mm;
       min-height: 297mm;
-      padding: 14mm 14mm 16mm 14mm;
+      padding: 14mm 14mm 14mm 14mm;
       margin: 0 auto 25px auto;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
       position: relative;
@@ -60,8 +60,8 @@
       align-items: center;
       justify-content: space-between;
       border-bottom: 2px solid #059669;
-      padding-bottom: 10px;
-      margin-bottom: 10px;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
     }
     .header-logo {
       display: flex;
@@ -95,10 +95,10 @@
       background: #ecfdf5;
       color: #047857;
       border: 1px solid #a7f3d0;
-      padding: 5px 12px;
+      padding: 4px 12px;
       border-radius: 9999px;
       font-weight: 800;
-      font-size: 14px;
+      font-size: 13.5px;
     }
     .contact-sub {
       font-size: 10px;
@@ -112,15 +112,15 @@
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 6px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
     .badge-item {
       background: #ecfdf5;
       border: 1px solid #a7f3d0;
       border-radius: 8px;
-      padding: 6px 4px;
+      padding: 5px 4px;
       text-align: center;
-      font-size: 10.5px;
+      font-size: 10px;
       font-weight: 800;
       color: #064e3b;
     }
@@ -128,16 +128,16 @@
     /* Document Title */
     .doc-title-container {
       text-align: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .doc-title {
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 900;
       color: #064e3b;
       letter-spacing: -0.3px;
     }
     .doc-subtitle {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 800;
       color: #d97706;
       margin-top: 2px;
@@ -147,11 +147,11 @@
     .section-banner {
       background: #064e3b;
       color: #ffffff;
-      padding: 6px 12px;
-      font-size: 14px;
+      padding: 5px 12px;
+      font-size: 13px;
       font-weight: 800;
       border-radius: 6px;
-      margin-bottom: 8px;
+      margin-bottom: 7px;
       letter-spacing: 0.3px;
     }
 
@@ -160,10 +160,10 @@
       background: #f8fafc;
       border: 1px solid #cbd5e1;
       border-radius: 8px;
-      padding: 10px 14px;
-      margin-bottom: 10px;
-      font-size: 13.5px;
-      line-height: 1.5;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      line-height: 1.45;
     }
     .card-emerald {
       background: #ecfdf5;
@@ -174,11 +174,29 @@
       border: 1.5px solid #d97706;
     }
 
+    /* Target category */
+    .target-cat-title {
+      font-weight: 800;
+      font-size: 13px;
+      color: #064e3b;
+      margin-top: 6px;
+      margin-bottom: 4px;
+    }
+    .target-item {
+      margin-bottom: 4px;
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+    .target-name {
+      color: #047857;
+      font-weight: 800;
+    }
+
     /* Dialogue */
     .dialogue-item {
-      margin-bottom: 7px;
-      font-size: 13.5px;
-      line-height: 1.5;
+      margin-bottom: 6px;
+      font-size: 13px;
+      line-height: 1.45;
     }
     .speaker-comm {
       color: #047857;
@@ -194,18 +212,18 @@
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 12px;
-      font-size: 13.5px;
+      font-size: 13px;
     }
     .table-tarifs th, .table-tarifs td {
       border: 1px solid #cbd5e1;
-      padding: 8px 10px;
+      padding: 7px 9px;
       text-align: left;
     }
     .table-tarifs th {
       background: #e2e8f0;
       color: #0f172a;
       font-weight: 800;
-      font-size: 12.5px;
+      font-size: 12px;
     }
     .table-tarifs tr.recommended {
       background: #fffbeb;
@@ -218,10 +236,10 @@
     .footer {
       margin-top: auto;
       border-top: 1px solid #cbd5e1;
-      padding-top: 8px;
+      padding-top: 6px;
       display: flex;
       justify-content: space-between;
-      font-size: 10px;
+      font-size: 9.5px;
       color: #64748b;
       font-weight: 600;
     }
@@ -237,8 +255,8 @@
       background: #047857;
       color: white;
       border: none;
-      padding: 14px 24px;
-      font-size: 15px;
+      padding: 13px 22px;
+      font-size: 14.5px;
       font-weight: 800;
       border-radius: 9999px;
       cursor: pointer;
@@ -258,7 +276,7 @@
 <body>
 
   <button class="print-btn no-print" onclick="window.print()">
-    🖨️ Imprimer le Guide PDF (Police 14/15)
+    🖨️ Imprimer le Guide PDF (4 Pages)
   </button>
 
   <!-- ========================================================= -->
@@ -267,7 +285,7 @@
   <div class="page">
     <div class="header">
       <div class="header-logo">
-        <svg width="42" height="42" viewBox="0 0 64 64" fill="none">
+        <svg width="40" height="40" viewBox="0 0 64 64" fill="none">
           <rect width="64" height="64" rx="16" fill="#064e3b"/>
           <rect x="8" y="10" width="8" height="44" rx="3" fill="#047857"/>
           <circle cx="12" cy="18" r="2" fill="#fbbf24"/>
@@ -294,7 +312,7 @@
 
     <div class="badges-bar">
       <div class="badge-item">⚡ CAISSE TACTILE EXPRESS</div>
-      <div class="badge-item">📒 CARNET DE DETTES &amp; RELANCE</div>
+      <div class="badge-item">📒 CARNET DE DETTES AVEC RELANCE</div>
       <div class="badge-item">📶 100% SANS INTERNET</div>
       <div class="badge-item">📱 MULTI-SUPPORTS (PC/TEL)</div>
     </div>
@@ -334,26 +352,66 @@
       <b>4. ZÉRO INTERNET NÉCESSAIRE :</b> Même s'il n'y a plus de mégas ou si le réseau est coupé, vous encaissez sans aucun problème toute la journée ! »
     </div>
 
-    <div class="card card-emerald" style="margin-top: 6px;">
+    <div class="card card-emerald" style="margin-top: 4px;">
       <b>Geste clé du commercial :</b> Aidez immédiatement le commerçant à installer l'application sur son téléphone (ou faites-lui taper une vente test sur le vôtre). <b>Faites-lui toucher l'écran pour casser toute peur !</b>
     </div>
 
     <div class="footer">
       <div><strong>FASOCARNET MOBILE &amp; DESKTOP</strong> • Guide Pratique du Commercial Terrain</div>
-      <div>Page 1 sur 3</div>
+      <div>Page 1 sur 4</div>
     </div>
   </div>
 
   <!-- ========================================================= -->
-  <!-- PAGE 2 : OFFRE CHOC CATALOGUE + LES 5 OBJECTIONS TERRAIN -->
+  <!-- PAGE 2 : CIBLES PRIORITAIRES & ARGUMENTS CHOCS -->
   <!-- ========================================================= -->
   <div class="page">
-    <div class="section-banner">III. LE LEVIER MARKETING CHOC : L'OFFRE « CATALOGUE CLÉ EN MAIN »</div>
+    <div class="section-banner">III. NOS COMMERÇANTS CIBLES &amp; LEURS ARGUMENTS CHOCS SUR LE TERRAIN</div>
+    <p style="margin-bottom: 8px; font-size: 12.5px;">
+      <b>Ne prospectez pas au hasard !</b> Chaque type de commerce a une douleur précise. Utilisez l'<b>argument choc</b> correspondant pour capter son attention en 10 secondes :
+    </p>
+
+    <div class="target-cat-title">1. QUINCAILLERIES &amp; MATÉRIAUX DE CONSTRUCTION</div>
+    <div class="card">
+      <div class="target-item">• <span class="target-name">Quincailleries générales &amp; Outillage :</span> « Vous avez plus de 300 articles ? Notre équipe vient saisir tout votre catalogue gratuitement pour vous ! Vous suivez les crédits de chaque maçon/plombier sans jamais perdre 1 seul franc. »</div>
+      <div class="target-item">• <span class="target-name">Dépôts de ciment, fer à béton &amp; tôles :</span> « Sécurisez les gros crédits de vos chantiers : chaque tonne livrée ou acompte versé est suivi au franc près jusqu'au règlement final. »</div>
+      <div class="target-item">• <span class="target-name">Pièces détachées motos &amp; Garages :</span> « Maîtrisez votre stock de pièces Sanili/motos et suivez précisément les dettes des mécaniciens qui prennent les pièces pour payer après dépannage ! »</div>
+    </div>
+
+    <div class="target-cat-title">2. COMMERCES DE DÉTAIL &amp; BOUTIQUES</div>
+    <div class="card">
+      <div class="target-item">• <span class="target-name">Alimentations générales &amp; Supérettes :</span> « Encaissez à la chaîne 100% sans internet, et connaissez chaque soir votre chiffre d'affaires et votre VRAI bénéfice net sans calculatrice ! »</div>
+      <div class="target-item">• <span class="target-name">Boutiques de prêt-à-porter (Hommes &amp; Dames) / Chaussures :</span> « Fini les clients qui oublient de payer leurs habits à la fin du mois : l'application génère un rappel WhatsApp poli automatique qui récupère votre argent sans palabres ! »</div>
+      <div class="target-item">• <span class="target-name">Librairies, Papeteries &amp; Fournitures :</span> « Émettez des reçus et factures officiels pour les parents et entreprises, et encaissez à grande vitesse sans faire de file d'attente ! »</div>
+      <div class="target-item">• <span class="target-name">Cosmétiques, Mèches, Perruques &amp; Parfumerie :</span> « Suivez les paiements par tranches de vos clientes fidèles et sachez exactement ce qui vous reste en rayon sans recompter chaque soir ! »</div>
+      <div class="target-item">• <span class="target-name">Accessoires de téléphones &amp; Électronique :</span> « Délivrez un ticket de caisse professionnel avec reçu pour rassurer sur la garantie et empêcher les fuites de caisse par les employés ! »</div>
+    </div>
+
+    <div class="target-cat-title">3. ARTISANS, ATELIERS &amp; SERVICES (Gestion des Acomptes)</div>
+    <div class="card">
+      <div class="target-item">• <span class="target-name">Salons &amp; Ateliers de couture / Stylisme :</span> « Fini les disputes sur les avances de tissu ! Notez l'acompte versé et envoyez un reçu WhatsApp officiel indiquant le reste dû à la livraison ! »</div>
+      <div class="target-item">• <span class="target-name">Menuisiers (Bois / Aluminium) &amp; Soudeurs métalliques :</span> « Établissez des devis clairs, enregistrez les avances versées pour l'achat du matériel et encaissez le solde garanti à la pose de la commande ! »</div>
+      <div class="target-item">• <span class="target-name">Boutiques &amp; Kiosques Orange Money / Moov / Wave :</span> « Clôturez votre journée en 30 secondes chrono : séparez vos liquidités de vos commissions et repérez instantanément toute erreur de caisse ! »</div>
+      <div class="target-item">• <span class="target-name">Caves, Dépôts de boissons &amp; Eau minérale :</span> « Le patron contrôle à distance ses casiers et ses recettes depuis son salon pendant que les employés encaissent en boutique ! »</div>
+      <div class="target-item">• <span class="target-name">Pressings &amp; Blanchisseries de quartier :</span> « Carnet de dépôt infalsifiable : enregistrez le nombre d'habits déposés, l'acompte payé et envoyez le reçu WhatsApp au client ! »</div>
+    </div>
+
+    <div class="footer">
+      <div><strong>FASOCARNET MOBILE &amp; DESKTOP</strong> • Guide Pratique du Commercial Terrain</div>
+      <div>Page 2 sur 4</div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- PAGE 3 : OFFRE CHOC CATALOGUE + LES 5 OBJECTIONS TERRAIN -->
+  <!-- ========================================================= -->
+  <div class="page">
+    <div class="section-banner">IV. LE LEVIER MARKETING CHOC : L'OFFRE « CATALOGUE CLÉ EN MAIN »</div>
     <div class="card card-amber">
-      <div style="text-align: center; font-size: 15px; font-weight: 900; color: #9a3412; margin-bottom: 8px;">
+      <div style="text-align: center; font-size: 14.5px; font-weight: 900; color: #9a3412; margin-bottom: 6px;">
         💥 L'ARGUMENT DÉCISIF QUI FAIT SIGNER EN 6 MOIS OU 1 AN :
       </div>
-      <p style="margin-bottom: 8px;">
+      <p style="margin-bottom: 6px;">
         <span class="speaker-client">Commerçant :</span> <i>« C'est une très bonne application, mais moi j'ai trop d'articles dans ma boutique ! Je n'ai ni le temps ni l'envie de taper 200 ou 500 articles un par un dans le téléphone... »</i>
       </p>
       <p>
@@ -365,7 +423,7 @@
       </p>
     </div>
 
-    <div class="section-banner">IV. COMMENT RÉPONDRE AUX 5 OBJECTIONS MAJEURES DU TERRAIN</div>
+    <div class="section-banner">V. COMMENT RÉPONDRE AUX 5 OBJECTIONS MAJEURES DU TERRAIN</div>
     
     <div class="card">
       <p style="color: #b45309; font-weight: 800;">OBJECTION 1 : « C'est trop moderne pour moi, je ne connais rien aux smartphones. »</p>
@@ -394,15 +452,15 @@
 
     <div class="footer">
       <div><strong>FASOCARNET MOBILE &amp; DESKTOP</strong> • Guide Pratique du Commercial Terrain</div>
-      <div>Page 2 sur 3</div>
+      <div>Page 3 sur 4</div>
     </div>
   </div>
 
   <!-- ========================================================= -->
-  <!-- PAGE 3 : TARIFS OFFICIELS + PROTOCOLE DE CLÔTURE + RÈGLES -->
+  <!-- PAGE 4 : TARIFS OFFICIELS + PROTOCOLE DE CLÔTURE + RÈGLES -->
   <!-- ========================================================= -->
   <div class="page">
-    <div class="section-banner">V. LES TARIFS OFFICIELS &amp; LE PROTOCOLE DE CLÔTURE</div>
+    <div class="section-banner">VI. LES TARIFS OFFICIELS &amp; LE PROTOCOLE DE CLÔTURE</div>
 
     <table class="table-tarifs">
       <thead>
@@ -432,7 +490,7 @@
     </table>
 
     <div class="card" style="background: #f1f5f9; border-color: #64748b;">
-      <p style="font-weight: 800; margin-bottom: 6px; color: #0f172a;">LE PROTOCOLE DE DÉPART EN 5 ÉTAPES (OBLIGATOIRE SUR LE TERRAIN) :</p>
+      <p style="font-weight: 800; margin-bottom: 5px; color: #0f172a;">LE PROTOCOLE DE DÉPART EN 5 ÉTAPES (OBLIGATOIRE SUR LE TERRAIN) :</p>
       <p><b>1. Installer l'application :</b> Ajouter le raccourci / PWA FasoCarnet sur l'écran d'accueil du téléphone du commerçant.</p>
       <p><b>2. Créer le compte :</b> Renseigner son numéro de téléphone, le nom de la boutique et l'aider à choisir son code PIN secret.</p>
       <p><b>3. Démonstration active :</b> Effectuer 1 encaissement test et 1 enregistrement de dette test avec lui.</p>
@@ -441,7 +499,7 @@
     </div>
 
     <div class="card card-emerald">
-      <p style="font-weight: 800; margin-bottom: 6px; color: #064e3b;">LES 3 RÈGLES D'OR DU COMMERCIAL FASOCARNET :</p>
+      <p style="font-weight: 800; margin-bottom: 5px; color: #064e3b;">LES 3 RÈGLES D'OR DU COMMERCIAL FASOCARNET :</p>
       <p><b>1. Ne jamais contredire le commerçant :</b> S'il hésite ou a une crainte, validez d'abord sa remarque (<i>« Vous avez tout à fait raison Chef », « C'est compréhensible »</i>) avant d'apporter la solution.</p>
       <p><b>2. Rester dans l'action physique :</b> Ne parlez pas dans le vide ! Mettez le téléphone dans sa main, faites-lui appuyer sur les boutons. C'est le toucher qui déclenche la confiance.</p>
       <p><b>3. Suivi rigoureux :</b> Un prospect non relancé sous 72h est un client perdu. Faites remonter vos fiches chaque soir à votre chef d'équipe !</p>
@@ -449,7 +507,7 @@
 
     <div class="footer">
       <div><strong>FASOCARNET MOBILE &amp; DESKTOP</strong> • Guide Pratique du Commercial Terrain</div>
-      <div>Page 3 sur 3</div>
+      <div>Page 4 sur 4</div>
     </div>
   </div>
 

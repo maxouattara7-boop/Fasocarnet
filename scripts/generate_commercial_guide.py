@@ -30,6 +30,7 @@ class NumberedCanvas(canvas.Canvas):
     def draw_page_decorations(self, page_count):
         self.saveState()
         
+        # Pied de page soigné
         self.setStrokeColor(colors.HexColor('#cbd5e1'))
         self.setLineWidth(0.75)
         self.line(34, 26, A4[0] - 34, 26)
@@ -58,8 +59,8 @@ def create_commercial_guide():
         pagesize=A4,
         leftMargin=margin,
         rightMargin=margin,
-        topMargin=18,
-        bottomMargin=32
+        topMargin=20,
+        bottomMargin=34
     )
 
     page_width = A4[0] - 2 * margin
@@ -155,12 +156,12 @@ def create_commercial_guide():
         textColor=SLATE_900
     )
 
-    choc_text_style = ParagraphStyle(
-        'ChocText',
+    target_item_style = ParagraphStyle(
+        'TargetItem',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=12,
-        leading=16.5,
+        fontSize=11.5,
+        leading=15.5,
         textColor=SLATE_900
     )
 
@@ -168,8 +169,8 @@ def create_commercial_guide():
         'ObjText',
         parent=styles['Normal'],
         fontName='Helvetica',
-        fontSize=11.5,
-        leading=15.5,
+        fontSize=12,
+        leading=16,
         textColor=SLATE_900
     )
 
@@ -193,6 +194,19 @@ def create_commercial_guide():
     )
 
     story = []
+
+    def make_section_banner(num, title):
+        banner_p = Paragraph(f"<b>{num}. {title}</b>", h1_style)
+        tbl = Table([[banner_p]], colWidths=[page_width])
+        tbl.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), EMERALD_DARK),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+        ]))
+        return tbl
 
     # =========================================================================
     # PAGE 1 : EN-TÊTE + CONFIANCE + DIALOGUE DE DÉMONSTRATION EN 60 SECONDES
@@ -237,7 +251,6 @@ def create_commercial_guide():
     story.append(header_table)
     story.append(Spacer(1, 2))
 
-    # Badges clés
     badge1 = Paragraph('<font size="8" color="#064e3b"><b>CAISSE TACTILE EXPRESS</b></font>', ParagraphStyle('B1', alignment=TA_CENTER))
     badge2 = Paragraph('<font size="8" color="#064e3b"><b>CARNET DE DETTES AVEC RELANCE</b></font>', ParagraphStyle('B2', alignment=TA_CENTER))
     badge3 = Paragraph('<font size="8" color="#064e3b"><b>100% SANS INTERNET</b></font>', ParagraphStyle('B3', alignment=TA_CENTER))
@@ -260,19 +273,6 @@ def create_commercial_guide():
 
     story.append(Paragraph("GUIDE PRATIQUE DU COMMERCIAL TERRAIN", title_style))
     story.append(Paragraph("DÉMONSTRATION EN 60s • OFFRE CHOC • GESTION DES OBJECTIONS", subtitle_style))
-
-    def make_section_banner(num, title):
-        banner_p = Paragraph(f"<b>{num}. {title}</b>", h1_style)
-        tbl = Table([[banner_p]], colWidths=[page_width])
-        tbl.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), EMERALD_DARK),
-            ('TOPPADDING', (0, 0), (-1, -1), 3),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-            ('LEFTPADDING', (0, 0), (-1, -1), 8),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
-        ]))
-        return tbl
 
     # SECTION I : CONFIANCE
     story.append(make_section_banner("I", "INSTAUREZ IMMÉDIATEMENT UN CLIMAT DE CONFIANCE"))
@@ -338,10 +338,74 @@ def create_commercial_guide():
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 2 : SECTION III (OFFRE CHOC CATALOGUE) + SECTION IV (5 OBJECTIONS)
+    # PAGE 2 : SECTION III (NOS COMMERÇANTS CIBLES & LEURS ARGUMENTS CHOCS)
     # =========================================================================
-    story.append(make_section_banner("III", "LE LEVIER MARKETING CHOC : L'OFFRE « CATALOGUE CLÉ EN MAIN »"))
-    story.append(Spacer(1, 3))
+    story.append(make_section_banner("III", "NOS COMMERÇANTS CIBLES & LEURS ARGUMENTS CHOCS SUR LE TERRAIN"))
+    story.append(Spacer(1, 4))
+
+    targets_intro = Paragraph(
+        "<b>Ne prospectez pas au hasard !</b> Chaque type de commerce a une douleur précise. Utilisez l'<b>argument choc</b> correspondant pour capter son attention en 10 secondes :",
+        box_text_style
+    )
+    story.append(targets_intro)
+    story.append(Spacer(1, 4))
+
+    targets_data = [
+        # Catégorie 1
+        ("1. QUINCAILLERIES & MATÉRIAUX DE CONSTRUCTION", [
+            ("Quincailleries générales & Outillage", "« Vous avez plus de 300 articles ? Notre équipe vient saisir tout votre catalogue gratuitement pour vous ! Vous suivez les crédits de chaque maçon/plombier sans jamais perdre 1 seul franc. »"),
+            ("Dépôts de ciment, fer à béton & tôles", "« Sécurisez les gros crédits de vos chantiers : chaque tonne livrée ou acompte versé est suivi au franc près jusqu'au règlement final. »"),
+            ("Pièces détachées motos & Garages", "« Maîtrisez votre stock de pièces Sanili/motos et suivez précisément les dettes des mécaniciens qui prennent les pièces pour payer après dépannage ! »")
+        ]),
+        # Catégorie 2
+        ("2. COMMERCES DE DÉTAIL & BOUTIQUES", [
+            ("Alimentations générales & Supérettes", "« Encaissez à la chaîne 100% sans internet, et connaissez chaque soir votre chiffre d'affaires et votre VRAI bénéfice net sans calculatrice ! »"),
+            ("Boutiques de prêt-à-porter (Hommes & Dames) / Chaussures", "« Fini les clients qui oublient de payer leurs habits à la fin du mois : l'application génère un rappel WhatsApp poli automatique qui récupère votre argent sans palabres ! »"),
+            ("Librairies, Papeteries & Fournitures", "« Émettez des reçus et factures officiels pour les parents et entreprises, et encaissez à grande vitesse sans faire de file d'attente ! »"),
+            ("Cosmétiques, Mèches, Perruques & Parfumerie", "« Suivez les paiements par tranches de vos clientes fidèles et sachez exactement ce qui vous reste en rayon sans recompter chaque soir ! »"),
+            ("Accessoires de téléphones & Électronique", "« Délivrez un ticket de caisse professionnel avec reçu pour rassurer sur la garantie et empêcher les fuites de caisse par les employés ! »")
+        ]),
+        # Catégorie 3
+        ("3. ARTISANS, ATELIERS & SERVICES (Gestion des Acomptes)", [
+            ("Salons & Ateliers de couture / Stylisme", "« Fini les disputes sur les avances de tissu ! Notez l'acompte versé et envoyez un reçu WhatsApp officiel indiquant le reste dû à la livraison ! »"),
+            ("Menuisiers (Bois / Aluminium) & Soudeurs métalliques", "« Établissez des devis clairs, enregistrez les avances versées pour l'achat du matériel et encaissez le solde garanti à la pose de la commande ! »"),
+            ("Boutiques & Kiosques Orange Money / Moov / Wave", "« Clôturez votre journée en 30 secondes chrono : séparez vos liquidités de vos commissions et repérez instantanément toute erreur de caisse ! »"),
+            ("Caves, Dépôts de boissons & Eau minérale", "« Le patron contrôle à distance ses casiers et ses recettes depuis son salon pendant que les employés encaissent en boutique ! »"),
+            ("Pressings & Blanchisseries de quartier", "« Carnet de dépôt infalsifiable : enregistrez le nombre d'habits déposés, l'acompte payé et envoyez le reçu WhatsApp au client ! »")
+        ])
+    ]
+
+    for cat_title, items in targets_data:
+        cat_p = Paragraph(f"<b><font color='#064e3b'>{cat_title}</font></b>", box_title_style)
+        story.append(cat_p)
+        story.append(Spacer(1, 2))
+
+        rows = []
+        for name, arg in items:
+            p_content = f"• <b><font color='#047857'>{name} :</font></b> {arg}"
+            rows.append([Paragraph(p_content, target_item_style)])
+
+        cat_tbl = Table(rows, colWidths=[page_width])
+        cat_tbl.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8fafc')),
+            ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor('#cbd5e1')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+            ('TOPPADDING', (0, 0), (-1, -1), 2.5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
+            ('LEFTPADDING', (0, 0), (-1, -1), 7),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 7),
+        ]))
+        story.append(cat_tbl)
+        story.append(Spacer(1, 4))
+
+    # FIN PAGE 2 -> SAUT VERS PAGE 3
+    story.append(PageBreak())
+
+    # =========================================================================
+    # PAGE 3 : SECTION IV (OFFRE CHOC CATALOGUE) + SECTION V (5 OBJECTIONS)
+    # =========================================================================
+    story.append(make_section_banner("IV", "LE LEVIER MARKETING CHOC : L'OFFRE « CATALOGUE CLÉ EN MAIN »"))
+    story.append(Spacer(1, 4))
 
     choc_content1 = Paragraph("<b>💥 L'ARGUMENT DÉCISIF QUI FAIT SIGNER EN 6 MOIS OU 1 AN :</b>", choc_header_style)
     choc_content2 = Paragraph("""
@@ -351,23 +415,23 @@ def create_commercial_guide():
     Dès que vous prenez notre formule Sérénité de 6 mois (10 000 FCFA) ou d'un an (20 000 FCFA) :<br/>
     VOUS NE TOUCHEZ À RIEN ! NOTRE ÉQUIPE TECHNIQUE VIENT ELLE-MÊME S'ASSEOIR DANS VOTRE BOUTIQUE ET ENREGISTRE TOUT VOTRE CATALOGUE D'ARTICLES DANS L'APPLICATION À VOTRE PLACE !<br/>
     Vous commencez avec une boutique 100% prête, vos prix déjà paramétrés et votre caisse directement opérationnelle ! »</b>
-    """, choc_text_style)
+    """, box_text_style)
 
     choc_tbl = Table([[choc_content1], [choc_content2]], colWidths=[page_width])
     choc_tbl.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), GOLD_LIGHT),
-        ('BOX', (0, 0), (-1, -1), 1.25, GOLD_MAIN),
-        ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('BOX', (0, 0), (-1, -1), 1.5, GOLD_MAIN),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 9),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 9),
     ]))
     story.append(choc_tbl)
-    story.append(Spacer(1, 4))
+    story.append(Spacer(1, 8))
 
-    # SECTION IV : OBJECTIONS
-    story.append(make_section_banner("IV", "COMMENT RÉPONDRE AUX 5 OBJECTIONS MAJEURES DU TERRAIN"))
-    story.append(Spacer(1, 3))
+    # SECTION V : OBJECTIONS
+    story.append(make_section_banner("V", "COMMENT RÉPONDRE AUX 5 OBJECTIONS MAJEURES DU TERRAIN"))
+    story.append(Spacer(1, 4))
 
     objections = [
         (
@@ -398,22 +462,22 @@ def create_commercial_guide():
         obj_tbl.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8fafc')),
             ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor('#cbd5e1')),
-            ('TOPPADDING', (0, 0), (-1, -1), 2.5),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
-            ('LEFTPADDING', (0, 0), (-1, -1), 7),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 7),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
         ]))
         story.append(obj_tbl)
-        story.append(Spacer(1, 2.5))
+        story.append(Spacer(1, 3))
 
-    # FIN PAGE 2 -> SAUT VERS PAGE 3
+    # FIN PAGE 3 -> SAUT VERS PAGE 4
     story.append(PageBreak())
 
     # =========================================================================
-    # PAGE 3 : TARIFS OFFICIELS + PROTOCOLE DE CLÔTURE + RÈGLES D'OR
+    # PAGE 4 : TARIFS OFFICIELS + PROTOCOLE DE CLÔTURE + RÈGLES D'OR
     # =========================================================================
-    story.append(make_section_banner("V", "LES TARIFS OFFICIELS & LE PROTOCOLE DE CLÔTURE"))
-    story.append(Spacer(1, 5))
+    story.append(make_section_banner("VI", "LES TARIFS OFFICIELS & LE PROTOCOLE DE CLÔTURE"))
+    story.append(Spacer(1, 6))
 
     tarifs_data = [
         [
@@ -445,12 +509,12 @@ def create_commercial_guide():
         ('BACKGROUND', (0, 3), (-1, 3), EMERALD_LIGHT),
         ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#94a3b8')),
         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     story.append(tarifs_tbl)
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 10))
 
     cloture_html = """
     <b>LE PROTOCOLE DE DÉPART EN 5 ÉTAPES (OBLIGATOIRE SUR LE TERRAIN) :</b><br/>
@@ -464,15 +528,14 @@ def create_commercial_guide():
     cloture_tbl.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f1f5f9')),
         ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#64748b')),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('LEFTPADDING', (0, 0), (-1, -1), 9),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 9),
+        ('TOPPADDING', (0, 0), (-1, -1), 7),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
     ]))
     story.append(cloture_tbl)
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 10))
 
-    # ENCADRÉ CONSEILS D'OR DU COMMERCIAL
     regles_html = """
     <b>LES 3 RÈGLES D'OR DU COMMERCIAL FASOCARNET :</b><br/>
     <b>1. Ne jamais contredire le commerçant :</b> S'il hésite ou a une crainte, validez d'abord sa remarque (<i>« Vous avez tout à fait raison Chef », « C'est compréhensible »</i>) avant d'apporter la solution.<br/>
@@ -483,10 +546,10 @@ def create_commercial_guide():
     regles_tbl.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), EMERALD_LIGHT),
         ('BOX', (0, 0), (-1, -1), 1, EMERALD_MAIN),
-        ('TOPPADDING', (0, 0), (-1, -1), 6),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('LEFTPADDING', (0, 0), (-1, -1), 9),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 9),
+        ('TOPPADDING', (0, 0), (-1, -1), 7),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
     ]))
     story.append(regles_tbl)
 
