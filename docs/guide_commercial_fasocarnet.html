@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guide Pratique du Commercial Terrain - FasoCarnet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 14mm 14mm 16mm 14mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #0f172a;
+      background-color: #f1f5f9;
+      padding: 20px;
+    }
+    .page {
+      background: #ffffff;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 14mm 14mm 16mm 14mm;
+      margin: 0 auto 25px auto;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      position: relative;
+      page-break-after: always;
+      display: flex;
+      flex-direction: column;
+    }
+    @media print {
+      body {
+        background: transparent;
+        padding: 0;
+      }
+      .page {
+        margin: 0;
+        box-shadow: none;
+        width: 100%;
+        min-height: 100vh;
+        padding: 0;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+    
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #059669;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+    }
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-title {
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.5px;
+    }
+    .brand-title .faso { color: #064e3b; }
+    .brand-title .carnet { color: #d97706; }
+    .brand-subtitle {
+      font-size: 11px;
+      font-weight: 700;
+      color: #047857;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+    .brand-desc {
+      font-size: 10px;
+      color: #64748b;
+    }
+    .header-contact {
+      text-align: right;
+    }
+    .contact-badge {
+      display: inline-block;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      font-weight: 800;
+      font-size: 14px;
+    }
+    .contact-sub {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 3px;
+      font-weight: 600;
+    }
+
+    /* Badges Bar */
+    .badges-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .badge-item {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 6px 4px;
+      text-align: center;
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #064e3b;
+    }
+
+    /* Document Title */
+    .doc-title-container {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .doc-title {
+      font-size: 20px;
+      font-weight: 900;
+      color: #064e3b;
+      letter-spacing: -0.3px;
+    }
+    .doc-subtitle {
+      font-size: 12px;
+      font-weight: 800;
+      color: #d97706;
+      margin-top: 2px;
+    }
+
+    /* Section Banner */
+    .section-banner {
+      background: #064e3b;
+      color: #ffffff;
+      padding: 6px 12px;
+      font-size: 14px;
+      font-weight: 800;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      letter-spacing: 0.3px;
+    }
+
+    /* Content Cards */
+    .card {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+    .card-emerald {
+      background: #ecfdf5;
+      border: 1.5px solid #059669;
+    }
+    .card-amber {
+      background: #fffbeb;
+      border: 1.5px solid #d97706;
+    }
+
+    /* Dialogue */
+    .dialogue-item {
+      margin-bottom: 7px;
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+    .speaker-comm {
+      color: #047857;
+      font-weight: 800;
+    }
+    .speaker-client {
+      color: #b45309;
+      font-weight: 800;
+    }
+
+    /* Table */
+    .table-tarifs {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+      font-size: 13.5px;
+    }
+    .table-tarifs th, .table-tarifs td {
+      border: 1px solid #cbd5e1;
+      padding: 8px 10px;
+      text-align: left;
+    }
+    .table-tarifs th {
+      background: #e2e8f0;
+      color: #0f172a;
+      font-weight: 800;
+      font-size: 12.5px;
+    }
+    .table-tarifs tr.recommended {
+      background: #fffbeb;
+    }
+    .table-tarifs tr.maxi {
+      background: #ecfdf5;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: auto;
+      border-top: 1px solid #cbd5e1;
+      padding-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .footer strong {
+      color: #047857;
+    }
+
+    /* Print Button */
+    .print-btn {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      background: #047857;
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      font-size: 15px;
+      font-weight: 800;
+      border-radius: 9999px;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(4, 120, 87, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 100;
+      transition: all 0.2s;
+    }
+    .print-btn:hover {
+      background: #064e3b;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+
+  <button class="print-btn no-print" onclick="window.print()">
+    🖨️ Imprimer le Guide PDF (Police 14/15)
+  </button>
+
+  <!-- ========================================================= -->
+  <!-- PAGE 1 : EN-TÊTE + CONFIANCE + DIALOGUE DE VENTE EN 60s -->
+  <!-- ========================================================= -->
+  <div class="page">
+    <div class="header">
+      <div class="header-logo">
+        <svg width="42" height="42" viewBox="0 0 64 64" fill="none">
+          <rect width="64" height="64" rx="16" fill="#064e3b"/>
+          <rect x="8" y="10" width="8" height="44" rx="3" fill="#047857"/>
+          <circle cx="12" cy="18" r="2" fill="#fbbf24"/>
+          <circle cx="12" cy="32" r="2" fill="#fbbf24"/>
+          <circle cx="12" cy="46" r="2" fill="#fbbf24"/>
+          <rect x="18" y="10" width="38" height="44" rx="4" fill="#ffffff"/>
+          <line x1="24" y1="20" x2="50" y2="20" stroke="#e5e7eb" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="24" y1="28" x2="42" y2="28" stroke="#e5e7eb" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="38" cy="38" r="12" fill="#d97706"/>
+          <path d="M33 38l3.5 3.5 7-7" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M48 12l1.2 2.5 2.8.4-2 2 .5 2.8-2.5-1.3-2.5 1.3.5-2.8-2-2 2.8-.4z" fill="#ef4444"/>
+        </svg>
+        <div>
+          <div class="brand-title"><span class="faso">Faso</span><span class="carnet">Carnet</span></div>
+          <div class="brand-subtitle">Caisse &amp; Dettes • 100% Hors-Ligne</div>
+          <div class="brand-desc">Votre caisse, vos crédits clients et vos bilans en poche</div>
+        </div>
+      </div>
+      <div class="header-contact">
+        <div class="contact-badge">WhatsApp : +226 72 99 03 10</div>
+        <div class="contact-sub">Android • iPhone • PC/Mac • Tablette</div>
+      </div>
+    </div>
+
+    <div class="badges-bar">
+      <div class="badge-item">⚡ CAISSE TACTILE EXPRESS</div>
+      <div class="badge-item">📒 CARNET DE DETTES &amp; RELANCE</div>
+      <div class="badge-item">📶 100% SANS INTERNET</div>
+      <div class="badge-item">📱 MULTI-SUPPORTS (PC/TEL)</div>
+    </div>
+
+    <div class="doc-title-container">
+      <h1 class="doc-title">GUIDE PRATIQUE DU COMMERCIAL TERRAIN</h1>
+      <div class="doc-subtitle">DÉMONSTRATION EN 60s • OFFRE CHOC • GESTION DES OBJECTIONS</div>
+    </div>
+
+    <div class="section-banner">I. INSTAUREZ IMMÉDIATEMENT UN CLIMAT DE CONFIANCE</div>
+    <div class="card">
+      <p>• <b>Habillement :</b> Tenue propre et soignée, badge ou polo officiel FasoCarnet visible.</p>
+      <p>• <b>Attitude :</b> Sourire franc, écoute attentive, salutations respectueuses (<i>« Bonjour Chef », « Tantie », « Maman », « Grand »</i>).</p>
+      <p>• <b>Posture mentale :</b> Ne venez pas pour forcer une vente. Venez pour <b>aider le commerçant à protéger son argent</b>, éliminer les pertes de caisse et récupérer toutes ses dettes impayées.</p>
+    </div>
+
+    <div class="section-banner">II. LE DIALOGUE D'ACCROCHE &amp; LA DÉMONSTRATION EN 60 SECONDES</div>
+    <div class="dialogue-item">
+      <span class="speaker-comm">Commercial :</span> <i>(Sourire chaleureux)</i> « Bonjour Chef / Tantie ! Comment se passe le marché aujourd’hui ? »
+    </div>
+    <div class="dialogue-item">
+      <span class="speaker-client">Commerçant :</span> « On rend grâce, ça va un peu. Oui mon fils, que puis-je pour toi ? »
+    </div>
+    <div class="dialogue-item">
+      <span class="speaker-comm">Commercial :</span> « Je m'appelle [Votre Prénom], de l'équipe <b>FasoCarnet</b>. Je passe saluer les commerçants du quartier et vous montrer l'outil que vos collègues utilisent désormais pour <b>remplacer leurs vieux cahiers de crédit et sécuriser leur caisse</b>.<br/>
+      C'est une application pensée chez nous au Burkina pour nos réalités : <b>elle fonctionne à 100% sans internet</b> et sur n'importe quel téléphone Android, iPhone ou ordinateur. »
+    </div>
+    <div class="dialogue-item">
+      <span class="speaker-client">Commerçant :</span> « Ah bon ? Et ça fait quoi concrètement ? »
+    </div>
+    <div class="dialogue-item">
+      <span class="speaker-comm">Commercial :</span> <i>(S’approcher avec le sourire, sortir votre téléphone et faire toucher l'écran) :</i><br/>
+      « Regardez Chef, ça fait tout en 3 clics très simples :<br/>
+      <b>1. LA CAISSE EXPRESS :</b> Vous tapez le montant ou choisissez l'article, vous validez. Ça sort un ticket thermique ou un reçu propre directement par WhatsApp avec le nom de votre boutique.<br/>
+      <b>2. LE CARNET DE DETTES INTELLIGENT :</b> Fini les cahiers déchirés ou les clients qui oublient ! Vous notez le client et l'échéance : l'application vous alerte et génère un message WhatsApp poli de relance en 1 clic.<br/>
+      <b>3. LE BILAN DU SOIR :</b> Chaque soir, sans faire de calcul compliqué, vous connaissez vos ventes totales, vos dépenses et votre <b>vrai bénéfice net</b> du jour.<br/>
+      <b>4. ZÉRO INTERNET NÉCESSAIRE :</b> Même s'il n'y a plus de mégas ou si le réseau est coupé, vous encaissez sans aucun problème toute la journée ! »
+    </div>
+
+    <div class="card card-emerald" style="margin-top: 6px;">
+      <b>Geste clé du commercial :</b> Aidez immédiatement le commerçant à installer l'application sur son téléphone (ou faites-lui taper une vente test sur le vôtre). <b>Faites-lui toucher l'écran pour casser toute peur !</b>
+    </div>
+
+    <div class="footer">
+      <div><strong>FASOCARNET MOBILE &amp; DESKTOP</strong> • Guide Pratique du Commercial Terrain</div>
+      <div>Page 1 sur 3</div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- PAGE 2 : OFFRE CHOC CATALOGUE + LES 5 OBJECTIONS TERRAIN -->
+  <!-- ========================================================= -->
+  <div class="page">
+    <div class="section-banner">III. LE LEVIER MARKETING CHOC : L'OFFRE « CATALOGUE CLÉ EN MAIN »</div>
+    <div class="card card-amber">
+      <div style="text-align: center; font-size: 15px; font-weight: 900; color: #9a3412; margin-bottom: 8px;">
+        💥 L'ARGUMENT DÉCISIF QUI FAIT SIGNER EN 6 MOIS OU 1 AN :
+      </div>
+      <p style="margin-bottom: 8px;">
+        <span class="speaker-client">Commerçant :</span> <i>« C'est une très bonne application, mais moi j'ai trop d'articles dans ma boutique ! Je n'ai ni le temps ni l'envie de taper 200 ou 500 articles un par un dans le téléphone... »</i>
+      </p>
+      <p>
+        <span class="speaker-comm">Commercial (Réponse irrésistible) :</span><br/>
+        <b>« Chef / Tantie, nous avons déjà résolu ce problème pour vous !<br/>
+        Dès que vous prenez notre formule Sérénité de 6 mois (10 000 FCFA) ou d'un an (20 000 FCFA) :<br/>
+        <span style="color: #047857;">VOUS NE TOUCHEZ À RIEN ! NOTRE ÉQUIPE TECHNIQUE VIENT ELLE-MÊME S'ASSEOIR DANS VOTRE BOUTIQUE ET ENREGISTRE TOUT VOTRE CATALOGUE D'ARTICLES DANS L'APPLICATION À VOTRE PLACE !</span><br/>
+        Vous commencez avec une boutique 100% prête, vos prix déjà paramétrés et votre caisse directement opérationnelle ! »</b>
+      </p>
+    </div>
+
+    <div class="section-banner">IV. COMMENT RÉPONDRE AUX 5 OBJECTIONS MAJEURES DU TERRAIN</div>
+    
+    <div class="card">
+      <p style="color: #b45309; font-weight: 800;">OBJECTION 1 : « C'est trop moderne pour moi, je ne connais rien aux smartphones. »</p>
+      <p><b>Réponse du commercial :</b> « C'est tout à fait normal Chef ! C'est justement pour cela qu'on a conçu FasoCarnet avec de <b>gros boutons tactiles très simples</b>, comme le clavier d'appel. Si vous savez composer un numéro ou envoyer un message vocal, vous maîtrisez l'application en 2 minutes. Tenez, appuyez vous-même sur ce gros bouton vert pour voir ! »</p>
+    </div>
+
+    <div class="card">
+      <p style="color: #b45309; font-weight: 800;">OBJECTION 2 : « Et si mon téléphone tombe en panne, est volé ou gâté ? »</p>
+      <p><b>Réponse du commercial :</b> « C'est la grande force de notre système ! Vos données ne sont jamais perdues. Dès que vous avez un peu de connexion, tout est sauvegardé sur votre compte sécurisé. Si vous perdez votre téléphone, vous prenez n'importe quel autre téléphone ou PC, vous entrez votre numéro et votre code PIN : <b>toutes vos ventes, vos dettes et vos stocks réapparaissent immédiatement à l'identique !</b> »</p>
+    </div>
+
+    <div class="card">
+      <p style="color: #b45309; font-weight: 800;">OBJECTION 3 : « Est-ce que je peux l'utiliser sur mon ordinateur ou mon iPhone ? »</p>
+      <p><b>Réponse du commercial :</b> « <b>OUI, à 100% !</b> FasoCarnet fonctionne sur tous les appareils : téléphone Android, iPhone, tablette, PC portable ou ordinateur de bureau. Le patron peut même surveiller ses ventes en direct depuis sa maison pendant que son employé encaisse à la boutique. »</p>
+    </div>
+
+    <div class="card">
+      <p style="color: #b45309; font-weight: 800;">OBJECTION 4 : « Je veux d'abord tester avant de donner mon argent. »</p>
+      <p><b>Réponse du commercial :</b> « C'est tout naturel ! C'est exactement pour cela que vous bénéficiez de <b>10 JOURS D'ESSAI 100% GRATUITS</b> et sans aucun engagement. On installe l'application maintenant sur votre téléphone, on crée votre compte en 1 minute, et vous commencez à faire vos encaissements dès aujourd'hui. »</p>
+    </div>
+
+    <div class="card">
+      <p style="color: #b45309; font-weight: 800;">OBJECTION 5 : « Je n'ai pas le temps de saisir tous mes articles aujourd'hui. »</p>
+      <p><b>Réponse du commercial :</b> « Justement Chef ! Activez les 6 mois (10 000 F), et c'est notre équipe qui se déplace pour faire tout ce travail lourd à votre place. Vous n'avez qu'à vous concentrer sur vos ventes ! »</p>
+    </div>
+
+    <div class="footer">
+      <div><strong>FASOCARNET MOBILE &amp; DESKTOP</strong> • Guide Pratique du Commercial Terrain</div>
+      <div>Page 2 sur 3</div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- PAGE 3 : TARIFS OFFICIELS + PROTOCOLE DE CLÔTURE + RÈGLES -->
+  <!-- ========================================================= -->
+  <div class="page">
+    <div class="section-banner">V. LES TARIFS OFFICIELS &amp; LE PROTOCOLE DE CLÔTURE</div>
+
+    <table class="table-tarifs">
+      <thead>
+        <tr>
+          <th style="width: 24%; text-align: center;">FORMULE</th>
+          <th style="width: 22%; text-align: center;">TARIF</th>
+          <th style="width: 54%;">AVANTAGES &amp; LEVIERS COMMERCIAUX</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="font-weight: 800;">1 MOIS</td>
+          <td style="text-align: center; font-weight: 800; color: #047857;">2 000 FCFA</td>
+          <td>Accès complet à la caisse tactile, carnet de dettes, bilans journaliers et fonctionnement 100% hors-ligne.</td>
+        </tr>
+        <tr class="recommended">
+          <td><b>6 MOIS</b><br/><span style="color: #d97706; font-size: 10px; font-weight: 800;">RECOMMANDÉ</span></td>
+          <td style="text-align: center; font-weight: 800; color: #047857;">10 000 FCFA</td>
+          <td><b>💥 BONUS CLÉ EN MAIN : SAISIE GRATUITE DE TOUT LE CATALOGUE PAR NOTRE ÉQUIPE DIRECTEMENT DANS SA BOUTIQUE !</b></td>
+        </tr>
+        <tr class="maxi">
+          <td><b>1 AN</b><br/><span style="color: #047857; font-size: 10px; font-weight: 800;">MAXI SÉRÉNITÉ</span></td>
+          <td style="text-align: center; font-weight: 800; color: #047857;">20 000 FCFA</td>
+          <td><b>2 MOIS OFFERTS + Saisie intégrale du catalogue + Assistance prioritaire WhatsApp 7j/7 !</b></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="card" style="background: #f1f5f9; border-color: #64748b;">
+      <p style="font-weight: 800; margin-bottom: 6px; color: #0f172a;">LE PROTOCOLE DE DÉPART EN 5 ÉTAPES (OBLIGATOIRE SUR LE TERRAIN) :</p>
+      <p><b>1. Installer l'application :</b> Ajouter le raccourci / PWA FasoCarnet sur l'écran d'accueil du téléphone du commerçant.</p>
+      <p><b>2. Créer le compte :</b> Renseigner son numéro de téléphone, le nom de la boutique et l'aider à choisir son code PIN secret.</p>
+      <p><b>3. Démonstration active :</b> Effectuer 1 encaissement test et 1 enregistrement de dette test avec lui.</p>
+      <p><b>4. Proposition de valeur :</b> Proposer directement l'offre 6 mois ou 1 an avec saisie de catalogue. S'il hésite, valider les <b>10 jours d'essai gratuit</b>.</p>
+      <p><b>5. Toujours repartir avec son contact :</b> Remplir la fiche de prospection et convenir d'un rappel ou d'un passage dans 48h / 72h.</p>
+    </div>
+
+    <div class="card card-emerald">
+      <p style="font-weight: 800; margin-bottom: 6px; color: #064e3b;">LES 3 RÈGLES D'OR DU COMMERCIAL FASOCARNET :</p>
+      <p><b>1. Ne jamais contredire le commerçant :</b> S'il hésite ou a une crainte, validez d'abord sa remarque (<i>« Vous avez tout à fait raison Chef », « C'est compréhensible »</i>) avant d'apporter la solution.</p>
+      <p><b>2. Rester dans l'action physique :</b> Ne parlez pas dans le vide ! Mettez le téléphone dans sa main, faites-lui appuyer sur les boutons. C'est le toucher qui déclenche la confiance.</p>
+      <p><b>3. Suivi rigoureux :</b> Un prospect non relancé sous 72h est un client perdu. Faites remonter vos fiches chaque soir à votre chef d'équipe !</p>
+    </div>
+
+    <div class="footer">
+      <div><strong>FASOCARNET MOBILE &amp; DESKTOP</strong> • Guide Pratique du Commercial Terrain</div>
+      <div>Page 3 sur 3</div>
+    </div>
+  </div>
+
+</body>
+</html>
