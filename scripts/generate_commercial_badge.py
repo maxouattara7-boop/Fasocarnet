@@ -55,43 +55,43 @@ def draw_badge_recto(c, x, y, w, h, commercial):
     c.roundRect(x, y, w, h, 6 * mm, fill=1, stroke=1)
     
     # 2. Bandeau supérieur officiel (Émeraude profonde)
-    header_h = 24 * mm
+    header_h = 22 * mm
     c.setFillColor(colors.HexColor('#064e3b'))
     c.roundRect(x + 1, y + h - header_h - 1, w - 2, header_h, 5 * mm, fill=1, stroke=0)
     c.rect(x + 1, y + h - header_h - 1, w - 2, 8 * mm, fill=1, stroke=0) # aplatir bas du bandeau
     
     # Ligne d'accent or sous le bandeau
     c.setFillColor(colors.HexColor('#d97706'))
-    c.rect(x + 1, y + h - header_h - 2.5 * mm, w - 2, 1.5 * mm, fill=1, stroke=0)
+    c.rect(x + 1, y + h - header_h - 2 * mm, w - 2, 1.5 * mm, fill=1, stroke=0)
     
     # Logo & Titre FasoCarnet
     logo_d = Drawing(26, 26)
     draw_logo(logo_d, 0, 0, size=24)
-    logo_d.drawOn(c, x + 4 * mm, y + h - 18 * mm)
+    logo_d.drawOn(c, x + 4 * mm, y + h - 17 * mm)
     
     c.setFont("Helvetica-Bold", 13)
     c.setFillColor(colors.white)
-    c.drawString(x + 16 * mm, y + h - 11 * mm, "FasoCarnet")
+    c.drawString(x + 16 * mm, y + h - 10.5 * mm, "FasoCarnet")
     
     c.setFont("Helvetica-Bold", 6.5)
     c.setFillColor(colors.HexColor('#fef08a'))
-    c.drawString(x + 16 * mm, y + h - 14.5 * mm, "CAISSE & CARNET DIGITAL")
+    c.drawString(x + 16 * mm, y + h - 14 * mm, "CAISSE & CARNET DIGITAL")
     
     c.setFont("Helvetica", 6)
     c.setFillColor(colors.HexColor('#a7f3d0'))
-    c.drawString(x + 16 * mm, y + h - 17.5 * mm, "RÉSEAU COMMERCIAL OFFICIEL")
+    c.drawString(x + 16 * mm, y + h - 17 * mm, "RÉSEAU COMMERCIAL OFFICIEL")
     
     # 3. Mention de la carte
     c.setFont("Helvetica-Bold", 7.5)
     c.setFillColor(colors.HexColor('#064e3b'))
     card_type_text = "CARTE D'ACCRÉDITATION TERRAIN"
-    c.drawCentredString(x + w / 2, y + h - header_h - 7 * mm, card_type_text)
+    c.drawCentredString(x + w / 2, y + 76 * mm, card_type_text)
     
     # 4. Cadre Photo d'identité (avec silhouette)
     photo_w = 26 * mm
-    photo_h = 32 * mm
+    photo_h = 29 * mm
     photo_x = x + (w - photo_w) / 2
-    photo_y = y + h - header_h - 10 * mm - photo_h
+    photo_y = y + 44.5 * mm
     
     c.setFillColor(colors.HexColor('#f8fafc'))
     c.setStrokeColor(colors.HexColor('#cbd5e1'))
@@ -101,31 +101,30 @@ def draw_badge_recto(c, x, y, w, h, commercial):
     # Silhouette stylisée
     c.setFillColor(colors.HexColor('#94a3b8'))
     # Tête
-    c.circle(photo_x + photo_w / 2, photo_y + photo_h - 11 * mm, 5.5 * mm, fill=1, stroke=0)
+    c.circle(photo_x + photo_w / 2, photo_y + photo_h - 10 * mm, 5 * mm, fill=1, stroke=0)
     # Buste
-    c.roundRect(photo_x + 3 * mm, photo_y + 2 * mm, photo_w - 6 * mm, 12 * mm, 4 * mm, fill=1, stroke=0)
+    c.roundRect(photo_x + 3 * mm, photo_y + 2 * mm, photo_w - 6 * mm, 11 * mm, 4 * mm, fill=1, stroke=0)
     
-    c.setFont("Helvetica-Bold", 6)
+    c.setFont("Helvetica-Bold", 5.5)
     c.setFillColor(colors.HexColor('#64748b'))
-    c.drawCentredString(photo_x + photo_w / 2, photo_y + 3.5 * mm, "PHOTO AGENT")
+    c.drawCentredString(photo_x + photo_w / 2, photo_y + 3 * mm, "PHOTO AGENT")
     
-    # 5. Identité du commercial
-    name_y = photo_y - 6 * mm
-    c.setFont("Helvetica-Bold", 12)
+    # 5. Identité du commercial (très visible sous la photo)
+    c.setFont("Helvetica-Bold", 11.5)
     c.setFillColor(colors.HexColor('#0f172a'))
-    c.drawCentredString(x + w / 2, name_y, commercial['name'].upper())
+    c.drawCentredString(x + w / 2, y + 39.5 * mm, commercial['name'].upper())
     
-    c.setFont("Helvetica-Bold", 8)
+    c.setFont("Helvetica-Bold", 7.2)
     c.setFillColor(colors.HexColor('#047857'))
-    c.drawCentredString(x + w / 2, name_y - 4 * mm, "CONSEILLER COMMERCIAL")
+    c.drawCentredString(x + w / 2, y + 35.5 * mm, "CONSEILLER COMMERCIAL TERRAIN")
     
     # 6. Bloc d'Informations (Code, Téléphone, Zone)
-    info_box_y = y + 13 * mm
-    info_box_h = 24 * mm
+    info_box_y = y + 10.5 * mm
+    info_box_h = 22.5 * mm
     info_box_w = w - 8 * mm
     info_box_x = x + 4 * mm
     
-    c.setFillColor(colors.HexColor('#f1f5f9'))
+    c.setFillColor(colors.HexColor('#f8fafc'))
     c.setStrokeColor(colors.HexColor('#e2e8f0'))
     c.setLineWidth(0.75)
     c.roundRect(info_box_x, info_box_y, info_box_w, info_box_h, 3 * mm, fill=1, stroke=1)
@@ -134,32 +133,32 @@ def draw_badge_recto(c, x, y, w, h, commercial):
     # Code Commercial
     c.setFont("Helvetica-Bold", 6.5)
     c.setFillColor(colors.HexColor('#64748b'))
-    c.drawString(info_box_x + 3 * mm, info_box_y + 17 * mm, "CODE COMMERCIAL :")
+    c.drawString(info_box_x + 3 * mm, info_box_y + 15.5 * mm, "CODE COMMERCIAL :")
     
-    c.setFont("Helvetica-Bold", 9)
+    c.setFont("Helvetica-Bold", 8.5)
     c.setFillColor(colors.HexColor('#064e3b'))
-    c.drawRightString(info_box_x + info_box_w - 3 * mm, info_box_y + 17 * mm, commercial['code'])
+    c.drawRightString(info_box_x + info_box_w - 3 * mm, info_box_y + 15.5 * mm, commercial['code'])
     
     # Téléphone
     c.setFont("Helvetica-Bold", 6.5)
     c.setFillColor(colors.HexColor('#64748b'))
-    c.drawString(info_box_x + 3 * mm, info_box_y + 10.5 * mm, "CONTACT WHATSAPP :")
+    c.drawString(info_box_x + 3 * mm, info_box_y + 9 * mm, "CONTACT WHATSAPP :")
     
     c.setFont("Helvetica-Bold", 8)
     c.setFillColor(colors.HexColor('#0f172a'))
-    c.drawRightString(info_box_x + info_box_w - 3 * mm, info_box_y + 10.5 * mm, commercial['phone'])
+    c.drawRightString(info_box_x + info_box_w - 3 * mm, info_box_y + 9 * mm, commercial['phone'])
     
     # Zone / Ville
     c.setFont("Helvetica-Bold", 6.5)
     c.setFillColor(colors.HexColor('#64748b'))
-    c.drawString(info_box_x + 3 * mm, info_box_y + 4 * mm, "ZONE D'AFFECTATION :")
+    c.drawString(info_box_x + 3 * mm, info_box_y + 2.8 * mm, "ZONE D'AFFECTATION :")
     
     c.setFont("Helvetica-Bold", 8)
     c.setFillColor(colors.HexColor('#0f172a'))
-    c.drawRightString(info_box_x + info_box_w - 3 * mm, info_box_y + 4 * mm, commercial['zone'])
+    c.drawRightString(info_box_x + info_box_w - 3 * mm, info_box_y + 2.8 * mm, commercial['zone'])
     
     # 7. Bandeau inférieur de sécurité
-    footer_h = 9 * mm
+    footer_h = 8 * mm
     c.setFillColor(colors.HexColor('#064e3b'))
     c.roundRect(x + 1, y + 1, w - 2, footer_h, 4 * mm, fill=1, stroke=0)
     c.rect(x + 1, y + 4 * mm, w - 2, footer_h - 3 * mm, fill=1, stroke=0)
@@ -188,58 +187,56 @@ def draw_badge_verso(c, x, y, w, h, commercial):
     c.roundRect(x, y, w, h, 6 * mm, fill=1, stroke=1)
     
     # 2. Bandeau supérieur Verso (Titre Choc pour le commerçant)
-    header_h = 20 * mm
+    header_h = 17.5 * mm
     c.setFillColor(colors.HexColor('#064e3b'))
     c.roundRect(x + 1, y + h - header_h - 1, w - 2, header_h, 5 * mm, fill=1, stroke=0)
     c.rect(x + 1, y + h - header_h - 1, w - 2, 7 * mm, fill=1, stroke=0)
     
     # Ligne d'accent or
     c.setFillColor(colors.HexColor('#d97706'))
-    c.rect(x + 1, y + h - header_h - 2.5 * mm, w - 2, 1.5 * mm, fill=1, stroke=0)
+    c.rect(x + 1, y + h - header_h - 2 * mm, w - 2, 1.5 * mm, fill=1, stroke=0)
     
-    c.setFont("Helvetica-Bold", 10.5)
+    c.setFont("Helvetica-Bold", 10)
     c.setFillColor(colors.white)
-    c.drawCentredString(x + w / 2, y + h - 9 * mm, "SCANNEZ POUR INSTALLER")
+    c.drawCentredString(x + w / 2, y + h - 8 * mm, "SCANNEZ POUR INSTALLER")
     
-    c.setFont("Helvetica-Bold", 8)
+    c.setFont("Helvetica-Bold", 7.2)
     c.setFillColor(colors.HexColor('#fef08a'))
-    c.drawCentredString(x + w / 2, y + h - 14 * mm, "L'APPLICATION FASOCARNET (PWA)")
+    c.drawCentredString(x + w / 2, y + h - 13 * mm, "L'APPLICATION FASOCARNET (PWA)")
     
     # 3. Zone QR Code
-    qr_size_mm = 42 * mm
-    qr_size_pt = qr_size_mm
-    qr_x = x + (w - qr_size_mm) / 2
-    qr_y = y + h - header_h - 7 * mm - qr_size_mm
+    qr_box_size = 37 * mm
+    qr_box_x = x + (w - qr_box_size) / 2
+    qr_box_y = y + 46.5 * mm
     
-    # Cadre blanc avec ombre fine pour détacher le QR code
+    # Cadre blanc pour détacher le QR code
     c.setFillColor(colors.white)
     c.setStrokeColor(colors.HexColor('#cbd5e1'))
     c.setLineWidth(1)
-    c.roundRect(qr_x - 3 * mm, qr_y - 3 * mm, qr_size_mm + 6 * mm, qr_size_mm + 6 * mm, 4 * mm, fill=1, stroke=1)
+    c.roundRect(qr_box_x, qr_box_y, qr_box_size, qr_box_size, 3.5 * mm, fill=1, stroke=1)
     
     # QR Code avec le lien dynamique d'affiliation
+    qr_size = 33 * mm
+    qr_x = x + (w - qr_size) / 2
+    qr_y = qr_box_y + 2 * mm
     qr_url = f"https://fasocarnet.com/?ref={commercial['code']}"
-    draw_qr_code(c, qr_url, qr_x, qr_y, qr_size_pt)
+    draw_qr_code(c, qr_url, qr_x, qr_y, qr_size)
     
     # 4. Code Commercial sous le QR Code
-    badge_ref_y = qr_y - 7 * mm
+    badge_ref_y = y + 38 * mm
+    badge_ref_h = 6.5 * mm
     c.setFillColor(colors.HexColor('#ecfdf5'))
     c.setStrokeColor(colors.HexColor('#047857'))
     c.setLineWidth(1)
-    c.roundRect(x + 6 * mm, badge_ref_y - 2 * mm, w - 12 * mm, 7 * mm, 2 * mm, fill=1, stroke=1)
+    c.roundRect(x + 4 * mm, badge_ref_y, w - 8 * mm, badge_ref_h, 2 * mm, fill=1, stroke=1)
     
-    c.setFont("Helvetica-Bold", 7.5)
+    c.setFont("Helvetica-Bold", 7.2)
     c.setFillColor(colors.HexColor('#064e3b'))
-    c.drawCentredString(x + w / 2, badge_ref_y + 0.5 * mm, f"CODE PARRAIN COMMERCIAL : {commercial['code']}")
+    c.drawCentredString(x + w / 2, badge_ref_y + 1.8 * mm, f"CODE PARRAIN COMMERCIAL : {commercial['code']}")
     
     # 5. Les 3 étapes ultra simples
-    steps_y = badge_ref_y - 6 * mm
-    c.setFont("Helvetica-Bold", 7)
-    c.setFillColor(colors.HexColor('#0f172a'))
-    c.drawCentredString(x + w / 2, steps_y, "COMMENT INSTALLER EN 30 SECONDES ?")
-    
-    step_box_y = y + 15 * mm
-    step_box_h = 21 * mm
+    step_box_y = y + 14 * mm
+    step_box_h = 21.5 * mm
     step_box_w = w - 8 * mm
     step_box_x = x + 4 * mm
     
@@ -255,7 +252,7 @@ def draw_badge_verso(c, x, y, w, h, commercial):
     ]
     
     for i, (num, txt) in enumerate(steps):
-        row_y = step_box_y + step_box_h - (i + 1) * 6.2 * mm + 1.2 * mm
+        row_y = step_box_y + step_box_h - (i + 1) * 6.3 * mm + 1.4 * mm
         # Puce numéro
         c.setFillColor(colors.HexColor('#047857'))
         c.circle(step_box_x + 3.5 * mm, row_y + 1.8 * mm, 2.2 * mm, fill=1, stroke=0)
@@ -269,20 +266,19 @@ def draw_badge_verso(c, x, y, w, h, commercial):
         c.drawString(step_box_x + 7.5 * mm, row_y + 0.5 * mm, txt)
         
     # 6. Puces de réassurance
-    reassure_y = step_box_y - 4.5 * mm
-    c.setFont("Helvetica-Bold", 6.2)
+    c.setFont("Helvetica-Bold", 6)
     c.setFillColor(colors.HexColor('#047857'))
-    c.drawCentredString(x + w / 2, reassure_y, "100% SANS INTERNET  •  MOINS DE 5 MO  •  SÉCURISÉ")
+    c.drawCentredString(x + w / 2, y + 9.8 * mm, "100% SANS INTERNET  •  MOINS DE 5 MO  •  SÉCURISÉ")
     
     # 7. Bandeau inférieur Support
-    footer_h = 8 * mm
+    footer_h = 7.5 * mm
     c.setFillColor(colors.HexColor('#0f172a'))
     c.roundRect(x + 1, y + 1, w - 2, footer_h, 4 * mm, fill=1, stroke=0)
     c.rect(x + 1, y + 4 * mm, w - 2, footer_h - 3 * mm, fill=1, stroke=0)
     
-    c.setFont("Helvetica-Bold", 6)
+    c.setFont("Helvetica-Bold", 5.8)
     c.setFillColor(colors.white)
-    c.drawCentredString(x + w / 2, y + 3.5 * mm, "Assistance Commerciale & Technique WhatsApp : +226 72 99 03 10")
+    c.drawCentredString(x + w / 2, y + 2.8 * mm, "Assistance Commerciale & Technique WhatsApp : +226 72 99 03 10")
     
     c.restoreState()
 
