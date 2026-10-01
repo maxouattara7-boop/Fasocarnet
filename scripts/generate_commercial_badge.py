@@ -219,7 +219,7 @@ def draw_badge_verso(c, x, y, w, h, commercial):
     qr_size = 33 * mm
     qr_x = x + (w - qr_size) / 2
     qr_y = qr_box_y + 2 * mm
-    qr_url = f"https://fasocarnet.com/?ref={commercial['code']}"
+    qr_url = f"https://fasocarnet.onrender.com/?ref={commercial['code']}"
     draw_qr_code(c, qr_url, qr_x, qr_y, qr_size)
     
     # 4. Code Commercial sous le QR Code
