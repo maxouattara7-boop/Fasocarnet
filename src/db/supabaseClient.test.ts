@@ -37,4 +37,14 @@ describe('supabaseClient', () => {
     expect(res.success).toBe(false);
     expect(res.message).toContain('Veuillez renseigner');
   });
+
+  it('throws NETWORK_OFFLINE when attempting to find shop while offline', async () => {
+    const originalOnLine = navigator.onLine;
+    try {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+      await expect(supabaseClient.findShopByPhone('70000000')).rejects.toThrow('NETWORK_OFFLINE');
+    } finally {
+      Object.defineProperty(navigator, 'onLine', { value: originalOnLine, configurable: true });
+    }
+  });
 });

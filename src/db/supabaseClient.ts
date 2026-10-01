@@ -228,6 +228,11 @@ export const supabaseClient = {
    * Recherche si une boutique existe déjà par numéro de téléphone dans Supabase
    */
   async findShopByPhone(phone: string): Promise<CloudShopData | null> {
+    // Si l'appareil est explicitement hors-ligne
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      throw new Error('NETWORK_OFFLINE');
+    }
+
     const client = this.getClient();
     if (!client) return null;
 
@@ -242,12 +247,15 @@ export const supabaseClient = {
         .or(`phone.ilike.%${clean}%,owner_phone.ilike.%${clean}%`)
         .limit(1);
 
-      if (!err1 && data1 && data1.length > 0) {
+      if (err1) {
+        throw err1;
+      }
+
+      if (data1 && data1.length > 0) {
         return (data1[0].data as CloudShopData) || null;
       }
 
       // Recherche 2 : pattern souple pour les anciens numéros stockés avec espaces (+226 65 61 61 34)
-      // On insère un % entre chaque chiffre pour tolérer n'importe quel séparateur
       const spacedPattern = `%${clean.split('').join('%')}%`;
       const { data: data2, error: err2 } = await client
         .from('shops')
@@ -255,12 +263,26 @@ export const supabaseClient = {
         .or(`phone.ilike.${spacedPattern},owner_phone.ilike.${spacedPattern}`)
         .limit(1);
 
-      if (!err2 && data2 && data2.length > 0) {
+      if (err2) {
+        throw err2;
+      }
+
+      if (data2 && data2.length > 0) {
         return (data2[0].data as CloudShopData) || null;
       }
 
       return null;
-    } catch {
+    } catch (err: any) {
+      const msg = err?.message?.toLowerCase() || '';
+      if (
+        err?.message === 'NETWORK_OFFLINE' ||
+        msg.includes('fetch') ||
+        msg.includes('network') ||
+        msg.includes('failed to fetch') ||
+        (typeof navigator !== 'undefined' && !navigator.onLine)
+      ) {
+        throw new Error('NETWORK_OFFLINE');
+      }
       return null;
     }
   },

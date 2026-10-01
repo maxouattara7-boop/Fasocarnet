@@ -374,26 +374,63 @@ export const syncService = {
       return { success: true, teamLeader };
     }
 
-    // 2. Recherche DIRECTE ET EXCLUSIVE dans Supabase (Source de vérité absolue)
+    // 2. Recherche et authentification
     let matchedShopData: CloudShopData | null = null;
-    if (supabaseClient.isConfigured()) {
+    let isOfflineOrNetworkFailure = typeof navigator !== 'undefined' && !navigator.onLine;
+
+    if (!isOfflineOrNetworkFailure && supabaseClient.isConfigured()) {
       try {
         matchedShopData = await supabaseClient.findShopByPhone(cleanInput);
-      } catch (err) {
-        console.warn('[Sync Login] Erreur recherche Supabase:', err);
+        if (!matchedShopData) {
+          // Supabase a été interrogé avec succès et la boutique n'y est pas :
+          // Le compte n'existe pas ou a été définitivement supprimé par l'Admin.
+          await this.clearLocalData();
+          return { 
+            success: false, 
+            message: 'Ce compte n\'existe pas ou a été supprimé par l\'administrateur.' 
+          };
+        }
+      } catch (err: any) {
+        console.warn('[Sync Login] Erreur réseau ou Supabase inaccessible, passage en mode vérification locale:', err);
+        isOfflineOrNetworkFailure = true;
       }
+    }
 
-      // RÈGLE STRICTE : AUCUNE CONNEXION DEPUIS LE LOCAL !
-      // Si la boutique n'existe pas dans Supabase, elle a été supprimée ou n'a jamais existé.
-      if (!matchedShopData) {
-        await this.clearLocalData();
+    // 3. Gestion du mode hors-ligne (ou panne réseau)
+    if (isOfflineOrNetworkFailure) {
+      const localShops = await db.shopProfiles.toArray();
+      const localMatch = localShops.find(s => {
+        const p1 = this.normalizePhone(s.phone);
+        const p2 = s.ownerPhone ? this.normalizePhone(s.ownerPhone) : '';
+        return p1 === cleanInput || p2 === cleanInput;
+      });
+
+      if (localMatch) {
+        // Le compte existe bien en local sur cet appareil : vérification du code PIN en local
+        if (localMatch.pinCode && !verifyHash(pin, localMatch.pinCode)) {
+          return { success: false, message: 'Code PIN incorrect. Veuillez réessayer.' };
+        }
+
+        const authToken = generateShopAuthToken(localMatch.id, localMatch.phone);
+        this.setAuthToken(authToken);
+
+        return { 
+          success: true, 
+          shop: localMatch, 
+          token: authToken,
+          message: 'Connexion hors-ligne réussie.' 
+        };
+      } else {
+        // Aucune donnée locale pour ce compte sur cet appareil et aucun réseau
         return { 
           success: false, 
-          message: 'Ce compte n\'existe pas ou a été supprimé. Aucune connexion locale n\'est autorisée.' 
+          message: 'Vous êtes hors-ligne. Une connexion Internet (Wi-Fi ou 4G) est requise pour configurer ce compte sur cet appareil la première fois.' 
         };
       }
-    } else {
-      // Fallback environnement de test sans configuration Supabase
+    }
+
+    // 4. Fallback environnement de test sans configuration Supabase
+    if (!supabaseClient.isConfigured()) {
       const cloudDb = await this.fetchRemoteDatabase();
       for (const shopId of Object.keys(cloudDb)) {
         const shopData = cloudDb[shopId];
@@ -407,6 +444,21 @@ export const syncService = {
         }
       }
       if (!matchedShopData) {
+        const localShops = await db.shopProfiles.toArray();
+        const localMatch = localShops.find(s => {
+          const p1 = this.normalizePhone(s.phone);
+          const p2 = s.ownerPhone ? this.normalizePhone(s.ownerPhone) : '';
+          return p1 === cleanInput || p2 === cleanInput;
+        });
+        if (localMatch) {
+          if (localMatch.pinCode && !verifyHash(pin, localMatch.pinCode)) {
+            return { success: false, message: 'Code PIN incorrect. Veuillez réessayer.' };
+          }
+          const authToken = generateShopAuthToken(localMatch.id, localMatch.phone);
+          this.setAuthToken(authToken);
+          return { success: true, shop: localMatch, token: authToken };
+        }
+
         await this.clearLocalData();
         return { 
           success: false, 
@@ -415,24 +467,28 @@ export const syncService = {
       }
     }
 
-    // 4. Vérification du code PIN commerçant
-    if (matchedShopData.profile.pinCode && !verifyHash(pin, matchedShopData.profile.pinCode)) {
-      return { success: false, message: 'Code PIN incorrect. Veuillez réessayer.' };
+    // 5. Vérification du code PIN commerçant pour compte Cloud trouvé
+    if (matchedShopData && matchedShopData.profile) {
+      if (matchedShopData.profile.pinCode && !verifyHash(pin, matchedShopData.profile.pinCode)) {
+        return { success: false, message: 'Code PIN incorrect. Veuillez réessayer.' };
+      }
+
+      // Migration transparente vers PIN haché si nécessaire
+      if (matchedShopData.profile.pinCode && !isHashed(matchedShopData.profile.pinCode)) {
+        matchedShopData.profile.pinCode = hashPin(pin);
+      }
+
+      // Génération et persistance du token d'authentification boutique
+      const authToken = generateShopAuthToken(matchedShopData.profile.id, matchedShopData.profile.phone);
+      this.setAuthToken(authToken);
+
+      // Restauration complète et isolation de l'appareil
+      await this.restoreToLocalDatabase(matchedShopData);
+
+      return { success: true, shop: matchedShopData.profile, token: authToken };
     }
 
-    // Migration transparente vers PIN haché si nécessaire
-    if (matchedShopData.profile.pinCode && !isHashed(matchedShopData.profile.pinCode)) {
-      matchedShopData.profile.pinCode = hashPin(pin);
-    }
-
-    // Génération et persistance du token d'authentification boutique
-    const authToken = generateShopAuthToken(matchedShopData.profile.id, matchedShopData.profile.phone);
-    this.setAuthToken(authToken);
-
-    // Restauration complète et isolation de l'appareil
-    await this.restoreToLocalDatabase(matchedShopData);
-
-    return { success: true, shop: matchedShopData.profile, token: authToken };
+    return { success: false, message: 'Impossible de vérifier vos identifiants.' };
   },
 
   /**
