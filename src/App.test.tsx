@@ -35,8 +35,8 @@ describe('FasoCarnet App Component', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Télécharger l'application/i)).toBeInTheDocument();
-      expect(screen.getByText(/Pourquoi choisir/i)).toBeInTheDocument();
+      expect(screen.getByText(/La caisse & carnet digital/i)).toBeInTheDocument();
+      expect(screen.getByText(/Pourquoi la PWA/i)).toBeInTheDocument();
       expect(screen.queryByTestId('btn-continue')).not.toBeInTheDocument();
     });
   });

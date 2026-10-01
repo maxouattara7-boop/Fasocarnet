@@ -67,6 +67,8 @@ interface AppState {
   setIsLocked: (locked: boolean) => void;
   verifyPin: (pin: string) => boolean;
   setPin: (pin: string) => Promise<void>;
+  isLandingOpen: boolean;
+  setIsLandingOpen: (open: boolean) => void;
   logout: () => Promise<void>;
 }
 
@@ -342,6 +344,9 @@ export const useAppStore = create<AppState>((set, get) => {
       const hashed = pin.trim() ? (isHashed(pin) ? pin.trim() : hashPin(pin.trim())) : undefined;
       await get().updateShopProfile({ pinCode: hashed });
     },
+
+    isLandingOpen: false,
+    setIsLandingOpen: (open) => set({ isLandingOpen: open }),
 
     logout: async () => {
       // Vider les données locales de l'appareil et stopper la synchronisation temps-réel

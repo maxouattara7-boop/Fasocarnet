@@ -25,7 +25,20 @@ import { customersService } from './db/services/customersService';
 import { Customer } from './types';
 
 export const App: React.FC = () => {
-  const { isInitialized, activeTab, setActiveTab, activeShopId, shopProfile, loadCurrentShop, isAdminOpen, setIsAdminOpen, activeTeamLeader, isMiniAdminOpen } = useAppStore();
+  const { 
+    isInitialized, 
+    activeTab, 
+    setActiveTab, 
+    activeShopId, 
+    shopProfile, 
+    loadCurrentShop, 
+    isAdminOpen, 
+    setIsAdminOpen, 
+    activeTeamLeader, 
+    isMiniAdminOpen,
+    isLandingOpen,
+    setIsLandingOpen
+  } = useAppStore();
   const [broadcast, setBroadcast] = useState<AdminBroadcastMessage | null>(null);
   const [dismissedBroadcastId, setDismissedBroadcastId] = useState<string | null>(null);
   const [showBroadcastDetail, setShowBroadcastDetail] = useState(false);
@@ -102,23 +115,25 @@ export const App: React.FC = () => {
 
   let mainContent: React.ReactNode = null;
 
-  if (isLandingParam) {
+  if (isLandingOpen || isLandingParam || (!isExplicitAppMode && !activeShopId && !activeTeamLeader && !isAdminOpen)) {
     mainContent = (
       <LandingPageView
-        onOpenApp={() => {
+        onOpenApp={(targetMode) => {
+          setIsLandingOpen(false);
+          setWebForceAppMode(true);
           if (typeof window !== 'undefined') {
             const url = new URL(window.location.href);
             url.searchParams.delete('landing');
             url.searchParams.delete('mode');
             url.searchParams.delete('vitrine');
             window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+            if (targetMode) {
+              window.dispatchEvent(new CustomEvent('fasocarnet_set_auth_mode', { detail: { mode: targetMode } }));
+            }
           }
-          setWebForceAppMode(true);
         }}
       />
     );
-  } else if (!isExplicitAppMode && !activeShopId && !activeTeamLeader && !isAdminOpen) {
-    mainContent = <LandingPageView onOpenApp={() => setWebForceAppMode(true)} />;
   } else if (isAdminOpen) {
     mainContent = <AdminView onClose={() => setIsAdminOpen(false)} />;
   } else if (isMiniAdminOpen && activeTeamLeader) {

@@ -24,10 +24,20 @@ import { syncService } from '../../db/services/syncService';
 import { adminService } from '../../db/services/adminService';
 
 export const OnboardingView: React.FC = () => {
-  const { loginWithPhoneAndPin, createShop, isSyncing } = useAppStore();
+  const { loginWithPhoneAndPin, createShop, isSyncing, setIsLandingOpen } = useAppStore();
 
   // Mode actif dans le formulaire unifié : 'login' ou 'register'
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+
+  useEffect(() => {
+    const handleSetAuthMode = (e: any) => {
+      if (e.detail?.mode === 'login' || e.detail?.mode === 'register') {
+        setAuthMode(e.detail.mode);
+      }
+    };
+    window.addEventListener('fasocarnet_set_auth_mode', handleSetAuthMode);
+    return () => window.removeEventListener('fasocarnet_set_auth_mode', handleSetAuthMode);
+  }, []);
 
   // Champs Connexion
   const [loginPhone, setLoginPhone] = useState('');
@@ -239,12 +249,16 @@ export const OnboardingView: React.FC = () => {
         {/* EN-TÊTE : LOGO, TITRE & BADGE CENTRÉS EN HAUT                           */}
         {/* ======================================================================= */}
         <div className="flex flex-col items-center justify-center space-y-3 mb-6 text-center">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-gradient-to-tr from-emerald-500/20 to-amber-500/20 rounded-2xl border border-emerald-500/30 shadow-xl backdrop-blur-sm">
+          <div 
+            onClick={() => setIsLandingOpen(true)}
+            className="flex items-center space-x-3 cursor-pointer group hover:scale-102 active:scale-98 transition-all select-none"
+            title="Cliquez pour voir la page vitrine FasoCarnet"
+          >
+            <div className="p-2.5 bg-gradient-to-tr from-emerald-500/20 to-amber-500/20 rounded-2xl border border-emerald-500/30 shadow-xl backdrop-blur-sm group-hover:border-emerald-400 group-hover:scale-105 transition-all">
               <Logo size="md" showText={false} />
             </div>
             <div className="text-left">
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-none font-display">
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-none font-display group-hover:text-emerald-300 transition-colors">
                 FasoCarnet
               </h1>
               <span className="text-xs text-emerald-300 font-bold uppercase tracking-wider block mt-1">
