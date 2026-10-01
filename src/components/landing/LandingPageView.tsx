@@ -403,13 +403,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) =
         <section id="pwa" className="py-14 sm:py-20 bg-white border-b border-slate-200/70">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
             
-            <div className="text-center max-w-3xl mx-auto space-y-3">
+            <div className="text-center max-w-3xl mx-auto">
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight font-display">
-                Pourquoi la PWA est le meilleur choix pour votre commerce ?
+                Une technologie légère et performante qui s'installe en un seul clic
               </h2>
-              <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto">
-                Une technologie légère et performante qui s'installe en 1 clic sans encombrer la mémoire de votre téléphone.
-              </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
