@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  CheckCircle2, 
   WifiOff, 
   Users, 
   MessageCircle, 
@@ -268,25 +267,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) =
                   </p>
                 </div>
 
-                {/* Puces de réassurance discrètes */}
-                <div className="pt-4 border-t border-slate-200/70 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-semibold text-slate-700 text-left">
-                  <div className="flex items-center space-x-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Caisse tactile &amp; Reçus WhatsApp en 3 clics</span>
-                  </div>
-                  <div className="flex items-center space-x-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Carnet de dettes avec relance directe</span>
-                  </div>
-                  <div className="flex items-center space-x-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Bilan journalier et bénéfice net du soir</span>
-                  </div>
-                  <div className="flex items-center space-x-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Multi-supports : Synchronisation Cloud</span>
-                  </div>
-                </div>
+
 
               </div>
 
@@ -368,9 +349,6 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) =
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
             
             <div className="text-center max-w-3xl mx-auto space-y-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-3.5 py-1.5 rounded-full inline-block">
-                FONCTIONNALITÉS TERRAIN
-              </span>
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight font-display">
                 Tout ce qu'il vous faut pour piloter votre boutique
               </h2>
@@ -426,9 +404,6 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) =
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
             
             <div className="text-center max-w-3xl mx-auto space-y-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-3.5 py-1.5 rounded-full inline-block">
-                APPLICATION PROGRESSIVE (PWA)
-              </span>
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight font-display">
                 Pourquoi la PWA est le meilleur choix pour votre commerce ?
               </h2>
