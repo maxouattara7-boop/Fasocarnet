@@ -36,6 +36,7 @@ const SERVER_BASE_URL = process.env.SERVER_BASE_URL || `http://localhost:${PORT}
 
 const SUBSCRIPTION_PLANS_CONFIG = {
   monthly: { id: 'monthly', name: '1 Mois (Mensuel)', durationMonths: 1, price: 2000 },
+  quarterly: { id: 'quarterly', name: '3 Mois (Trimestriel)', durationMonths: 3, price: 5000 },
   'semi-annual': { id: 'semi-annual', name: '6 Mois (Semestriel)', durationMonths: 6, price: 10000 },
   annual: { id: 'annual', name: '1 An (Annuel)', durationMonths: 12, price: 20000 }
 };

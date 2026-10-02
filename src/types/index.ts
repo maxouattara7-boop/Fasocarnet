@@ -23,7 +23,7 @@ export interface ShopProfile {
   receiptPaperWidth?: '58mm' | '80mm'; // Format du rouleau thermique (58mm par défaut, ou 80mm)
   debtAlarmEnabled?: boolean; // Alarme automatique de rappel de dettes
   debtAlarmDay?: number; // Jour de la semaine pour l'alarme (1 = Lundi)
-  subscriptionPlan?: 'trial' | 'monthly' | 'semi-annual' | 'annual';
+  subscriptionPlan?: 'trial' | 'monthly' | 'quarterly' | 'semi-annual' | 'annual';
   subscriptionStatus?: 'trial' | 'active' | 'grace' | 'expired';
   subscriptionExpiresAt?: string; // ISO string date d'expiration
   licenseKey?: string;
@@ -187,7 +187,7 @@ export interface DailySummary {
 export interface LicenseKey {
   id: string;
   code: string;
-  plan: 'monthly' | 'semi-annual' | 'annual';
+  plan: 'monthly' | 'quarterly' | 'semi-annual' | 'annual';
   durationDays: number;
   price: number;
   isUsed: boolean;

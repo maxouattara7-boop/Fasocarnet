@@ -227,9 +227,10 @@ export const adminService = {
     const baseDate = currentExpiry > new Date() ? currentExpiry : new Date();
     const newExpiry = new Date(baseDate.getTime() + durationMonths * 30 * 24 * 60 * 60 * 1000);
 
-    let planId: 'monthly' | 'semi-annual' | 'annual' = 'monthly';
+    let planId: 'monthly' | 'quarterly' | 'semi-annual' | 'annual' = 'monthly';
     if (durationMonths >= 12) planId = 'annual';
     else if (durationMonths >= 6) planId = 'semi-annual';
+    else if (durationMonths >= 3) planId = 'quarterly';
 
     const updated: ShopProfile = {
       ...shop,
@@ -340,7 +341,7 @@ export const adminService = {
    * Genere de nouvelles clés de licence prépayées (Action Admin)
    */
   async generateLicenseKeys(
-    plan: 'monthly' | 'semi-annual' | 'annual',
+    plan: 'monthly' | 'quarterly' | 'semi-annual' | 'annual',
     count: number = 1,
     notes?: string
   ): Promise<LicenseKey[]> {
@@ -849,6 +850,7 @@ export const adminService = {
       let subPrice = 0;
       if (shop.subscriptionPlan === 'annual') subPrice = 20000;
       else if (shop.subscriptionPlan === 'semi-annual') subPrice = 10000;
+      else if (shop.subscriptionPlan === 'quarterly') subPrice = 5000;
       else if (shop.subscriptionPlan === 'monthly' || isSubscribed) subPrice = 2000;
 
       const commission = Math.round(subPrice * 0.15); // 15% (300 F pour 2000 F)

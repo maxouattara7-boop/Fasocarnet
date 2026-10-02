@@ -5,7 +5,7 @@ import { verifyLicenseSignature } from '../../utils/crypto';
 import { getApiBaseUrl } from '../../utils/apiConfig';
 
 export interface SubscriptionPlan {
-  id: 'monthly' | 'semi-annual' | 'annual';
+  id: 'monthly' | 'quarterly' | 'semi-annual' | 'annual';
   name: string;
   durationMonths: number;
   price: number;
@@ -20,6 +20,13 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     durationMonths: 1,
     price: 2000,
     discountText: 'Sans engagement'
+  },
+  {
+    id: 'quarterly',
+    name: '3 Mois (Trimestriel)',
+    durationMonths: 3,
+    price: 5000,
+    discountText: 'Éco. 1 000 F (1 666 F / mois)'
   },
   {
     id: 'semi-annual',
@@ -173,6 +180,7 @@ export const subscriptionService = {
 
     let planName = 'Essai Gratuit 10 Jours';
     if (profile?.subscriptionPlan === 'monthly') planName = 'Formule 1 Mois (2 000 FCFA)';
+    else if (profile?.subscriptionPlan === 'quarterly') planName = 'Formule 3 Mois (5 000 FCFA)';
     else if (profile?.subscriptionPlan === 'semi-annual') planName = 'Formule 6 Mois (10 000 FCFA)';
     else if (profile?.subscriptionPlan === 'annual') planName = 'Formule 1 An (20 000 FCFA)';
 
@@ -223,7 +231,7 @@ export const subscriptionService = {
     return `https://wa.me/22672990310?text=${encodeURIComponent(text)}`;
   },
 
-  async renewPlan(shopId: string, planId: 'monthly' | 'semi-annual' | 'annual'): Promise<ShopProfile> {
+  async renewPlan(shopId: string, planId: 'monthly' | 'quarterly' | 'semi-annual' | 'annual'): Promise<ShopProfile> {
     const shop = await db.shopProfiles.get(shopId);
     if (!shop) throw new Error('Boutique introuvable');
 
@@ -276,7 +284,7 @@ export const subscriptionService = {
     }
 
     let addedDays = 30;
-    let plan: 'monthly' | 'semi-annual' | 'annual' = 'monthly';
+    let plan: 'monthly' | 'quarterly' | 'semi-annual' | 'annual' = 'monthly';
 
     if (matchedLicense) {
       if (matchedLicense.isUsed) {
@@ -339,7 +347,7 @@ export const subscriptionService = {
       plan = sigResult.plan;
 
       const nowIso = new Date().toISOString();
-      const planPrice = plan === 'annual' ? 20000 : (plan === 'semi-annual' ? 10000 : 2000);
+      const planPrice = plan === 'annual' ? 20000 : (plan === 'semi-annual' ? 10000 : (plan === 'quarterly' ? 5000 : 2000));
       const newLicenseRecord: LicenseKey = {
         id: 'lic_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
         code: key,
@@ -567,7 +575,7 @@ export const subscriptionService = {
    */
   async applyAutomaticSubscription(
     shop: ShopProfile,
-    planId: 'monthly' | 'semi-annual' | 'annual',
+    planId: 'monthly' | 'quarterly' | 'semi-annual' | 'annual',
     serverExpiresAt?: string
   ): Promise<{ success: boolean; shop: ShopProfile; message: string }> {
     const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId) || SUBSCRIPTION_PLANS[0];

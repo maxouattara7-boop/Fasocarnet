@@ -55,6 +55,13 @@ describe('crypto security utility', () => {
       expect(monthlyRes.plan).toBe('monthly');
       expect(monthlyRes.durationDays).toBe(30);
 
+      const quarterlyKey = generateSignedLicenseKey('quarterly');
+      expect(quarterlyKey).toMatch(/^FASO-3M-[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+      const quarterlyRes = verifyLicenseSignature(quarterlyKey);
+      expect(quarterlyRes.isValid).toBe(true);
+      expect(quarterlyRes.plan).toBe('quarterly');
+      expect(quarterlyRes.durationDays).toBe(90);
+
       const semiKey = generateSignedLicenseKey('semi-annual');
       const semiRes = verifyLicenseSignature(semiKey);
       expect(semiRes.isValid).toBe(true);

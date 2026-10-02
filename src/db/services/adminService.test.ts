@@ -293,7 +293,7 @@ describe('adminService', () => {
     const activated = await adminService.activateShopManually('shop_manual_act', 3);
     expect(activated.subscriptionStatus).toBe('active');
     expect(activated.isSuspended).toBe(false);
-    expect(activated.subscriptionPlan).toBe('monthly');
+    expect(activated.subscriptionPlan).toBe('quarterly');
     expect(new Date(activated.subscriptionExpiresAt!).getTime()).toBeGreaterThan(Date.now() + 80 * 24 * 60 * 60 * 1000);
   });
 

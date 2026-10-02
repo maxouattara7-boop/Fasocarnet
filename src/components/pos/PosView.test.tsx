@@ -80,7 +80,7 @@ describe('PosView component', () => {
 
     await waitFor(() => {
       expect(screen.queryByText("Quantité d'article")).not.toBeInTheDocument();
-      expect(screen.getByText('Panier (1 article)')).toBeInTheDocument();
+      expect(screen.getByTitle('Retirer cet article')).toBeInTheDocument();
     });
   });
 

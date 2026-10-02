@@ -58,6 +58,30 @@ describe('subscriptionService', () => {
     expect(updatedInfo.isTrial).toBe(false);
   });
 
+  it('activates 3 months (quarterly) signed license key successfully', async () => {
+    const mockProfile: ShopProfile = {
+      id: 'shop_3m',
+      name: 'Quincaillerie Centrale',
+      phone: '70998877',
+      currency: 'FCFA',
+      isConfigured: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await db.shopProfiles.put(mockProfile);
+
+    const signedKey = generateSignedLicenseKey('quarterly');
+    const result = await subscriptionService.activateLicenseKey('shop_3m', signedKey);
+    expect(result.success).toBe(true);
+    expect(result.shop?.subscriptionPlan).toBe('quarterly');
+    expect(result.shop?.subscriptionStatus).toBe('active');
+
+    const updatedInfo = subscriptionService.getSubscriptionInfo(result.shop);
+    expect(updatedInfo.daysRemaining).toBeGreaterThanOrEqual(89);
+    expect(updatedInfo.planName).toBe('Formule 3 Mois (5 000 FCFA)');
+    expect(updatedInfo.isTrial).toBe(false);
+  });
+
   it('prevents reusing an already activated license key and syncs properly', async () => {
     localStorage.clear();
     await db.licenses.clear();

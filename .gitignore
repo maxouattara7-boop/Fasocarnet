@@ -33,3 +33,5 @@ android/.gradle/
 android/captures/
 android/local.properties
 .gradle/
+__pycache__/
+*.pyc

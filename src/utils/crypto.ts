@@ -173,9 +173,10 @@ const SHOP_AUTH_SECRET_SEED = 'FASO_CARNET_SHOP_AUTH_TOKEN_SEED_2026';
 /**
  * Génère une clé de licence officielle avec signature cryptographique infalsifiable
  */
-export function generateSignedLicenseKey(plan: 'monthly' | 'semi-annual' | 'annual'): string {
+export function generateSignedLicenseKey(plan: 'monthly' | 'quarterly' | 'semi-annual' | 'annual'): string {
   let prefix = 'FASO-1M-';
-  if (plan === 'semi-annual') prefix = 'FASO-6M-';
+  if (plan === 'quarterly') prefix = 'FASO-3M-';
+  else if (plan === 'semi-annual') prefix = 'FASO-6M-';
   else if (plan === 'annual') prefix = 'FASO-1AN-';
 
   // 4 caractères aléatoires
@@ -192,13 +193,13 @@ export function generateSignedLicenseKey(plan: 'monthly' | 'semi-annual' | 'annu
  */
 export function verifyLicenseSignature(code: string): {
   isValid: boolean;
-  plan?: 'monthly' | 'semi-annual' | 'annual';
+  plan?: 'monthly' | 'quarterly' | 'semi-annual' | 'annual';
   durationDays?: number;
 } {
   const clean = code.trim().toUpperCase();
   const parts = clean.split('-');
 
-  // Format attendu : FASO - (1M | 6M | 1AN) - [RANDOM] - [SIGNATURE]
+  // Format attendu : FASO - (1M | 3M | 6M | 1AN) - [RANDOM] - [SIGNATURE]
   if (parts.length !== 4 || parts[0] !== 'FASO') {
     return { isValid: false };
   }
@@ -207,12 +208,15 @@ export function verifyLicenseSignature(code: string): {
   const randomPayload = parts[2];
   const signature = parts[3];
 
-  let plan: 'monthly' | 'semi-annual' | 'annual' = 'monthly';
+  let plan: 'monthly' | 'quarterly' | 'semi-annual' | 'annual' = 'monthly';
   let durationDays = 30;
 
   if (planCode === '1M') {
     plan = 'monthly';
     durationDays = 30;
+  } else if (planCode === '3M') {
+    plan = 'quarterly';
+    durationDays = 90;
   } else if (planCode === '6M') {
     plan = 'semi-annual';
     durationDays = 180;

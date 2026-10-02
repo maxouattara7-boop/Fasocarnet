@@ -148,7 +148,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
 
   // Listes de Relance & Diffusion Groupée WhatsApp
   const [trialRelanceMessage, setTrialRelanceMessage] = useState(
-    "Bonjour cher commerçant,\nVotre période d'essai gratuite sur l'application FasoCarnet arrive à terme.\nPour continuer à gérer votre caisse, imprimer vos reçus et sécuriser vos ventes en toute sérénité, activez votre abonnement :\n- 1 Mois : 2 000 FCFA\n- 6 Mois : 10 000 FCFA\n- 1 An : 20 000 FCFA\nPaiement Mobile Money (Orange Money / Moov / Wave) au 72990310.\nL'équipe FasoCarnet reste à votre service !"
+    "Bonjour cher commerçant,\nVotre période d'essai gratuite sur l'application FasoCarnet arrive à terme.\nPour continuer à gérer votre caisse, imprimer vos reçus et sécuriser vos ventes en toute sérénité, activez votre abonnement :\n- 1 Mois : 2 000 FCFA\n- 3 Mois : 5 000 FCFA\n- 6 Mois : 10 000 FCFA\n- 1 An : 20 000 FCFA\nPaiement Mobile Money (Orange Money / Moov / Wave) au 72990310.\nL'équipe FasoCarnet reste à votre service !"
   );
   const [paidRelanceMessage, setPaidRelanceMessage] = useState(
     "Bonjour cher abonné FasoCarnet,\nMerci pour votre confiance et votre fidélité !\nUne question, un besoin d'assistance ou une suggestion pour améliorer votre commerce ? Toute notre équipe reste à votre écoute au 72990310.\nBonnes ventes avec FasoCarnet !"
@@ -3598,7 +3598,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                   className="p-2.5 bg-slate-800/90 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold rounded-xl border border-slate-700 hover:border-emerald-500 transition-all text-center cursor-pointer font-display shadow-xs min-h-[44px]"
                 >
                   <span className="block font-black text-amber-300">+3 Mois</span>
-                  <span className="text-[10px] text-slate-400 block font-normal">6 000 FCFA</span>
+                  <span className="text-[10px] text-slate-400 block font-normal">5 000 FCFA</span>
                 </button>
                 <button
                   type="button"
