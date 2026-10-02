@@ -444,12 +444,12 @@ export const PosView: React.FC = () => {
         {/* COLONNE GAUCHE (DESKTOP) : CALCULATRICE STATIQUE & FIXE  */}
         {/* ======================================================== */}
         <div 
-          className="lg:col-span-5 xl:col-span-5 2xl:col-span-4 h-full max-h-full flex flex-col justify-between shrink-0 overflow-hidden select-none space-y-2"
+          className="lg:col-span-5 xl:col-span-5 2xl:col-span-4 h-full max-h-full flex flex-col justify-between shrink-0 overflow-y-auto lg:overflow-hidden scrollbar-none select-none space-y-1.5 sm:space-y-2"
           onWheel={(e) => e.stopPropagation()}
           style={{ overscrollBehavior: 'none' }}
         >
           {/* Écran d'affichage du montant, de la remise et du calcul */}
-          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-lg flex flex-col justify-between border border-emerald-700/50 shrink-0">
+          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-3 sm:p-3.5 rounded-2xl shadow-md flex flex-col justify-between border border-emerald-700/50 shrink-0">
             <div className="flex items-center justify-between text-emerald-300 text-xs sm:text-sm font-black tracking-wider uppercase">
               <div className="flex items-center space-x-2">
                 {hasCalculation ? (
@@ -459,100 +459,90 @@ export const PosView: React.FC = () => {
                 )}
                 <span>{hasCalculation ? 'Total Additionné' : 'Montant à Encaisser'}</span>
               </div>
-              {discount && discount.calculatedAmount > 0 ? (
-                <button
-                  type="button"
-                  onClick={() => setIsDiscountModalOpen(true)}
-                  className="bg-amber-400 hover:bg-amber-300 text-amber-950 px-2.5 py-1 rounded-lg text-xs font-black tracking-wide flex items-center space-x-1.5 transition-all cursor-pointer"
-                >
-                  <Tag className="w-3.5 h-3.5" />
-                  <span>Remise -{formatCurrency(discountAmount)}</span>
-                </button>
-              ) : (
-                <span className="bg-emerald-700/80 px-2.5 py-1 rounded-lg text-xs font-black tracking-wide">FCFA (XOF)</span>
-              )}
+              <div className="flex items-center space-x-1.5">
+                {discount && discount.calculatedAmount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsDiscountModalOpen(true)}
+                    className="bg-amber-400 hover:bg-amber-300 text-amber-950 px-2 py-0.5 rounded-lg text-[11px] font-black tracking-wide flex items-center space-x-1 transition-all cursor-pointer"
+                  >
+                    <Tag className="w-3 h-3" />
+                    <span>-{formatCurrency(discountAmount)}</span>
+                  </button>
+                )}
+                {selectedItems.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClear}
+                    className="bg-red-500/25 hover:bg-red-500/40 text-red-200 border border-red-500/30 px-2 py-0.5 rounded-lg text-[11px] font-black flex items-center space-x-1 transition-all cursor-pointer"
+                    title="Vider le panier"
+                  >
+                    <Trash2 className="w-3 h-3 text-red-300" />
+                    <span>Vider ({selectedItems.length})</span>
+                  </button>
+                )}
+                <span className="bg-emerald-700/80 px-2 py-0.5 rounded-lg text-[11px] font-black tracking-wide">FCFA</span>
+              </div>
             </div>
 
-            <div className="text-right mt-1.5">
+            <div className="text-right mt-1">
               {/* Formule de calcul si addition en cours */}
               {hasCalculation && (
-                <div className="text-xs sm:text-sm font-bold text-amber-300 bg-amber-950/50 px-3 py-1 rounded-xl inline-block max-w-full truncate mb-1 border border-amber-500/30">
+                <div className="text-xs font-bold text-amber-300 bg-amber-950/50 px-2.5 py-0.5 rounded-lg inline-block max-w-full truncate mb-1 border border-amber-500/30">
                   {formatPosExpressionDisplay(amountStr)} {/[+]\s*$/.test(amountStr) ? '...' : '='}
                 </div>
               )}
 
               {/* Affichage du sous-total barré si remise active */}
               {discount && discount.calculatedAmount > 0 && (
-                <div className="text-sm font-bold text-emerald-300/80 line-through">
+                <div className="text-xs font-bold text-emerald-300/80 line-through">
                   {formatCurrency(subtotalAmount)}
                 </div>
               )}
 
-              <div className="text-3xl sm:text-4xl lg:text-3.5xl xl:text-4.5xl 2xl:text-5xl font-black tracking-tight text-white drop-shadow-sm truncate leading-tight font-display">
+              <div className="text-3xl sm:text-4xl lg:text-3.5xl xl:text-4xl font-black tracking-tight text-white drop-shadow-sm truncate leading-none font-display">
                 {formatCurrency(finalPayableAmount).replace(' FCFA', '')}
               </div>
 
-              <div className="text-xs sm:text-sm text-emerald-200/90 mt-1 font-semibold">
-                {discount && discount.calculatedAmount > 0 ? (
-                  <span className="font-bold text-amber-300">
-                    Remise : -{formatCurrency(discountAmount)} ({discount.type === 'PERCENT' ? `${discount.value}%` : 'Fixe'})
-                  </span>
-                ) : selectedItems.length > 0 ? (
-                  <span className="font-bold text-amber-300 truncate block">
-                    {selectedItems.length} article(s) dans le panier en cours
-                  </span>
-                ) : (
-                  'Francs CFA — Saisissez un montant ou choisissez des articles'
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* DÉTAIL DU PANIER EN COURS (SI ARTICLES CHOISIS) */}
-          {selectedItems.length > 0 && (
-            <div className="bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200/80 shadow-xs space-y-1 animate-in fade-in shrink-0">
-              <div className="flex items-center justify-between text-sm sm:text-base font-black text-slate-800 border-b border-slate-100 pb-1.5">
-                <div className="flex items-center space-x-2">
-                  <ShoppingCart className="w-4.5 h-4.5 text-emerald-600" />
-                  <span>Panier ({selectedItems.length} article{selectedItems.length > 1 ? 's' : ''})</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="text-xs sm:text-sm text-red-600 hover:text-red-700 font-black flex items-center space-x-1 cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>Vider</span>
-                </button>
-              </div>
-
-              <div className="max-h-24 sm:max-h-32 overflow-y-auto divide-y divide-slate-100 pr-1 space-y-1 scrollbar-thin">
-                {selectedItems.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between py-1.5 text-sm sm:text-base">
-                    <div className="min-w-0 flex-1 pr-2">
-                      <p className="font-black text-slate-900 truncate text-sm sm:text-base">{item.description}</p>
-                      <p className="text-xs sm:text-sm text-slate-500 font-mono font-medium">
-                        {item.quantity} x {formatCurrency(item.unitPrice)}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2 shrink-0">
-                      <span className="font-black text-emerald-700 font-display text-sm sm:text-base">
-                        {formatCurrency(item.unitPrice * item.quantity)}
+              {/* LISTE COMPACTE DES ARTICLES INTÉGRÉE DIRECTEMENT DANS LA CARTE */}
+              {selectedItems.length > 0 ? (
+                <div className="mt-2 pt-1.5 border-t border-emerald-700/50 flex flex-wrap gap-1.5 justify-end max-h-16 overflow-y-auto scrollbar-none text-left">
+                  {selectedItems.map((item, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center space-x-1.5 bg-emerald-950/80 border border-emerald-600/50 px-2 py-0.5 rounded-lg text-xs text-emerald-100 shadow-2xs"
+                    >
+                      <span className="font-bold text-white truncate max-w-[120px] sm:max-w-[160px]">{item.description}</span>
+                      <span className="text-[10px] text-amber-300 font-extrabold">
+                        {item.quantity > 1 ? `${item.quantity}×` : ''}{formatCurrency(item.unitPrice * item.quantity).replace(' FCFA', '')}
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleRemoveItem(idx)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveItem(idx);
+                        }}
+                        className="text-emerald-400 hover:text-red-300 p-0.5 transition-colors cursor-pointer ml-0.5"
                         title="Retirer cet article"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-[11px] sm:text-xs text-emerald-200/80 mt-1 font-medium">
+                  {discount && discount.calculatedAmount > 0 ? (
+                    <span className="font-bold text-amber-300">
+                      Remise : -{formatCurrency(discountAmount)} ({discount.type === 'PERCENT' ? `${discount.value}%` : 'Fixe'})
+                    </span>
+                  ) : (
+                    'Saisissez un montant ou sélectionnez des articles'
+                  )}
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* ======================================================== */}
           {/* TOUCHES D'ACTION ALLONGÉES & VISIBLES : SCANNER & REMISE */}
