@@ -13,34 +13,40 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 from scripts.generate_commercial_badge import draw_badge_recto, draw_badge_verso
 
+PHOTOS_DIR = os.path.join(os.getcwd(), "docs", "photos_traitees")
+
 COMMERCIAUX = [
     {
         'name': 'COMPAORÉ Adama',
         'slug': 'COMPAORE_Adama',
         'code': 'COMPAORE226',
         'phone': '+226 61 97 45 21',
-        'zone': 'Ouagadougou'
+        'zone': 'Ouagadougou',
+        'photo_path': os.path.join(PHOTOS_DIR, "photo_COMPAORE_Adama.png")
     },
     {
         'name': 'SARÉ Falilatou',
         'slug': 'SARE_Falilatou',
         'code': 'SARE226',
         'phone': '+226 55 49 01 99',
-        'zone': 'Ouagadougou'
+        'zone': 'Ouagadougou',
+        'photo_path': os.path.join(PHOTOS_DIR, "photo_SARE_Falilatou.png")
     },
     {
         'name': 'SARÉ Salamatou',
         'slug': 'SARE_Salamatou',
         'code': 'SARE7',
         'phone': '+226 75 17 01 08',
-        'zone': 'Ouagadougou'
+        'zone': 'Ouagadougou',
+        'photo_path': os.path.join(PHOTOS_DIR, "photo_SARE_Salamatou.png")
     },
     {
         'name': 'SOGLI Rebécca',
         'slug': 'SOGLI_Rebecca',
         'code': 'SOGLI226',
         'phone': '+226 56 56 95 68',
-        'zone': 'Ouagadougou'
+        'zone': 'Ouagadougou',
+        'photo_path': None # En attente de photo (silhouette officielle)
     }
 ]
 

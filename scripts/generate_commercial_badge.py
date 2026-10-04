@@ -89,27 +89,39 @@ def draw_badge_recto(c, x, y, w, h, commercial):
     card_type_text = "CARTE D'ACCRÉDITATION TERRAIN"
     c.drawCentredString(x + w / 2, y + 64 * mm, card_type_text)
     
-    # 4. Cadre Photo d'identité (avec silhouette)
+    # 4. Cadre Photo d'identité (Photo réelle ou Silhouette stylisée)
     photo_w = 21 * mm
     photo_h = 24 * mm
     photo_x = x + (w - photo_w) / 2
     photo_y = y + 37.5 * mm
     
-    c.setFillColor(colors.HexColor('#f8fafc'))
-    c.setStrokeColor(colors.HexColor('#cbd5e1'))
-    c.setLineWidth(0.8)
-    c.roundRect(photo_x, photo_y, photo_w, photo_h, 2.5 * mm, fill=1, stroke=1)
-    
-    # Silhouette stylisée
-    c.setFillColor(colors.HexColor('#94a3b8'))
-    # Tête
-    c.circle(photo_x + photo_w / 2, photo_y + photo_h - 8 * mm, 4 * mm, fill=1, stroke=0)
-    # Buste
-    c.roundRect(photo_x + 2.5 * mm, photo_y + 1.5 * mm, photo_w - 5 * mm, 9 * mm, 3 * mm, fill=1, stroke=0)
-    
-    c.setFont("Helvetica-Bold", 4.5)
-    c.setFillColor(colors.HexColor('#64748b'))
-    c.drawCentredString(photo_x + photo_w / 2, photo_y + 2.4 * mm, "PHOTO AGENT")
+    photo_path = commercial.get('photo_path')
+    if photo_path and os.path.exists(photo_path):
+        # Affichage avec découpe aux coins arrondis (2.5 mm)
+        c.saveState()
+        clip_p = c.beginPath()
+        clip_p.roundRect(photo_x, photo_y, photo_w, photo_h, 2.5 * mm)
+        c.clipPath(clip_p, stroke=0, fill=0)
+        c.drawImage(photo_path, photo_x, photo_y, photo_w, photo_h, preserveAspectRatio=False)
+        c.restoreState()
+        # Bordure soignée par dessus
+        c.setStrokeColor(colors.HexColor('#cbd5e1'))
+        c.setLineWidth(0.8)
+        c.roundRect(photo_x, photo_y, photo_w, photo_h, 2.5 * mm, fill=0, stroke=1)
+    else:
+        # Silhouette par défaut
+        c.setFillColor(colors.HexColor('#f8fafc'))
+        c.setStrokeColor(colors.HexColor('#cbd5e1'))
+        c.setLineWidth(0.8)
+        c.roundRect(photo_x, photo_y, photo_w, photo_h, 2.5 * mm, fill=1, stroke=1)
+        
+        c.setFillColor(colors.HexColor('#94a3b8'))
+        c.circle(photo_x + photo_w / 2, photo_y + photo_h - 8 * mm, 4 * mm, fill=1, stroke=0)
+        c.roundRect(photo_x + 2.5 * mm, photo_y + 1.5 * mm, photo_w - 5 * mm, 9 * mm, 3 * mm, fill=1, stroke=0)
+        
+        c.setFont("Helvetica-Bold", 4.5)
+        c.setFillColor(colors.HexColor('#64748b'))
+        c.drawCentredString(photo_x + photo_w / 2, photo_y + 2.4 * mm, "PHOTO AGENT")
     
     # 5. Identité du commercial (très visible sous la photo)
     c.setFont("Helvetica-Bold", 9.5)
@@ -301,7 +313,8 @@ def generate_badge_pdf():
         'name': 'COMPAORE Adama',
         'code': 'COMPAORE226',
         'phone': '+226 61 97 45 21',
-        'zone': 'Ouagadougou'
+        'zone': 'Ouagadougou',
+        'photo_path': os.path.join(os.getcwd(), "docs", "photos_traitees", "photo_COMPAORE_Adama.png")
     }
     
     # =========================================================================

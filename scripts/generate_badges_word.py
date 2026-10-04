@@ -224,14 +224,35 @@ def create_badges_docx():
     
     # Enregistrement du fichier Word
     docx_path = os.path.join(docs_dir, "badges_commerciaux_fasocarnet.docx")
+    docx_photos_path = os.path.join(docs_dir, "badges_commerciaux_fasocarnet_avec_photos.docx")
     public_docx = os.path.join(public_dir, "badges_commerciaux_fasocarnet.docx")
-    doc.save(docx_path)
-    doc.save(public_docx)
+    public_photos_docx = os.path.join(public_dir, "badges_commerciaux_fasocarnet_avec_photos.docx")
     
-    if os.path.exists(artifact_dir):
-        doc.save(os.path.join(artifact_dir, "badges_commerciaux_fasocarnet.docx"))
+    # Toujours sauvegarder la version avec photos
+    doc.save(docx_photos_path)
+    try:
+        doc.save(public_photos_docx)
+    except Exception as e:
+        print(f"[NOTE] Impossible d'ecrire {public_photos_docx}: {e}")
         
-    print(f"[OK] Fichier Word genere avec succes : {docx_path}")
+    try:
+        doc.save(docx_path)
+    except Exception as e:
+        print(f"[NOTE] Fichier {docx_path} ouvert dans Word : {e}")
+        
+    try:
+        doc.save(public_docx)
+    except Exception as e:
+        print(f"[NOTE] Fichier {public_docx} ouvert dans Word : {e}")
+        
+    if os.path.exists(artifact_dir):
+        try:
+            doc.save(os.path.join(artifact_dir, "badges_commerciaux_fasocarnet_avec_photos.docx"))
+            doc.save(os.path.join(artifact_dir, "badges_commerciaux_fasocarnet.docx"))
+        except Exception:
+            pass
+            
+    print(f"[OK] Fichier Word mis a jour avec photos : {docx_photos_path}")
 
 if __name__ == '__main__':
     create_badges_docx()
