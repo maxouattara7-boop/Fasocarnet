@@ -59,59 +59,59 @@ export const Keypad: React.FC<KeypadProps> = ({ value, onChange, onClear }) => {
         <button
           type="button"
           onClick={() => handleDigit('1')}
-          className="h-[52px] sm:h-14 lg:h-11 xl:h-12 2xl:h-13 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl sm:text-3xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
+          className="h-[60px] xs:h-[66px] sm:h-[72px] lg:h-11 xl:h-12 2xl:h-14 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl xs:text-3xl sm:text-4xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
         >
           1
         </button>
         <button
           type="button"
           onClick={() => handleDigit('2')}
-          className="h-[52px] sm:h-14 lg:h-11 xl:h-12 2xl:h-13 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl sm:text-3xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
+          className="h-[60px] xs:h-[66px] sm:h-[72px] lg:h-11 xl:h-12 2xl:h-14 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl xs:text-3xl sm:text-4xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
         >
           2
         </button>
         <button
           type="button"
           onClick={() => handleDigit('3')}
-          className="h-[52px] sm:h-14 lg:h-11 xl:h-12 2xl:h-13 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl sm:text-3xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
+          className="h-[60px] xs:h-[66px] sm:h-[72px] lg:h-11 xl:h-12 2xl:h-14 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl xs:text-3xl sm:text-4xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
         >
           3
         </button>
         <button
           type="button"
           onClick={handleDelete}
-          className="h-[52px] sm:h-14 lg:h-11 xl:h-12 2xl:h-13 bg-slate-100 hover:bg-slate-200 active:bg-red-100 text-slate-700 active:text-red-700 rounded-xl sm:rounded-2xl border border-slate-200 active:scale-95 transition-all flex items-center justify-center shadow-2xs cursor-pointer"
+          className="h-[60px] xs:h-[66px] sm:h-[72px] lg:h-11 xl:h-12 2xl:h-14 bg-slate-100 hover:bg-slate-200 active:bg-red-100 text-slate-700 active:text-red-700 rounded-xl sm:rounded-2xl border border-slate-200 active:scale-95 transition-all flex items-center justify-center shadow-2xs cursor-pointer"
           title="Effacer le dernier chiffre"
         >
-          <Delete className="w-6 h-6 sm:w-6.5 sm:h-6.5" />
+          <Delete className="w-6 h-6 sm:w-7 sm:h-7" />
         </button>
 
         {/* Ligne 2 : 4, 5, 6, Touche C (Remise à zéro) */}
         <button
           type="button"
           onClick={() => handleDigit('4')}
-          className="h-[52px] sm:h-14 lg:h-11 xl:h-12 2xl:h-13 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl sm:text-3xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
+          className="h-[60px] xs:h-[66px] sm:h-[72px] lg:h-11 xl:h-12 2xl:h-14 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl xs:text-3xl sm:text-4xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
         >
           4
         </button>
         <button
           type="button"
           onClick={() => handleDigit('5')}
-          className="h-[52px] sm:h-14 lg:h-11 xl:h-12 2xl:h-13 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl sm:text-3xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
+          className="h-[60px] xs:h-[66px] sm:h-[72px] lg:h-11 xl:h-12 2xl:h-14 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl xs:text-3xl sm:text-4xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
         >
           5
         </button>
         <button
           type="button"
           onClick={() => handleDigit('6')}
-          className="h-[52px] sm:h-14 lg:h-11 xl:h-12 2xl:h-13 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl sm:text-3xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
+          className="h-[60px] xs:h-[66px] sm:h-[72px] lg:h-11 xl:h-12 2xl:h-14 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl xs:text-3xl sm:text-4xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
         >
           6
         </button>
         <button
           type="button"
           onClick={handleClear}
-          className="h-[52px] sm:h-14 lg:h-11 xl:h-12 2xl:h-13 bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-600 text-xl sm:text-2xl lg:text-lg xl:text-xl font-black rounded-xl sm:rounded-2xl border border-red-200 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
+          className="h-[60px] xs:h-[66px] sm:h-[72px] lg:h-11 xl:h-12 2xl:h-14 bg-red-50 hover:bg-red-100 active:bg-red-200 text-red-600 text-xl xs:text-2xl sm:text-3xl lg:text-lg xl:text-xl font-black rounded-xl sm:rounded-2xl border border-red-200 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
           title="Remettre la caisse à zéro"
         >
           C
@@ -121,21 +121,21 @@ export const Keypad: React.FC<KeypadProps> = ({ value, onChange, onClear }) => {
         <button
           type="button"
           onClick={() => handleDigit('7')}
-          className="h-[52px] sm:h-14 lg:h-11 xl:h-12 2xl:h-13 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl sm:text-3xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
+          className="h-[60px] xs:h-[66px] sm:h-[72px] lg:h-11 xl:h-12 2xl:h-14 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl xs:text-3xl sm:text-4xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
         >
           7
         </button>
         <button
           type="button"
           onClick={() => handleDigit('8')}
-          className="h-[52px] sm:h-14 lg:h-11 xl:h-12 2xl:h-13 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl sm:text-3xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
+          className="h-[60px] xs:h-[66px] sm:h-[72px] lg:h-11 xl:h-12 2xl:h-14 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl xs:text-3xl sm:text-4xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
         >
           8
         </button>
         <button
           type="button"
           onClick={() => handleDigit('9')}
-          className="h-[52px] sm:h-14 lg:h-11 xl:h-12 2xl:h-13 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl sm:text-3xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
+          className="h-[60px] xs:h-[66px] sm:h-[72px] lg:h-11 xl:h-12 2xl:h-14 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl xs:text-3xl sm:text-4xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
         >
           9
         </button>
@@ -153,21 +153,21 @@ export const Keypad: React.FC<KeypadProps> = ({ value, onChange, onClear }) => {
         <button
           type="button"
           onClick={() => handleDigit('0')}
-          className="h-[52px] sm:h-14 lg:h-11 xl:h-12 2xl:h-13 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl sm:text-3xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
+          className="h-[60px] xs:h-[66px] sm:h-[72px] lg:h-11 xl:h-12 2xl:h-14 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-2xl xs:text-3xl sm:text-4xl lg:text-xl xl:text-2xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
         >
           0
         </button>
         <button
           type="button"
           onClick={() => handleDigit('00')}
-          className="h-[52px] sm:h-14 lg:h-11 xl:h-12 2xl:h-13 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-xl sm:text-2xl lg:text-lg xl:text-xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
+          className="h-[60px] xs:h-[66px] sm:h-[72px] lg:h-11 xl:h-12 2xl:h-14 bg-slate-50 hover:bg-slate-100 active:bg-emerald-50 text-slate-900 text-xl xs:text-2xl sm:text-3xl lg:text-lg xl:text-xl font-black rounded-xl sm:rounded-2xl shadow-2xs border border-slate-200/90 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
         >
           00
         </button>
         <button
           type="button"
           onClick={() => handleDigit('000')}
-          className="h-[52px] sm:h-14 lg:h-11 xl:h-12 2xl:h-13 bg-emerald-50/90 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-950 text-lg sm:text-xl lg:text-base xl:text-lg font-black rounded-xl sm:rounded-2xl border border-emerald-300/80 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
+          className="h-[60px] xs:h-[66px] sm:h-[72px] lg:h-11 xl:h-12 2xl:h-14 bg-emerald-50/90 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-950 text-lg xs:text-xl sm:text-2xl lg:text-base xl:text-lg font-black rounded-xl sm:rounded-2xl border border-emerald-300/80 active:scale-95 transition-all flex items-center justify-center font-display cursor-pointer"
           title="Mille (000)"
         >
           000

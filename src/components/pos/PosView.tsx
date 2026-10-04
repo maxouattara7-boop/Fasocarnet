@@ -587,10 +587,12 @@ export const PosView: React.FC = () => {
                       setArticleSearch('');
                       setIsArticlePickerOpen(true);
                     }}
-                    className="h-8.5 px-2.5 bg-gradient-to-r from-emerald-800 to-teal-900 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl text-xs font-black flex items-center space-x-1 shadow-2xs active:scale-95 transition-all cursor-pointer font-display shrink-0"
+                    className="h-9 sm:h-10 px-3 bg-gradient-to-r from-emerald-800 via-teal-900 to-emerald-900 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black flex items-center space-x-2 shadow-2xs active:scale-95 transition-all cursor-pointer font-display shrink-0"
                     title="Ouvrir le catalogue d'articles"
                   >
-                    <Package className="w-3.5 h-3.5 text-amber-300" />
+                    <div className="w-6 h-6 rounded-lg bg-amber-400/25 border border-amber-300/40 flex items-center justify-center shrink-0">
+                      <Package className="w-4.5 h-4.5 text-amber-300 stroke-[2.5]" />
+                    </div>
                     <span>Catalogue ({products.length})</span>
                   </button>
                 )}
@@ -601,7 +603,7 @@ export const PosView: React.FC = () => {
                     key={prod.id}
                     type="button"
                     onClick={() => handleSelectProduct(prod.id)}
-                    className={`h-8.5 px-2.5 bg-white hover:bg-emerald-50/70 text-slate-800 border rounded-xl text-xs font-bold flex items-center space-x-1.5 shrink-0 shadow-2xs active:scale-95 transition-all cursor-pointer ${
+                    className={`h-9 sm:h-10 px-3 bg-white hover:bg-emerald-50/70 text-slate-800 border rounded-xl sm:rounded-2xl text-xs sm:text-sm font-bold flex items-center space-x-1.5 shrink-0 shadow-2xs active:scale-95 transition-all cursor-pointer ${
                       typeof prod.stockQuantity === 'number' && prod.stockQuantity <= 0
                         ? 'border-red-300 bg-red-50/30'
                         : typeof prod.stockQuantity === 'number' && prod.stockQuantity <= (prod.minStockAlert ?? 5)
@@ -619,8 +621,8 @@ export const PosView: React.FC = () => {
             </div>
           </div>
 
-          {/* Section Centrale : Clavier tactile Agrandie */}
-          <div className="bg-white p-2 sm:p-2.5 rounded-2xl sm:rounded-3xl shadow-xs border border-slate-200/90 shrink-0 my-auto">
+          {/* Section Centrale : Clavier tactile Agrandie & Étiré */}
+          <div className="bg-white p-2 sm:p-2.5 rounded-2xl sm:rounded-3xl shadow-xs border border-slate-200/90 shrink-0">
             <Keypad
               value={amountStr}
               onChange={setAmountStr}
@@ -628,8 +630,8 @@ export const PosView: React.FC = () => {
             />
           </div>
 
-          {/* Section Basse : Bouton d'encaissement descendu tout en bas */}
-          <div className="shrink-0 mt-auto pt-1">
+          {/* Section Basse : Bouton d'encaissement immédiatement sous la calculatrice */}
+          <div className="shrink-0 pt-0.5">
             <button
               type="button"
               disabled={finalPayableAmount <= 0}
@@ -654,8 +656,8 @@ export const PosView: React.FC = () => {
           <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-2.5 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2.5">
-                <div className="w-8.5 h-8.5 rounded-xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shadow-inner">
-                  <Package className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shadow-inner">
+                  <Package className="w-6 h-6 stroke-[2.2]" />
                 </div>
                 <div>
                   <h2 className="text-base sm:text-lg font-black text-slate-900 font-display">Catalogue d'Articles</h2>
