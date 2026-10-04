@@ -40,9 +40,13 @@ import {
   Printer,
   Calendar,
   Lock,
-  Unlock
+  Unlock,
+  PenTool,
+  CheckCircle
 } from 'lucide-react';
 import { SuppliesHistoryModal } from '../inventory/SuppliesHistoryModal';
+import { SignaturePadModal } from '../common/SignaturePadModal';
+import { compressImage } from '../../utils/imageCompressor';
 import { suppliesService } from '../../db/services/suppliesService';
 import { exportSuppliesToExcel, printSuppliesReport } from '../../utils/suppliesExporter';
 import { soundEffects } from '../../utils/soundEffects';
@@ -96,6 +100,8 @@ export const SettingsView: React.FC = () => {
   const [ifu, setIfu] = useState(shopProfile?.ifu || '');
   const [rccm, setRccm] = useState(shopProfile?.rccm || '');
   const [logo, setLogo] = useState<string | null>(shopProfile?.logo || null);
+  const [managerSignature, setManagerSignature] = useState<string | null>(shopProfile?.managerSignature || null);
+  const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [primaryColor, setPrimaryColor] = useState<string>(shopProfile?.primaryColor || '#047857');
   const [receiptPaperWidth, setReceiptPaperWidth] = useState<'58mm' | '80mm'>(shopProfile?.receiptPaperWidth || '58mm');
   const [debtAlarmEnabled, setDebtAlarmEnabled] = useState(shopProfile?.debtAlarmEnabled !== false);
@@ -126,6 +132,7 @@ export const SettingsView: React.FC = () => {
       setIfu(shopProfile.ifu || '');
       setRccm(shopProfile.rccm || '');
       setLogo(shopProfile.logo || null);
+      setManagerSignature(shopProfile.managerSignature || null);
       setPrimaryColor(shopProfile.primaryColor || '#047857');
       setReceiptPaperWidth(shopProfile.receiptPaperWidth || '58mm');
       setDebtAlarmEnabled(shopProfile.debtAlarmEnabled !== false);
@@ -133,6 +140,17 @@ export const SettingsView: React.FC = () => {
       setNewPin(shopProfile.pinCode || '');
     }
   }, [shopProfile]);
+
+  const handleSignatureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await compressImage(file, 400, 200, 0.9);
+      setManagerSignature(dataUrl);
+    } catch (err) {
+      console.warn('Erreur import signature:', err);
+    }
+  };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -490,6 +508,7 @@ export const SettingsView: React.FC = () => {
       ifu: ifu.trim() || undefined,
       rccm: rccm.trim() || undefined,
       logo: logo || undefined,
+      managerSignature: managerSignature || undefined,
       primaryColor: primaryColor || undefined,
       receiptPaperWidth: receiptPaperWidth || '58mm',
       debtAlarmEnabled: debtAlarmEnabled,
@@ -864,6 +883,73 @@ export const SettingsView: React.FC = () => {
                     className="hidden"
                   />
                 </label>
+              )}
+            </div>
+
+            {/* Signature Électronique du Gérant */}
+            <div className="pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider font-display">
+                  Signature Électronique du Gérant (Factures & Devis)
+                </label>
+                {managerSignature && (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center space-x-1">
+                    <CheckCircle className="w-3 h-3" />
+                    <span>Active</span>
+                  </span>
+                )}
+              </div>
+
+              {managerSignature ? (
+                <div className="flex items-center space-x-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+                  <div className="w-24 h-12 bg-white rounded-xl border border-slate-200 flex items-center justify-center p-1 overflow-hidden shadow-2xs">
+                    <img src={managerSignature} alt="Signature Gérant" className="max-h-full max-w-full object-contain" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-slate-800 truncate">Signature configurée</p>
+                    <p className="text-[10px] text-slate-500">Apposée automatiquement sur vos factures & reçus</p>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsSignatureModalOpen(true)}
+                      className="p-2 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer"
+                      title="Modifier / Redessiner"
+                    >
+                      <PenTool className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setManagerSignature(null)}
+                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                      title="Supprimer la signature"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsSignatureModalOpen(true)}
+                    className="flex items-center justify-center space-x-2 p-2.5 bg-emerald-50/70 hover:bg-emerald-100/70 text-emerald-800 border border-emerald-200/80 rounded-2xl cursor-pointer text-xs font-bold transition-all active:scale-98"
+                  >
+                    <PenTool className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Signer à l'écran (Doigt / Stylos)</span>
+                  </button>
+
+                  <label className="flex items-center justify-center space-x-2 p-2.5 bg-slate-50 hover:bg-slate-100/70 border border-dashed border-slate-300 rounded-2xl cursor-pointer text-xs font-bold text-slate-700 transition-colors">
+                    <Upload className="w-4 h-4 text-slate-500 shrink-0" />
+                    <span>Importer image (PNG / JPG)</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleSignatureUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
               )}
             </div>
 
@@ -2671,6 +2757,14 @@ export const SettingsView: React.FC = () => {
         onSubscriptionSuccess={(updatedShop) => {
           updateShopProfile(updatedShop);
         }}
+      />
+
+      {/* Modal de Signature Électronique au doigt / stylet */}
+      <SignaturePadModal
+        isOpen={isSignatureModalOpen}
+        onClose={() => setIsSignatureModalOpen(false)}
+        onSave={(sigDataUrl) => setManagerSignature(sigDataUrl)}
+        initialSignature={managerSignature}
       />
     </div>
   );

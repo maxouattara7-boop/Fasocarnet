@@ -2,6 +2,16 @@ import { CustomInvoice, ShopProfile } from '../types';
 import { formatCurrency } from './formatters';
 import { getLegalArreteMention } from './numberToWords';
 
+export function escapeHtml(str?: string | null): string {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 /**
  * Génère le message texte formaté pour le partage WhatsApp d'une Facture ou d'un Devis
  */
@@ -310,11 +320,11 @@ export function generateCustomInvoiceHtml(
     <div class="card">
       <div class="card-title">Facturé à (Client)</div>
       <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">
-        ${invoice.clientName}
+        ${escapeHtml(invoice.clientName)}
       </div>
-      ${invoice.clientPhone ? `<div style="color: #475569;">📞 ${invoice.clientPhone}</div>` : ''}
-      ${invoice.clientAddress ? `<div style="color: #475569;">📍 ${invoice.clientAddress}</div>` : ''}
-      ${invoice.clientIfu ? `<div style="color: #475569;"><strong>IFU Client :</strong> ${invoice.clientIfu}</div>` : ''}
+      ${invoice.clientPhone ? `<div style="color: #475569;">📞 ${escapeHtml(invoice.clientPhone)}</div>` : ''}
+      ${invoice.clientAddress ? `<div style="color: #475569;">📍 ${escapeHtml(invoice.clientAddress)}</div>` : ''}
+      ${invoice.clientIfu ? `<div style="color: #475569;"><strong>IFU Client :</strong> ${escapeHtml(invoice.clientIfu)}</div>` : ''}
     </div>
 
     <div class="card">
@@ -322,13 +332,13 @@ export function generateCustomInvoiceHtml(
       <div><strong>État :</strong> ${
         invoice.status === 'PAID' ? '✅ PAYÉE' : invoice.status === 'SENT' ? '📤 ENVOYÉE' : '📝 BROUILLON'
       }</div>
-      ${invoice.paymentTerms ? `<div style="margin-top: 4px;"><strong>Conditions :</strong> ${invoice.paymentTerms}</div>` : ''}
+      ${invoice.paymentTerms ? `<div style="margin-top: 4px;"><strong>Conditions :</strong> ${escapeHtml(invoice.paymentTerms)}</div>` : ''}
       ${(shop?.orangeMoneyNumber || shop?.moovMoneyNumber || shop?.waveNumber) ? `
         <div style="margin-top: 6px; font-size: 11px; color: #475569;">
           <strong>Paiement Mobile :</strong><br/>
-          ${shop.orangeMoneyNumber ? `• OM : ${shop.orangeMoneyNumber} ` : ''}
-          ${shop.moovMoneyNumber ? `• Moov : ${shop.moovMoneyNumber} ` : ''}
-          ${shop.waveNumber ? `• Wave : ${shop.waveNumber}` : ''}
+          ${shop.orangeMoneyNumber ? `• OM : ${escapeHtml(shop.orangeMoneyNumber)} ` : ''}
+          ${shop.moovMoneyNumber ? `• Moov : ${escapeHtml(shop.moovMoneyNumber)} ` : ''}
+          ${shop.waveNumber ? `• Wave : ${escapeHtml(shop.waveNumber)}` : ''}
         </div>
       ` : ''}
     </div>
@@ -350,7 +360,7 @@ export function generateCustomInvoiceHtml(
         ${invoice.items.map((it, idx) => `
           <tr>
             <td style="color: #94a3b8; font-weight: 600;">${idx + 1}</td>
-            <td style="font-weight: 600; color: #1e293b;">${it.description}</td>
+            <td style="font-weight: 600; color: #1e293b;">${escapeHtml(it.description)}</td>
             <td class="text-center font-bold">${it.quantity}</td>
             <td class="text-right">${formatCurrency(it.unitPrice)}</td>
             <td class="text-right font-extrabold" style="color: #047857;">${formatCurrency(it.totalPrice)}</td>
@@ -406,7 +416,7 @@ export function generateCustomInvoiceHtml(
   <!-- NOTES / MENTIONS SPÉCIALES -->
   ${invoice.notes ? `
     <div style="background: #f8fafc; border-left: 3px solid #047857; padding: 10px 14px; margin-bottom: 25px; font-size: 12px; color: #334155;">
-      <strong>Note :</strong> ${invoice.notes}
+      <strong>Note :</strong> ${escapeHtml(invoice.notes)}
     </div>
   ` : ''}
 
@@ -415,16 +425,21 @@ export function generateCustomInvoiceHtml(
     <div class="signature-box">
       Signature & Cachet Client
     </div>
-    <div class="signature-box">
-      Pour <strong>${shop?.name || 'FASOCARNET'}</strong> (Signature & Cachet)
+    <div class="signature-box" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 85px;">
+      <div>Pour <strong>${escapeHtml(shop?.name || 'FASOCARNET')}</strong> (Signature autorisée)</div>
+      ${shop?.managerSignature ? `
+        <div style="margin-top: 6px; text-align: center;">
+          <img src="${shop.managerSignature}" style="max-height: 52px; max-width: 150px; object-fit: contain; display: inline-block;" alt="Signature Gérant" />
+        </div>
+      ` : ''}
     </div>
   </div>
 
   <!-- PIED DE PAGE -->
   <div class="footer">
     <div style="text-align: center;">
-      ${shop?.name || 'FASOCARNET'} ${shop?.ifu ? `• IFU : ${shop.ifu}` : ''} ${shop?.rccm ? `• RCCM : ${shop.rccm}` : ''} ${shop?.phone ? `• Tél : ${shop.phone}` : ''}<br/>
-      Document généré avec précision sur <strong>FasoCarnet</strong>.
+      ${escapeHtml(shop?.name || 'FASOCARNET')} ${shop?.ifu ? `• IFU : ${escapeHtml(shop.ifu)}` : ''} ${shop?.rccm ? `• RCCM : ${escapeHtml(shop.rccm)}` : ''} ${shop?.phone ? `• Tél : ${escapeHtml(shop.phone)}` : ''}<br/>
+      Document certifié généré avec précision sur <strong>FasoCarnet</strong>.
     </div>
   </div>
 

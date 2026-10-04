@@ -430,6 +430,14 @@ export function generateCustomInvoicePdf(
   doc.setFontSize(6.5);
   doc.text('Signature & Cachet autorisés', marginX + 101, sigBoxY + 9);
 
+  if (shop?.managerSignature) {
+    try {
+      doc.addImage(shop.managerSignature, 'PNG', marginX + 115, sigBoxY + 7, 34, 15);
+    } catch {
+      // Ignorer si format d'image incompatible
+    }
+  }
+
   // 8. PIED DE PAGE
   doc.setLineDashPattern([], 0);
   doc.setDrawColor(226, 232, 240);

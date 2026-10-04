@@ -166,7 +166,7 @@ export const App: React.FC = () => {
 
     mainContent = (
       <div className={`bg-gray-100 flex flex-col font-sans antialiased text-gray-900 ${
-        activeTab === 'pos' ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen justify-between'
+        activeTab === 'pos' ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen justify-between'
       }`}>
         <Header />
 

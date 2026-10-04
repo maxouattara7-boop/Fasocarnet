@@ -18,7 +18,6 @@ import {
   Calculator, 
   Search, 
   X, 
-  ChevronDown, 
   Barcode, 
   Camera, 
   Check, 
@@ -425,48 +424,48 @@ export const PosView: React.FC = () => {
   });
 
   return (
-    <div className="max-w-[1680px] mx-auto w-full p-2.5 sm:p-3.5 lg:p-4 pb-20 md:pb-3 h-full max-h-full flex flex-col min-h-0 overflow-hidden space-y-2">
+    <div className="max-w-[1680px] mx-auto w-full px-2 sm:px-3.5 lg:px-4 py-1 sm:py-2.5 pb-[58px] md:pb-2.5 h-full max-h-full flex flex-col min-h-0 overflow-hidden space-y-1 sm:space-y-1.5">
       {/* Toast de Notification */}
       {scanToast && (
-        <div className="bg-emerald-900 text-white text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl shadow-xl flex items-center justify-between animate-in fade-in slide-in-from-top duration-200 border border-emerald-500/40 shrink-0">
+        <div className="bg-emerald-900 text-white text-xs sm:text-sm font-bold px-3 py-1.5 rounded-xl shadow-xl flex items-center justify-between animate-in fade-in slide-in-from-top duration-200 border border-emerald-500/40 shrink-0">
           <div className="flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-amber-300 animate-spin" />
+            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin" />
             <span>{scanToast}</span>
           </div>
-          <span className="text-xs bg-emerald-700/80 px-2.5 py-0.5 rounded-md font-mono font-bold">OK</span>
+          <span className="text-[11px] bg-emerald-700/80 px-2 py-0.5 rounded-md font-mono font-bold">OK</span>
         </div>
       )}
 
       {/* DISPOSITION RESPONSIVE : CALCULATRICE STATIQUE À GAUCHE & CATALOGUE DÉFILANT À DROITE */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4 lg:gap-5 items-stretch flex-1 min-h-0 h-full overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 lg:gap-4 items-stretch flex-1 min-h-0 h-full overflow-hidden">
         
         {/* ======================================================== */}
         {/* COLONNE GAUCHE (DESKTOP) : CALCULATRICE STATIQUE & FIXE  */}
         {/* ======================================================== */}
         <div 
-          className="lg:col-span-5 xl:col-span-5 2xl:col-span-4 h-full max-h-full flex flex-col justify-between shrink-0 overflow-y-auto lg:overflow-hidden scrollbar-none select-none space-y-1.5 sm:space-y-2"
+          className="lg:col-span-5 xl:col-span-5 2xl:col-span-4 h-full max-h-full flex flex-col justify-between shrink-0 overflow-y-auto lg:overflow-y-auto scrollbar-none select-none space-y-1 sm:space-y-1.5 min-h-0"
           onWheel={(e) => e.stopPropagation()}
           style={{ overscrollBehavior: 'none' }}
         >
           {/* Écran d'affichage du montant, de la remise et du calcul */}
-          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-3 sm:p-3.5 rounded-2xl shadow-md flex flex-col justify-between border border-emerald-700/50 shrink-0">
+          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-2.5 sm:p-3 rounded-2xl shadow-xs flex flex-col justify-between border border-emerald-700/50 shrink-0">
             <div className="flex items-center justify-between text-emerald-300 text-xs sm:text-sm font-black tracking-wider uppercase">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1.5">
                 {hasCalculation ? (
-                  <Calculator className="w-4 h-4 text-amber-400 animate-pulse" />
+                  <Calculator className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
                 ) : (
-                  <ShoppingCart className="w-4 h-4" />
+                  <ShoppingCart className="w-3.5 h-3.5" />
                 )}
                 <span>{hasCalculation ? 'Total Additionné' : 'Montant à Encaisser'}</span>
               </div>
-              <div className="flex items-center space-x-1.5">
+              <div className="flex items-center space-x-1">
                 {discount && discount.calculatedAmount > 0 && (
                   <button
                     type="button"
                     onClick={() => setIsDiscountModalOpen(true)}
-                    className="bg-amber-400 hover:bg-amber-300 text-amber-950 px-2 py-0.5 rounded-lg text-[11px] font-black tracking-wide flex items-center space-x-1 transition-all cursor-pointer"
+                    className="bg-amber-400 hover:bg-amber-300 text-amber-950 px-1.5 py-0.5 rounded-md text-[10px] sm:text-[11px] font-black tracking-wide flex items-center space-x-1 transition-all cursor-pointer"
                   >
-                    <Tag className="w-3 h-3" />
+                    <Tag className="w-2.5 h-2.5" />
                     <span>-{formatCurrency(discountAmount)}</span>
                   </button>
                 )}
@@ -474,45 +473,45 @@ export const PosView: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleClear}
-                    className="bg-red-500/25 hover:bg-red-500/40 text-red-200 border border-red-500/30 px-2 py-0.5 rounded-lg text-[11px] font-black flex items-center space-x-1 transition-all cursor-pointer"
+                    className="bg-red-500/25 hover:bg-red-500/40 text-red-200 border border-red-500/30 px-1.5 py-0.5 rounded-md text-[10px] sm:text-[11px] font-black flex items-center space-x-1 transition-all cursor-pointer"
                     title="Vider le panier"
                   >
-                    <Trash2 className="w-3 h-3 text-red-300" />
+                    <Trash2 className="w-2.5 h-2.5 text-red-300" />
                     <span>Vider ({selectedItems.length})</span>
                   </button>
                 )}
-                <span className="bg-emerald-700/80 px-2 py-0.5 rounded-lg text-[11px] font-black tracking-wide">FCFA</span>
+                <span className="bg-emerald-700/80 px-1.5 py-0.5 rounded-md text-[10px] sm:text-[11px] font-black tracking-wide">FCFA</span>
               </div>
             </div>
 
-            <div className="text-right mt-1">
+            <div className="text-right mt-0.5">
               {/* Formule de calcul si addition en cours */}
               {hasCalculation && (
-                <div className="text-xs font-bold text-amber-300 bg-amber-950/50 px-2.5 py-0.5 rounded-lg inline-block max-w-full truncate mb-1 border border-amber-500/30">
+                <div className="text-[11px] sm:text-xs font-bold text-amber-300 bg-amber-950/50 px-2 py-0.5 rounded-md inline-block max-w-full truncate mb-0.5 border border-amber-500/30">
                   {formatPosExpressionDisplay(amountStr)} {/[+]\s*$/.test(amountStr) ? '...' : '='}
                 </div>
               )}
 
               {/* Affichage du sous-total barré si remise active */}
               {discount && discount.calculatedAmount > 0 && (
-                <div className="text-xs font-bold text-emerald-300/80 line-through">
+                <div className="text-[11px] sm:text-xs font-bold text-emerald-300/80 line-through">
                   {formatCurrency(subtotalAmount)}
                 </div>
               )}
 
-              <div className="text-3xl sm:text-4xl lg:text-3.5xl xl:text-4xl font-black tracking-tight text-white drop-shadow-sm truncate leading-none font-display">
+              <div className="text-2xl sm:text-3xl lg:text-3xl xl:text-3.5xl font-black tracking-tight text-white drop-shadow-xs truncate leading-tight font-display">
                 {formatCurrency(finalPayableAmount).replace(' FCFA', '')}
               </div>
 
               {/* LISTE COMPACTE DES ARTICLES INTÉGRÉE DIRECTEMENT DANS LA CARTE */}
               {selectedItems.length > 0 ? (
-                <div className="mt-2 pt-1.5 border-t border-emerald-700/50 flex flex-wrap gap-1.5 justify-end max-h-16 overflow-y-auto scrollbar-none text-left">
+                <div className="mt-1 pt-1 border-t border-emerald-700/50 flex flex-wrap gap-1 justify-end max-h-12 sm:max-h-16 overflow-y-auto scrollbar-none text-left">
                   {selectedItems.map((item, idx) => (
                     <span
                       key={idx}
-                      className="inline-flex items-center space-x-1.5 bg-emerald-950/80 border border-emerald-600/50 px-2 py-0.5 rounded-lg text-xs text-emerald-100 shadow-2xs"
+                      className="inline-flex items-center space-x-1 bg-emerald-950/80 border border-emerald-600/50 px-1.5 py-0.5 rounded-md text-[11px] sm:text-xs text-emerald-100 shadow-2xs"
                     >
-                      <span className="font-bold text-white truncate max-w-[120px] sm:max-w-[160px]">{item.description}</span>
+                      <span className="font-bold text-white truncate max-w-[95px] sm:max-w-[140px]">{item.description}</span>
                       <span className="text-[10px] text-amber-300 font-extrabold">
                         {item.quantity > 1 ? `${item.quantity}×` : ''}{formatCurrency(item.unitPrice * item.quantity).replace(' FCFA', '')}
                       </span>
@@ -525,13 +524,13 @@ export const PosView: React.FC = () => {
                         className="text-emerald-400 hover:text-red-300 p-0.5 transition-colors cursor-pointer ml-0.5"
                         title="Retirer cet article"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-3 h-3" />
                       </button>
                     </span>
                   ))}
                 </div>
               ) : (
-                <div className="text-[11px] sm:text-xs text-emerald-200/80 mt-1 font-medium">
+                <div className="text-[10px] sm:text-[11px] text-emerald-200/80 mt-0.5 font-medium">
                   {discount && discount.calculatedAmount > 0 ? (
                     <span className="font-bold text-amber-300">
                       Remise : -{formatCurrency(discountAmount)} ({discount.type === 'PERCENT' ? `${discount.value}%` : 'Fixe'})
@@ -547,15 +546,15 @@ export const PosView: React.FC = () => {
           {/* ======================================================== */}
           {/* TOUCHES D'ACTION ALLONGÉES & VISIBLES : SCANNER & REMISE */}
           {/* ======================================================== */}
-          <div className="grid grid-cols-2 gap-2 shrink-0">
+          <div className="grid grid-cols-2 gap-1.5 sm:gap-2 shrink-0">
             {/* Bouton Scanner Caméra Code-Barres grand format allongé */}
             <button
               type="button"
               onClick={() => setIsBarcodeScannerOpen(true)}
-              className="h-12 sm:h-13 lg:h-12 xl:h-13 px-3 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:from-amber-700 active:to-amber-800 text-white rounded-xl sm:rounded-2xl text-sm sm:text-base font-black flex items-center justify-center space-x-2 shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer font-display"
+              className="h-9 sm:h-11 lg:h-10 xl:h-11 px-2.5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:from-amber-700 active:to-amber-800 text-white rounded-xl text-xs sm:text-sm font-black flex items-center justify-center space-x-1.5 shadow-xs shadow-amber-500/20 active:scale-95 transition-all cursor-pointer font-display"
               title="Scanner un code-barres avec la caméra ou douchette"
             >
-              <Camera className="w-5 h-5 text-amber-100 shrink-0" />
+              <Camera className="w-4 h-4 text-amber-100 shrink-0" />
               <span className="tracking-wide">Scanner</span>
             </button>
 
@@ -566,44 +565,43 @@ export const PosView: React.FC = () => {
                 triggerHaptic(30);
                 setIsDiscountModalOpen(true);
               }}
-              className={`h-12 sm:h-13 lg:h-12 xl:h-13 px-3 rounded-xl sm:rounded-2xl text-sm sm:text-base font-black flex items-center justify-center space-x-2 shadow-md active:scale-95 transition-all cursor-pointer font-display ${
+              className={`h-9 sm:h-11 lg:h-10 xl:h-11 px-2.5 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display ${
                 discount && discount.calculatedAmount > 0
                   ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-500 shadow-amber-400/30'
                   : 'bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white shadow-slate-900/20'
               }`}
               title="Appliquer une remise en % ou FCFA"
             >
-              <Tag className="w-5 h-5 text-amber-300 shrink-0" />
+              <Tag className="w-4 h-4 text-amber-300 shrink-0" />
               <span className="tracking-wide truncate">{discount && discount.calculatedAmount > 0 ? `Remise (-${formatCurrency(discountAmount)})` : 'Remise Client'}</span>
             </button>
           </div>
 
-          {/* Bouton catalogue complet & Puces rapides (Visible surtout sur mobile) */}
-          <div className="lg:hidden space-y-2">
-            {products.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setArticleSearch('');
-                  setIsArticlePickerOpen(true);
-                }}
-                className="w-full py-3 px-4 bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl text-base font-black flex items-center justify-center space-x-2 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
-                title="Ouvrir le catalogue d'articles"
-              >
-                <Package className="w-5 h-5 text-amber-300" />
-                <span>Consulter le Catalogue ({products.length} articles)</span>
-                <ChevronDown className="w-5 h-5 text-emerald-200" />
-              </button>
-            )}
+          {/* Bouton catalogue complet & Puces rapides en 1 ligne compacte (Sur mobile) */}
+          <div className="lg:hidden space-y-1 shrink-0">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+              {products.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setArticleSearch('');
+                    setIsArticlePickerOpen(true);
+                  }}
+                  className="h-8 px-2.5 bg-gradient-to-r from-emerald-800 to-teal-900 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl text-xs font-black flex items-center space-x-1 shadow-2xs active:scale-95 transition-all cursor-pointer font-display shrink-0"
+                  title="Ouvrir le catalogue d'articles"
+                >
+                  <Package className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Catalogue ({products.length})</span>
+                </button>
+              )}
 
-            {/* Puces des articles fréquents en 1-tap direct (Sur mobile) */}
-            <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none">
+              {/* Puces des articles fréquents en 1-tap direct */}
               {products.slice(0, 6).map((prod) => (
                 <button
                   key={prod.id}
                   type="button"
                   onClick={() => handleSelectProduct(prod.id)}
-                  className={`px-3.5 py-2 bg-white hover:bg-emerald-50/70 text-slate-800 border rounded-xl text-sm sm:text-base font-bold flex items-center space-x-2 shrink-0 shadow-2xs active:scale-95 transition-all cursor-pointer ${
+                  className={`h-8 px-2.5 bg-white hover:bg-emerald-50/70 text-slate-800 border rounded-xl text-xs font-bold flex items-center space-x-1.5 shrink-0 shadow-2xs active:scale-95 transition-all cursor-pointer ${
                     typeof prod.stockQuantity === 'number' && prod.stockQuantity <= 0
                       ? 'border-red-300 bg-red-50/30'
                       : typeof prod.stockQuantity === 'number' && prod.stockQuantity <= (prod.minStockAlert ?? 5)
@@ -611,8 +609,8 @@ export const PosView: React.FC = () => {
                       : 'border-slate-200 hover:border-emerald-400'
                   }`}
                 >
-                  <span className="font-black text-slate-900">{prod.name}</span>
-                  <span className="text-xs sm:text-sm font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                  <span className="font-extrabold text-slate-900 truncate max-w-[100px]">{prod.name}</span>
+                  <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded">
                     {formatCurrency(prod.price).replace(' FCFA', '')}
                   </span>
                 </button>
@@ -621,7 +619,7 @@ export const PosView: React.FC = () => {
           </div>
 
           {/* Clavier tactile avec touche + et vibreur */}
-          <div className="bg-white p-2.5 sm:p-3 lg:p-2.5 xl:p-3 rounded-2xl sm:rounded-3xl shadow-xs border border-slate-200/80 shrink-0">
+          <div className="bg-white p-1.5 sm:p-2 lg:p-2 xl:p-2.5 rounded-2xl shadow-2xs border border-slate-200/80 shrink-0">
             <Keypad
               value={amountStr}
               onChange={setAmountStr}
@@ -634,14 +632,14 @@ export const PosView: React.FC = () => {
             type="button"
             disabled={finalPayableAmount <= 0}
             onClick={handleOpenPayment}
-            className={`w-full py-3.5 sm:py-4 lg:py-3.5 xl:py-4 rounded-2xl sm:rounded-3xl font-black text-base sm:text-lg lg:text-lg xl:text-xl shadow-lg flex items-center justify-center space-x-2.5 transition-all cursor-pointer font-display shrink-0 ${
+            className={`w-full py-2.5 sm:py-3.5 lg:py-2.5 xl:py-3 rounded-2xl font-black text-sm sm:text-base lg:text-base xl:text-lg shadow-md flex items-center justify-center space-x-2 transition-all cursor-pointer font-display shrink-0 ${
               finalPayableAmount > 0
-                ? 'bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white shadow-emerald-700/30 active:scale-98'
+                ? 'bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white shadow-emerald-700/25 active:scale-98'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
             }`}
           >
             <span>ENCAISSER ({formatCurrency(finalPayableAmount)})</span>
-            <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 stroke-[3]" />
+            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
           </button>
         </div>
 

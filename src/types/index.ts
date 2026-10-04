@@ -19,6 +19,7 @@ export interface ShopProfile {
   ifu?: string; // Numéro IFU officiel de l'entreprise
   rccm?: string; // Numéro RCCM officiel de l'entreprise
   logo?: string; // Logo de l'entreprise (Base64 data URL)
+  managerSignature?: string; // Signature électronique du gérant (Base64 data URL PNG)
   primaryColor?: string; // Couleur thème / marque de l'entreprise (ex: #047857)
   receiptPaperWidth?: '58mm' | '80mm'; // Format du rouleau thermique (58mm par défaut, ou 80mm)
   debtAlarmEnabled?: boolean; // Alarme automatique de rappel de dettes

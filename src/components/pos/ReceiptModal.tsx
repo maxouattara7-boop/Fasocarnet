@@ -295,6 +295,11 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
           <div style="margin-top: 12px; margin-bottom: 6px; text-align: right; font-size: 10px;">
             <div style="font-weight: 900; text-transform: uppercase;">Le Responsable</div>
             <div style="font-weight: 600; margin-top: 2px;">${shopProfile?.ownerName || shopProfile?.name || 'Le Gérant'}</div>
+            ${shopProfile?.managerSignature ? `
+              <div style="margin-top: 4px;">
+                <img src="${shopProfile.managerSignature}" style="max-height: 38px; max-width: 120px; object-fit: contain; display: inline-block;" alt="Signature" />
+              </div>
+            ` : ''}
           </div>
           ` : ''}
 
