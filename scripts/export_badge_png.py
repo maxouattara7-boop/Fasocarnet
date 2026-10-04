@@ -14,8 +14,8 @@ def export_badge_images():
         'zone': 'Ouagadougou'
     }
 
-    badge_w = 70 * mm
-    badge_h = 105 * mm
+    badge_w = 54 * mm
+    badge_h = 85.6 * mm
 
     output_dir = os.path.join(os.getcwd(), "docs")
     public_dir = os.path.join(os.getcwd(), "public")
