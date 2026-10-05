@@ -565,6 +565,8 @@ export const syncService = {
       ? (isHashed(data.pinCode) ? data.pinCode.trim() : hashPin(data.pinCode.trim()))
       : undefined;
 
+    const validReferralCode = await adminService.filterValidCommercialCode(data.referralCode);
+
     const newShop: ShopProfile = {
       id: `shop_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       name: data.name.trim(),
@@ -587,7 +589,7 @@ export const syncService = {
       subscriptionPlan: 'trial',
       subscriptionStatus: 'trial',
       subscriptionExpiresAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
-      referralCode: data.referralCode?.trim().toUpperCase() || undefined,
+      referralCode: validReferralCode,
       telemetry,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()

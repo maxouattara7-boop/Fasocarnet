@@ -26,64 +26,64 @@ export function generateCustomInvoiceWhatsAppMessage(
   const shopName = shop?.name || 'Notre Boutique';
   const lines: string[] = [];
 
-  lines.push(`📄 *${typeLabel} N° ${invoice.number}*`);
-  lines.push(`🏪 *${shopName}*`);
-  if (shop?.phone) lines.push(`📞 Contact : ${shop.phone}`);
-  if (shop?.address) lines.push(`📍 ${shop.address}`);
-  lines.push('────────────────────────');
+  lines.push(`${typeLabel} N° ${invoice.number}`);
+  lines.push(`${shopName}`);
+  if (shop?.phone) lines.push(`Contact : ${shop.phone}`);
+  if (shop?.address) lines.push(`Adresse : ${shop.address}`);
+  lines.push('----------------------------------');
 
-  lines.push(`👤 *Client :* ${invoice.clientName}`);
-  if (invoice.clientPhone) lines.push(`📱 Tél : ${invoice.clientPhone}`);
-  lines.push(`📅 Date : ${new Date(invoice.issueDate).toLocaleDateString('fr-FR')}`);
+  lines.push(`Client : ${invoice.clientName}`);
+  if (invoice.clientPhone) lines.push(`Tél : ${invoice.clientPhone}`);
+  lines.push(`Date : ${new Date(invoice.issueDate).toLocaleDateString('fr-FR')}`);
   if (invoice.dueDate) {
-    lines.push(`⏳ Échéance : ${new Date(invoice.dueDate).toLocaleDateString('fr-FR')}`);
+    lines.push(`Échéance : ${new Date(invoice.dueDate).toLocaleDateString('fr-FR')}`);
   }
-  lines.push('────────────────────────');
+  lines.push('----------------------------------');
 
-  lines.push('*DÉTAIL DES ARTICLES :*');
+  lines.push('DÉTAIL DES ARTICLES :');
   invoice.items.forEach((item, idx) => {
-    lines.push(`${idx + 1}. *${item.description}*`);
-    lines.push(`   ${item.quantity} x ${formatCurrency(item.unitPrice)} = *${formatCurrency(item.totalPrice)}*`);
+    lines.push(`${idx + 1}. ${item.description}`);
+    lines.push(`   ${item.quantity} x ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.totalPrice)}`);
   });
 
-  lines.push('────────────────────────');
-  lines.push(`Sous-total : *${formatCurrency(invoice.subtotal)}*`);
+  lines.push('----------------------------------');
+  lines.push(`Sous-total : ${formatCurrency(invoice.subtotal)}`);
 
   if (invoice.discountAmount && invoice.discountAmount > 0) {
     const discLabel = invoice.discountType === 'PERCENT' && invoice.discountValue 
       ? `Remise (${invoice.discountValue}%)` 
       : 'Remise';
-    lines.push(`🎁 ${discLabel} : -${formatCurrency(invoice.discountAmount)}`);
+    lines.push(`${discLabel} : -${formatCurrency(invoice.discountAmount)}`);
   }
 
   if (invoice.taxAmount && invoice.taxAmount > 0) {
-    lines.push(`🏛️ TVA (${invoice.taxRate || 18}%) : +${formatCurrency(invoice.taxAmount)}`);
+    lines.push(`TVA (${invoice.taxRate || 18}%) : +${formatCurrency(invoice.taxAmount)}`);
   }
 
-  lines.push(`👉 *TOTAL NET À PAYER : ${formatCurrency(invoice.totalAmount)}*`);
+  lines.push(`TOTAL NET À PAYER : ${formatCurrency(invoice.totalAmount)}`);
   
   // Mention Légale d'Arrêté
   const arrete = getLegalArreteMention(invoice.type, invoice.totalAmount);
-  lines.push(`📜 _${arrete.fullMention}_`);
-  lines.push('────────────────────────');
+  lines.push(`${arrete.fullMention}`);
+  lines.push('----------------------------------');
 
   // Coordonnées de paiement
   if (shop?.orangeMoneyNumber || shop?.moovMoneyNumber || shop?.waveNumber) {
-    lines.push('*Moyens de paiement acceptés :*');
-    if (shop.orangeMoneyNumber) lines.push(`• Orange Money : ${shop.orangeMoneyNumber}`);
-    if (shop.moovMoneyNumber) lines.push(`• Moov Money : ${shop.moovMoneyNumber}`);
-    if (shop.waveNumber) lines.push(`• Wave : ${shop.waveNumber}`);
-    lines.push('────────────────────────');
+    lines.push('Moyens de paiement acceptés :');
+    if (shop.orangeMoneyNumber) lines.push(`- Orange Money : ${shop.orangeMoneyNumber}`);
+    if (shop.moovMoneyNumber) lines.push(`- Moov Money : ${shop.moovMoneyNumber}`);
+    if (shop.waveNumber) lines.push(`- Wave : ${shop.waveNumber}`);
+    lines.push('----------------------------------');
   }
 
   if (invoice.paymentTerms) {
-    lines.push(`ℹ️ _Conditions : ${invoice.paymentTerms}_`);
+    lines.push(`Conditions : ${invoice.paymentTerms}`);
   }
   if (invoice.notes) {
-    lines.push(`📝 _Note : ${invoice.notes}_`);
+    lines.push(`Note : ${invoice.notes}`);
   }
 
-  lines.push(`\n🙏 _Merci pour votre confiance !_`);
+  lines.push(`\nMerci pour votre confiance !`);
 
   return lines.join('\n');
 }

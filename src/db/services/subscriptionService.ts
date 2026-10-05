@@ -221,12 +221,12 @@ export const subscriptionService = {
   },
 
   getWhatsAppPaymentConfirmationUrl(plan: SubscriptionPlan, shopName?: string, shopPhone?: string): string {
-    const text = `🌟 *Paiement Abonnement FasoCarnet* 🌟\n\n` +
-      `Bonjour FasoCarnet ! 🇧🇫\n` +
+    const text = `PAIEMENT ABONNEMENT FASOCARNET\n\n` +
+      `Bonjour FasoCarnet !\n` +
       `Je viens d'effectuer le paiement pour ma boutique :\n\n` +
-      `🏪 *Commerce* : ${shopName || 'Mon Commerce'}\n` +
-      `📱 *Téléphone* : ${shopPhone || ''}\n` +
-      `⭐ *Formule* : ${plan.name} (${plan.price.toLocaleString('fr-FR')} FCFA)\n\n` +
+      `- Commerce : ${shopName || 'Mon Commerce'}\n` +
+      `- Téléphone : ${shopPhone || ''}\n` +
+      `- Formule : ${plan.name} (${plan.price.toLocaleString('fr-FR')} FCFA)\n\n` +
       `Merci de m'envoyer ma clé de licence d'activation !`;
     return `https://wa.me/22672990310?text=${encodeURIComponent(text)}`;
   },
@@ -401,13 +401,13 @@ export const subscriptionService = {
 
   getWhatsAppRenewalUrl(shop: ShopProfile, plan: SubscriptionPlan, supportPhone: string = '22670000000'): string {
     const text = 
-      `*DEMANDE DE RENOUVELLEMENT FASOCARNET*\n` +
+      `DEMANDE DE RENOUVELLEMENT FASOCARNET\n` +
       `--------------------------------\n` +
-      `🏪 *Boutique :* ${shop.name}\n` +
-      `👤 *Responsable :* ${shop.ownerName || 'Gérant'}\n` +
-      `📞 *Téléphone :* ${shop.phone}\n` +
-      `📦 *Formule choisie :* ${plan.name} (${plan.price.toLocaleString('fr-FR')} FCFA)\n` +
-      `🆔 *ID Boutique :* ${shop.id}\n\n` +
+      `- Boutique : ${shop.name}\n` +
+      `- Responsable : ${shop.ownerName || 'Gérant'}\n` +
+      `- Téléphone : ${shop.phone}\n` +
+      `- Formule choisie : ${plan.name} (${plan.price.toLocaleString('fr-FR')} FCFA)\n` +
+      `- ID Boutique : ${shop.id}\n\n` +
       `Je souhaite régler mon abonnement par Mobile Money (Orange Money / Moov Money / Wave). Merci de m'indiquer la procédure d'activation.`;
 
     const cleanPhone = supportPhone.replace(/\D/g, '');

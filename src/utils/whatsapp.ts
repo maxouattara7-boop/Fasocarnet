@@ -12,22 +12,22 @@ export function generateWhatsAppDebtReminderUrl(
   const shopName = shop?.name || 'Votre Boutique';
   const paymentMethods: string[] = [];
 
-  if (shop?.orangeMoneyNumber) paymentMethods.push(`🟧 Orange Money : *${shop.orangeMoneyNumber}*`);
-  if (shop?.moovMoneyNumber) paymentMethods.push(`🟦 Moov Money : *${shop.moovMoneyNumber}*`);
-  if (shop?.waveNumber) paymentMethods.push(`🔷 Wave : *${shop.waveNumber}*`);
+  if (shop?.orangeMoneyNumber) paymentMethods.push(`- Orange Money : ${shop.orangeMoneyNumber}`);
+  if (shop?.moovMoneyNumber) paymentMethods.push(`- Moov Money : ${shop.moovMoneyNumber}`);
+  if (shop?.waveNumber) paymentMethods.push(`- Wave : ${shop.waveNumber}`);
   if (paymentMethods.length === 0 && shop?.phone) {
-    paymentMethods.push(`📱 Contact : *${shop.phone}*`);
+    paymentMethods.push(`- Contact : ${shop.phone}`);
   }
 
   const paymentText = paymentMethods.length > 0 
     ? `\n\nVous pouvez effectuer votre règlement par :\n${paymentMethods.join('\n')}` 
     : '';
 
-  const message = `Bonjour *${customer.name}*,\n\n` +
-    `L'établissement *${shopName}* vous salue chaleureusement.\n` +
-    `Sauf erreur de notre part, votre carnet indique un solde restant de *${formatCurrency(debt.remainingAmount)}* sur vos récents achats.` +
+  const message = `Bonjour ${customer.name},\n\n` +
+    `L'établissement ${shopName} vous salue.\n` +
+    `Sauf erreur de notre part, votre carnet indique un solde restant de ${formatCurrency(debt.remainingAmount)} sur vos récents achats.` +
     paymentText +
-    `\n\nMerci pour votre confiance et à très bientôt ! 🙏`;
+    `\n\nMerci pour votre confiance et à très bientôt !`;
 
   const phoneParam = cleanPhoneNumber(customer.phone);
   return `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`;
@@ -63,51 +63,51 @@ export function generateWhatsAppReceiptUrl(
 
   let itemsText = '';
   if (sale.items && sale.items.length > 0) {
-    itemsText = '\n*Détail des articles :*\n' +
-      sale.items.map(i => `• ${i.description} : ${i.quantity} x ${formatCurrency(i.unitPrice)} = *${formatCurrency(i.quantity * i.unitPrice)}*`).join('\n') + '\n';
+    itemsText = '\nDétail des articles :\n' +
+      sale.items.map(i => `- ${i.description} : ${i.quantity} x ${formatCurrency(i.unitPrice)} = ${formatCurrency(i.quantity * i.unitPrice)}`).join('\n') + '\n';
   }
 
   let partialDetailsText = '';
   if (sale.isPartialCredit) {
-    partialDetailsText = `💵 *Acompte versé :* ${formatCurrency(sale.paidAmount || 0)}\n` +
-      `⚠️ *Reliquat restant en dette :* ${formatCurrency(sale.creditAmount || 0)}\n` +
-      (sale.customerName ? `👤 *Client bénéficiaire :* ${sale.customerName}\n` : '');
+    partialDetailsText = `Acompte versé : ${formatCurrency(sale.paidAmount || 0)}\n` +
+      `Reliquat restant en dette : ${formatCurrency(sale.creditAmount || 0)}\n` +
+      (sale.customerName ? `Client bénéficiaire : ${sale.customerName}\n` : '');
   }
 
   const isCredit = Boolean(sale.isCredit || sale.isPartialCredit);
   const title = isCredit 
-    ? (sale.isCredit ? `🧾 *FACTURE COMMERCIALE & CRÉDIT - ${shopName.toUpperCase()}*` : `🧾 *FACTURE COMMERCIALE (ACOMPTE & CRÉDIT) - ${shopName.toUpperCase()}*`)
-    : `🧾 *REÇU DE VENTE - ${shopName.toUpperCase()}*`;
+    ? (sale.isCredit ? `FACTURE COMMERCIALE & CRÉDIT - ${shopName.toUpperCase()}` : `FACTURE COMMERCIALE (ACOMPTE & CRÉDIT) - ${shopName.toUpperCase()}`)
+    : `REÇU DE VENTE - ${shopName.toUpperCase()}`;
 
   let legalMention = '';
   if (isCredit) {
-    legalMention = `\n📜 _Arrêtée la présente facture à la somme de : ${formatCurrency(sale.totalAmount)}_\n` +
-      `✍️ *Le Responsable :* ${shop?.ownerName || shop?.name || 'Le Gérant'}\n`;
+    legalMention = `\nArrêtée la présente facture à la somme de : ${formatCurrency(sale.totalAmount)}\n` +
+      `Le Responsable : ${shop?.ownerName || shop?.name || 'Le Gérant'}\n`;
   }
 
   let discountText = '';
   if (sale.discountAmount && sale.discountAmount > 0) {
     const subtotal = sale.subtotalAmount || (sale.totalAmount + sale.discountAmount);
     const discLabel = sale.discountType === 'PERCENT' && sale.discountValue ? ` (${sale.discountValue}%)` : '';
-    discountText = `📦 *Sous-Total Brut :* ${formatCurrency(subtotal)}\n` +
-      `🏷️ *Remise accordée :* -${formatCurrency(sale.discountAmount)}${discLabel}\n`;
+    discountText = `Sous-Total Brut : ${formatCurrency(subtotal)}\n` +
+      `Remise accordée : -${formatCurrency(sale.discountAmount)}${discLabel}\n`;
   }
 
   const totalLabel = (sale.discountAmount && sale.discountAmount > 0) ? 'NET À PAYER' : 'TOTAL';
 
   const message = `${title}\n` +
-    `📅 Date : ${dateStr}\n` +
+    `Date : ${dateStr}\n` +
     `--------------------------\n` +
     itemsText +
     discountText +
-    `💰 *${totalLabel} : ${formatCurrency(sale.totalAmount)}*\n` +
-    `💳 Mode : ${modePaiementLabel}\n` +
-    (sale.transactionRef ? `🔖 *Réf. Transaction :* ${sale.transactionRef}\n` : '') +
+    `${totalLabel} : ${formatCurrency(sale.totalAmount)}\n` +
+    `Mode : ${modePaiementLabel}\n` +
+    (sale.transactionRef ? `Réf. Transaction : ${sale.transactionRef}\n` : '') +
     partialDetailsText +
-    (!sale.isPartialCredit && sale.receivedAmount && sale.changeAmount ? `💵 Reçu : ${formatCurrency(sale.receivedAmount)} | Monnaie : ${formatCurrency(sale.changeAmount)}\n` : '') +
+    (!sale.isPartialCredit && sale.receivedAmount && sale.changeAmount ? `Reçu : ${formatCurrency(sale.receivedAmount)} | Monnaie : ${formatCurrency(sale.changeAmount)}\n` : '') +
     legalMention +
     `--------------------------\n` +
-    (isCredit ? `Merci pour votre engagement. Établissement *${shopName}*. 🙏` : `Merci de votre achat chez *${shopName}* ! À bientôt. ✨`);
+    (isCredit ? `Merci pour votre engagement. Établissement ${shopName}.` : `Merci de votre achat chez ${shopName} ! À bientôt.`);
 
   const targetPhone = customerPhone ? cleanPhoneNumber(customerPhone) : '';
   return targetPhone ? `https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}` : `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -124,11 +124,11 @@ export function generateWhatsAppDebtPaymentReceiptUrl(
   shop?: Partial<ShopProfile>
 ): string {
   const shopName = shop?.name || 'Votre Boutique';
-  const message = `🧾 *REÇU DE RÈGLEMENT - ${shopName.toUpperCase()}*\n\n` +
-    `Bonjour *${customerName}*,\n` +
-    `Nous vous confirmons la bonne réception de votre versement de *${formatCurrency(amountPaid)}*.\n\n` +
-    `📊 *Nouveau solde restant dû : ${formatCurrency(newRemainingDebt)}*\n\n` +
-    `Merci pour votre ponctualité et votre confiance ! 🙏`;
+  const message = `REÇU DE RÈGLEMENT - ${shopName.toUpperCase()}\n\n` +
+    `Bonjour ${customerName},\n` +
+    `Nous vous confirmons la bonne réception de votre versement de ${formatCurrency(amountPaid)}.\n\n` +
+    `Nouveau solde restant dû : ${formatCurrency(newRemainingDebt)}\n\n` +
+    `Merci pour votre ponctualité et votre confiance !`;
 
   return `https://wa.me/${cleanPhoneNumber(customerPhone)}?text=${encodeURIComponent(message)}`;
 }
@@ -147,24 +147,24 @@ export function generateDailyReportWhatsAppUrl(
   const [year, month, day] = summary.date.split('-');
   const dateFormatted = `${day}/${month}/${year}`;
 
-  const message = `📊 *POINT DE CAISSE DU SOIR - ${shopName.toUpperCase()}*\n` +
-    `📅 Date : *${dateFormatted}*\n` +
-    `👤 Responsable : *${ownerName}*\n` +
+  const message = `POINT DE CAISSE DU SOIR - ${shopName.toUpperCase()}\n` +
+    `Date : ${dateFormatted}\n` +
+    `Responsable : ${ownerName}\n` +
     `----------------------------------\n` +
-    `💰 *TOTAL ENCAISSÉ : ${formatCurrency(summary.totalSales)}* (${summary.salesCount} vente(s))\n` +
-    `├─ 💵 Espèces (Cash) : ${formatCurrency(summary.cashSales)}\n` +
-    `├─ 🟧 Orange Money   : ${formatCurrency(summary.orangeMoneySales)}\n` +
-    `├─ 🟦 Moov Money     : ${formatCurrency(summary.moovMoneySales)}\n` +
-    `└─ 🔷 Wave           : ${formatCurrency(summary.waveSales)}\n` +
+    `TOTAL ENCAISSÉ : ${formatCurrency(summary.totalSales)} (${summary.salesCount} vente(s))\n` +
+    `- Espèces (Cash) : ${formatCurrency(summary.cashSales)}\n` +
+    `- Orange Money   : ${formatCurrency(summary.orangeMoneySales)}\n` +
+    `- Moov Money     : ${formatCurrency(summary.moovMoneySales)}\n` +
+    `- Wave           : ${formatCurrency(summary.waveSales)}\n` +
     `----------------------------------\n` +
-    `📋 *CRÉDITS & RECOUVREMENTS :*\n` +
-    `• ⚠️ Nouveaux crédits accordés : ${formatCurrency(summary.creditSales)}\n` +
-    `• 💰 Dettes clients récupérées  : ${formatCurrency(summary.totalRecoveredDebts)}\n` +
+    `CRÉDITS & RECOUVREMENTS :\n` +
+    `- Nouveaux crédits accordés : ${formatCurrency(summary.creditSales)}\n` +
+    `- Dettes clients récupérées : ${formatCurrency(summary.totalRecoveredDebts)}\n` +
     `----------------------------------\n` +
-    (summary.totalExpenses !== undefined && summary.totalExpenses > 0 ? `💸 *Dépenses payées :* ${formatCurrency(summary.totalExpenses)}\n` : '') +
-    (summary.grossProfit !== undefined && summary.grossProfit > 0 ? `📈 *Marge Brute estimée :* ${formatCurrency(summary.grossProfit)}\n` : '') +
-    (summary.netProfit !== undefined ? `🏆 *Bénéfice Net estimé :* ${formatCurrency(summary.netProfit)}\n----------------------------------\n` : '') +
-    `✅ *Point de journée certifié FasoCarnet.*`;
+    (summary.totalExpenses !== undefined && summary.totalExpenses > 0 ? `Dépenses payées : ${formatCurrency(summary.totalExpenses)}\n` : '') +
+    (summary.grossProfit !== undefined && summary.grossProfit > 0 ? `Marge Brute estimée : ${formatCurrency(summary.grossProfit)}\n` : '') +
+    (summary.netProfit !== undefined ? `Bénéfice Net estimé : ${formatCurrency(summary.netProfit)}\n----------------------------------\n` : '') +
+    `Point de journée certifié FasoCarnet.`;
 
   const targetPhone = shop?.ownerPhone ? cleanPhoneNumber(shop.ownerPhone) : '';
   return targetPhone ? `https://wa.me/${targetPhone}?text=${encodeURIComponent(message)}` : `https://wa.me/?text=${encodeURIComponent(message)}`;

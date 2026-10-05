@@ -24,6 +24,7 @@ import {
 import { Logo } from '../common/Logo';
 import { CURRENT_APP_VERSION } from '../../services/updateService';
 import { useAppStore } from '../../store/appStore';
+import { adminService } from '../../db/services/adminService';
 
 interface LandingPageViewProps {
   onOpenApp?: (mode?: 'login' | 'register') => void;
@@ -45,14 +46,30 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({ onOpenApp }) =
       const ref = params.get('ref') || params.get('aff') || params.get('code') || params.get('parrain');
       if (ref && ref.trim()) {
         const cleanRef = ref.trim().toUpperCase().replace(/\s/g, '');
-        setCommercialReferralCode(cleanRef);
-        localStorage.setItem('fasocarnet_referral_code', cleanRef);
-        localStorage.setItem('fasocarnet_referral_locked', 'true');
+        adminService.isCommercialCodeAvailable(cleanRef).then(isValid => {
+          if (isValid) {
+            setCommercialReferralCode(cleanRef);
+            localStorage.setItem('fasocarnet_referral_code', cleanRef);
+            localStorage.setItem('fasocarnet_referral_locked', 'true');
+          } else {
+            setCommercialReferralCode(null);
+            localStorage.removeItem('fasocarnet_referral_code');
+            localStorage.removeItem('fasocarnet_referral_locked');
+          }
+        });
       } else {
         const stored = localStorage.getItem('fasocarnet_referral_code');
         const locked = localStorage.getItem('fasocarnet_referral_locked') === 'true';
         if (stored && locked) {
-          setCommercialReferralCode(stored);
+          adminService.isCommercialCodeAvailable(stored).then(isValid => {
+            if (isValid) {
+              setCommercialReferralCode(stored);
+            } else {
+              setCommercialReferralCode(null);
+              localStorage.removeItem('fasocarnet_referral_code');
+              localStorage.removeItem('fasocarnet_referral_locked');
+            }
+          });
         }
       }
     }

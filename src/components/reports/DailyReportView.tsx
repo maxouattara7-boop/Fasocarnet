@@ -231,22 +231,22 @@ export const DailyReportView: React.FC = () => {
     const month = exportModalData?.monthLabel || selectedMonth;
     const totalMobile = (summary.orangeMoneySales || 0) + (summary.moovMoneySales || 0) + (summary.waveSales || 0);
 
-    let text = `📊 *BILAN COMPTABLE - ${month.toUpperCase()}*\n`;
-    text += `🏪 *Commerce :* ${shopName}\n`;
-    if (shopProfile?.ifu) text += `📋 *IFU :* ${shopProfile.ifu}\n`;
-    text += `──────────────────────\n`;
-    text += `💰 *Chiffre d'Affaires Net :* ${formatCurrency(summary.totalSales || 0)}\n`;
-    text += `💵 *Espèces (Cash) :* ${formatCurrency(summary.cashSales || 0)}\n`;
-    text += `📱 *Mobile Money :* ${formatCurrency(totalMobile)}\n`;
-    text += `  • OM : ${formatCurrency(summary.orangeMoneySales || 0)} | Moov : ${formatCurrency(summary.moovMoneySales || 0)} | Wave : ${formatCurrency(summary.waveSales || 0)}\n`;
-    text += `💸 *Total des Dépenses :* ${formatCurrency(summary.totalExpenses || 0)}\n`;
-    text += `📈 *Trésorerie Nette Réelle :* ${formatCurrency(summary.netCashFlow || 0)}\n`;
-    text += `──────────────────────\n`;
-    text += `🤝 *Crédits Accordés :* ${formatCurrency(summary.creditSales || 0)}\n`;
-    text += `📥 *Dettes Récupérées :* ${formatCurrency(summary.totalRecoveredDebts || 0)}\n`;
-    text += `⚠️ *Dettes Restantes à Récupérer :* ${formatCurrency(summary.totalOutstandingDebt || 0)}\n`;
-    text += `──────────────────────\n`;
-    text += `_Rapport certifié généré par FasoCarnet_`;
+    let text = `BILAN COMPTABLE - ${month.toUpperCase()}\n`;
+    text += `Commerce : ${shopName}\n`;
+    if (shopProfile?.ifu) text += `IFU : ${shopProfile.ifu}\n`;
+    text += `----------------------------------\n`;
+    text += `Chiffre d'Affaires Net : ${formatCurrency(summary.totalSales || 0)}\n`;
+    text += `Espèces (Cash) : ${formatCurrency(summary.cashSales || 0)}\n`;
+    text += `Mobile Money : ${formatCurrency(totalMobile)}\n`;
+    text += `  - OM : ${formatCurrency(summary.orangeMoneySales || 0)} | Moov : ${formatCurrency(summary.moovMoneySales || 0)} | Wave : ${formatCurrency(summary.waveSales || 0)}\n`;
+    text += `Total des Dépenses : ${formatCurrency(summary.totalExpenses || 0)}\n`;
+    text += `Trésorerie Nette Réelle : ${formatCurrency(summary.netCashFlow || 0)}\n`;
+    text += `----------------------------------\n`;
+    text += `Crédits Accordés : ${formatCurrency(summary.creditSales || 0)}\n`;
+    text += `Dettes Récupérées : ${formatCurrency(summary.totalRecoveredDebts || 0)}\n`;
+    text += `Dettes Restantes à Récupérer : ${formatCurrency(summary.totalOutstandingDebt || 0)}\n`;
+    text += `----------------------------------\n`;
+    text += `Rapport certifié généré par FasoCarnet`;
 
     const encoded = encodeURIComponent(text);
     const waUrl = `https://wa.me/?text=${encoded}`;

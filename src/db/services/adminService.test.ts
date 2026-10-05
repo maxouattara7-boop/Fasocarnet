@@ -434,6 +434,40 @@ describe('adminService', () => {
     // Vérification avec code de secours master
     expect(adminService.verifyAccountVerificationOtp(phone, '2260')).toBe(true);
   });
+
+  it('strictly validates commercial codes and ignores unrecognized text', async () => {
+    // 1. Enregistrer un commercial officiel
+    const agent = await adminService.saveCommercialAgent({
+      fullName: 'Nadiatou COMPAORE',
+      phone: '72990310',
+      code: 'COMPAORE7',
+      zone: 'Ziniaré'
+    });
+
+    // 2. Vérifier que le code officiel est bien reconnu
+    const isValid = await adminService.isCommercialCodeAvailable('COMPAORE7');
+    expect(isValid).toBe(true);
+
+    const isValidCaseInsensitive = await adminService.isCommercialCodeAvailable('compaore7');
+    expect(isValidCaseInsensitive).toBe(true);
+
+    // 3. Vérifier que du texte arbitraire ou code non créé est refusé
+    const isFakeValid = await adminService.isCommercialCodeAvailable('CODE_INVENTE_123');
+    expect(isFakeValid).toBe(false);
+
+    const isGarbageValid = await adminService.isCommercialCodeAvailable('nimportequoi');
+    expect(isGarbageValid).toBe(false);
+
+    // 4. Vérifier la fonction de filtrage (conserve si valide, undefined si faux)
+    const filteredValid = await adminService.filterValidCommercialCode('COMPAORE7');
+    expect(filteredValid).toBe('COMPAORE7');
+
+    const filteredFake = await adminService.filterValidCommercialCode('FAUX_CODE');
+    expect(filteredFake).toBeUndefined();
+
+    // 5. Nettoyer
+    await adminService.deleteCommercialAgent(agent.id);
+  });
 });
 
 

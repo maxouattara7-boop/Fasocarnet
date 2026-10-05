@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Store, Crown, Lock, LogOut, Search, Copy, Check, Trash2,
   MessageCircle, ArrowLeft, Eye, EyeOff, RefreshCw,
   BarChart3, Download, Users,
   MapPin, Send, CheckCircle2, Megaphone,
   X, ChevronRight, Calendar, Phone, User, Building, FileText, Clock, Wallet,
-  Plus, Edit2, Zap, Sparkles, UserPlus, AlertCircle
+  Plus, Edit2, Zap, Sparkles, UserPlus, AlertCircle, Bell, BellOff
 } from 'lucide-react';
 import { adminService, AdminStats, ShopAdminDetails } from '../../db/services/adminService';
 import { syncService } from '../../db/services/syncService';
+import { audioNotification } from '../../utils/audioNotification';
 import { 
   ExtendedAdminAnalytics, 
   AdminBroadcastMessage, 
@@ -123,6 +124,15 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'trial' | 'expired'>('all');
   const [selectedShop, setSelectedShop] = useState<ShopAdminDetails | null>(null);
   const [shopActionFeedback, setShopActionFeedback] = useState<string>('');
+
+  // Dissociation Boutiques Commerçantes vs Comptes Commerciaux
+  const [accountCategoryFilter, setAccountCategoryFilter] = useState<'merchants' | 'all' | 'commercials'>('merchants');
+
+  // Notifications Sonores & Nouveau Compte Détecté
+  const [isSoundAlertEnabled, setIsSoundAlertEnabled] = useState<boolean>(() => audioNotification.isEnabled());
+  const [newAccountAlert, setNewAccountAlert] = useState<{ shopName: string; city?: string; time: string } | null>(null);
+  const knownShopIdsRef = useRef<Set<string>>(new Set());
+  const isFirstLoadRef = useRef<boolean>(true);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -241,6 +251,29 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         adminService.getAllCommercialAgents(),
         adminService.getAllTeamLeaders()
       ]);
+      // Détection de nouveau compte activé / créé pour notification sonore et visuelle
+      if (!isFirstLoadRef.current && sh.length > 0) {
+        const newlyArrived = sh.filter(item => !knownShopIdsRef.current.has(item.id));
+        if (newlyArrived.length > 0) {
+          const newest = newlyArrived[0];
+          // Jouer le son de notification
+          audioNotification.playNewAccountChime();
+          // Afficher la bannière de notification
+          setNewAccountAlert({
+            shopName: newest.name,
+            city: newest.city || 'Burkina Faso',
+            time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+          });
+          setTimeout(() => setNewAccountAlert(null), 8000);
+        }
+      }
+
+      // Mémoriser les IDs connus
+      const newKnownSet = new Set<string>();
+      sh.forEach(item => newKnownSet.add(item.id));
+      knownShopIdsRef.current = newKnownSet;
+      isFirstLoadRef.current = false;
+
       setStats(s);
       setAnalytics(an);
       setShops(sh);
@@ -390,17 +423,17 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const handleCopyCommercialWelcome = (agent: CommercialAgent) => {
     const effectiveTeam = agent.teamName || 'Flotte Commerciale';
     const effectiveZone = agent.zone || '';
-    const message = `🇧🇫 *BIENVENUE DANS L'ÉQUIPE COMMERCIALE FASOCARNET* 🇧🇫\n\n` +
-      `Bonjour *${agent.fullName}*,\n` +
+    const message = `BIENVENUE DANS L'ÉQUIPE COMMERCIALE FASOCARNET\n\n` +
+      `Bonjour ${agent.fullName},\n` +
       `Voici tes accès officiels pour ton travail de prospection sur le terrain :\n\n` +
-      `🎯 *Ton Code Commercial Unique* : 👉 *${agent.code}* 👈\n` +
-      `🏢 *Équipe* : *${effectiveTeam}* ${effectiveZone ? `(📍 ${effectiveZone})` : ''}\n` +
-      `💰 *Ta Rémunération* : *300 FCFA par abonnement validé* (15%)\n\n` +
-      `📲 *INSTRUCTIONS TERRAIN (IMPORTANT)* :\n` +
+      `- Ton Code Commercial Unique : ${agent.code}\n` +
+      `- Équipe : ${effectiveTeam}${effectiveZone ? ` (${effectiveZone})` : ''}\n` +
+      `- Ta Rémunération : 300 FCFA par abonnement validé (15%)\n\n` +
+      `INSTRUCTIONS TERRAIN (IMPORTANT) :\n` +
       `1. Présente et installe Faso Carnet sur le téléphone du commerçant.\n` +
-      `2. Lors de l'inscription de sa boutique, renseigne impérativement ton code : *${agent.code}* dans la case « Code Commercial / Parrainage ».\n` +
+      `2. Lors de l'inscription de sa boutique, renseigne impérativement ton code : ${agent.code} dans la case « Code Commercial / Parrainage ».\n` +
       `3. Dès que le commerçant active son abonnement, ta commission t'est automatiquement créditée chaque dimanche !\n\n` +
-      `🚀 *Bonne prospection et plein succès sur le terrain !*\n` +
+      `Bonne prospection et plein succès sur le terrain !\n` +
       `Direction FasoCarnet.`;
 
     navigator.clipboard.writeText(message);
@@ -743,19 +776,54 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
     }
   };
 
-  const filteredShops = shops.filter(shop => {
-    const q = searchQuery.toLowerCase();
-    const matchesSearch =
-      shop.name.toLowerCase().includes(q) ||
-      (shop.ownerName && shop.ownerName.toLowerCase().includes(q)) ||
-      shop.phone.includes(q) ||
-      (shop.city && shop.city.toLowerCase().includes(q)) ||
-      (shop.ownerPhone && shop.ownerPhone.includes(q));
+  // Ensemble des numéros des agents commerciaux et chefs d'équipe pour la dissociation
+  const commercialPhoneSet = React.useMemo(() => {
+    const set = new Set<string>();
+    commercialAgents.forEach(a => {
+      const p = (a.phone || '').replace(/\D/g, '').slice(-8);
+      if (p) set.add(p);
+    });
+    teamLeaders.forEach(l => {
+      const p = (l.phone || '').replace(/\D/g, '').slice(-8);
+      if (p) set.add(p);
+    });
+    return set;
+  }, [commercialAgents, teamLeaders]);
 
-    if (!matchesSearch) return false;
-    if (filterStatus === 'all') return true;
-    return shop.statusType === filterStatus;
-  });
+  const isCommercialShop = (shop: ShopAdminDetails): boolean => {
+    const p1 = (shop.phone || '').replace(/\D/g, '').slice(-8);
+    const p2 = (shop.ownerPhone || '').replace(/\D/g, '').slice(-8);
+    if (p1 && commercialPhoneSet.has(p1)) return true;
+    if (p2 && commercialPhoneSet.has(p2)) return true;
+    return false;
+  };
+
+  const filteredShops = shops
+    .filter(shop => {
+      // 1. Filtre de dissociation : Commerçants purs vs Tous vs Comptes Commerciaux
+      const isComm = isCommercialShop(shop);
+      if (accountCategoryFilter === 'merchants' && isComm) return false;
+      if (accountCategoryFilter === 'commercials' && !isComm) return false;
+
+      // 2. Recherche texte
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        shop.name.toLowerCase().includes(q) ||
+        (shop.ownerName && shop.ownerName.toLowerCase().includes(q)) ||
+        shop.phone.includes(q) ||
+        (shop.city && shop.city.toLowerCase().includes(q)) ||
+        (shop.ownerPhone && shop.ownerPhone.includes(q));
+
+      if (!matchesSearch) return false;
+      if (filterStatus === 'all') return true;
+      return shop.statusType === filterStatus;
+    })
+    .sort((a, b) => {
+      // Tri strict par date de création décroissante (les plus récents en premier)
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
 
   const getShopBadge = (shop: ShopAdminDetails) => {
     if (shop.statusType === 'active') {
@@ -861,6 +929,36 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
         </div>
 
         <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
+          {/* Bouton Alerte Sonore */}
+          <button
+            type="button"
+            onClick={() => {
+              const nextState = audioNotification.toggle();
+              setIsSoundAlertEnabled(nextState);
+              if (nextState) {
+                audioNotification.playNewAccountChime();
+              }
+            }}
+            className={`p-2 sm:px-3 sm:py-1.5 active:scale-95 text-xs font-bold rounded-xl border flex items-center justify-center space-x-1 sm:space-x-1.5 transition-all cursor-pointer min-h-[36px] min-w-[36px] ${
+              isSoundAlertEnabled
+                ? 'bg-emerald-950/70 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/60'
+                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+            }`}
+            title={isSoundAlertEnabled ? 'Son activé lors d\'un nouveau compte (cliquer pour couper)' : 'Son désactivé (cliquer pour activer)'}
+          >
+            {isSoundAlertEnabled ? (
+              <>
+                <Bell className="w-3.5 h-3.5 text-emerald-400 animate-bounce" />
+                <span className="hidden lg:inline text-[11px]">Son Activé</span>
+              </>
+            ) : (
+              <>
+                <BellOff className="w-3.5 h-3.5 text-slate-400" />
+                <span className="hidden lg:inline text-[11px]">Son Muet</span>
+              </>
+            )}
+          </button>
+
           <button
             type="button"
             onClick={loadData}
@@ -1000,7 +1098,83 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
               </div>
             )}
 
-            {/* Barre de recherche et filtres */}
+            {/* Bannière de Notification Nouveau Compte Détecté */}
+            {newAccountAlert && (
+              <div className="p-3 sm:p-4 bg-gradient-to-r from-emerald-950 via-slate-900 to-amber-950/80 border-2 border-emerald-400 rounded-2xl sm:rounded-3xl shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-top-4 duration-300">
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="w-9 h-9 bg-emerald-500/20 border border-emerald-400 rounded-xl flex items-center justify-center text-emerald-300 shrink-0 shadow-inner">
+                    <Bell className="w-5 h-5 text-emerald-400 animate-bounce" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <span className="px-2 py-0.5 bg-emerald-500 text-slate-950 text-[10px] font-black uppercase rounded-full tracking-wider">
+                        Nouveau Compte
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-mono">{newAccountAlert.time}</span>
+                    </div>
+                    <p className="text-xs sm:text-sm font-black text-white truncate mt-0.5">
+                      « {newAccountAlert.shopName} » <span className="text-slate-400 font-normal">({newAccountAlert.city})</span>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNewAccountAlert(null)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Sélecteur de Catégorie : Dissociation Commerçants vs Commerciaux */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-slate-900/90 p-2 sm:p-3 rounded-2xl border border-slate-800 shadow-sm">
+              <div className="flex items-center space-x-1 sm:space-x-1.5 overflow-x-auto no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setAccountCategoryFilter('merchants')}
+                  className={`px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-1.5 cursor-pointer shrink-0 ${
+                    accountCategoryFilter === 'merchants'
+                      ? 'bg-emerald-600 text-white shadow-md'
+                      : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Store className="w-3.5 h-3.5" />
+                  <span>Boutiques Commerçantes ({shops.filter(s => !isCommercialShop(s)).length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAccountCategoryFilter('commercials')}
+                  className={`px-3 py-2 rounded-xl text-xs font-black transition-all flex items-center space-x-1.5 cursor-pointer shrink-0 ${
+                    accountCategoryFilter === 'commercials'
+                      ? 'bg-amber-600 text-white shadow-md'
+                      : 'bg-slate-800/80 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Comptes Commerciaux ({shops.filter(s => isCommercialShop(s)).length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAccountCategoryFilter('all')}
+                  className={`px-2.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                    accountCategoryFilter === 'all'
+                      ? 'bg-slate-700 text-white shadow-md'
+                      : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  Tous ({shops.length})
+                </button>
+              </div>
+
+              <div className="text-[11px] text-slate-400 font-semibold px-1 hidden sm:block">
+                ⚡ Trié du plus récent au plus ancien
+              </div>
+            </div>
+
+            {/* Barre de recherche et filtres de statut */}
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1049,7 +1223,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
             ) : (
               <div className="space-y-2">
                 {filteredShops.map((shop) => {
-                  const createdDate = shop.createdAt ? new Date(shop.createdAt).toLocaleDateString('fr-FR') : 'Date inconnue';
+                  const isComm = isCommercialShop(shop);
+                  const isVeryRecent = shop.createdAt && (Date.now() - new Date(shop.createdAt).getTime() < 24 * 3600 * 1000);
+                  const createdDate = shop.createdAt 
+                    ? new Date(shop.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' à ' + new Date(shop.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                    : 'Date inconnue';
                   const badge = getShopBadge(shop);
 
                   return (
@@ -1059,10 +1237,21 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                       className="cursor-pointer bg-slate-900/90 hover:bg-slate-800/80 active:scale-[0.99] p-3 sm:p-4 rounded-2xl border border-slate-800 hover:border-emerald-500/50 transition-all flex items-center justify-between gap-3 group shadow-sm"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                           <h4 className="font-black text-white text-sm sm:text-base group-hover:text-emerald-300 transition-colors break-words">
                             {shop.name}
                           </h4>
+                          {isVeryRecent && (
+                            <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-full text-[9px] font-black uppercase tracking-wider animate-pulse">
+                              Nouveau
+                            </span>
+                          )}
+                          {isComm && (
+                            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center space-x-1">
+                              <Users className="w-2.5 h-2.5" />
+                              <span>Compte Commercial</span>
+                            </span>
+                          )}
                           {shop.referralCode && (
                             <span className="px-2 py-0.2 bg-amber-500/15 text-amber-300 border border-amber-500/30 rounded-full text-[9px] font-mono font-bold">
                               🤝 {shop.referralCode}
@@ -1071,7 +1260,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                         </div>
                         <p className="text-[11px] text-slate-400 flex items-center space-x-1.5 mt-0.5">
                           <Calendar className="w-3 h-3 text-slate-500 shrink-0" />
-                          <span>Créée le {createdDate}</span>
+                          <span>Inscrit le {createdDate}</span>
                           {shop.city && (
                             <>
                               <span className="text-slate-600">•</span>
@@ -1652,17 +1841,29 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                               </p>
                             )}
 
-                            {/* Actions WhatsApp & Copie Pack */}
-                            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
+                            {/* Actions WhatsApp, Clients Affiliés & Copie Pack */}
+                            <div className="flex flex-wrap gap-2 pt-1 border-t border-slate-800">
                               <button
                                 type="button"
                                 onClick={() => handleOpenCommercialWhatsApp(agent)}
-                                className="py-2.5 px-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-black rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-[#25D366]/20 active:scale-98 transition-all cursor-pointer font-display"
+                                className="flex-1 min-w-[120px] py-2.5 px-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-black rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-[#25D366]/20 active:scale-98 transition-all cursor-pointer font-display"
                                 title="Envoyer le message d'accès et le code sur WhatsApp"
                               >
                                 <MessageCircle className="w-3.5 h-3.5" />
-                                <span>WhatsApp 1-Clic</span>
+                                <span>WhatsApp</span>
                               </button>
+
+                              {affReport && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedAffiliate(affReport)}
+                                  className="flex-1 min-w-[120px] py-2.5 px-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 border border-amber-500/40 transition-all cursor-pointer font-display"
+                                  title="Consulter les boutiques inscrites par ce commercial et les relancer"
+                                >
+                                  <Store className="w-3.5 h-3.5" />
+                                  <span>Clients ({totalReferred})</span>
+                                </button>
+                              )}
 
                               <button
                                 type="button"

@@ -77,7 +77,7 @@ describe('whatsapp utility', () => {
     };
 
     const url = generateWhatsAppReceiptUrl(mockSaleWithItems, mockShop, '75112233');
-    expect(url).toContain(encodeURIComponent('Bic Bleu : 3 x 100 FCFA = *300 FCFA*'));
+    expect(url).toContain(encodeURIComponent('Bic Bleu : 3 x 100 FCFA = 300 FCFA'));
   });
 
   it('generates a valid WhatsApp payment receipt url', () => {

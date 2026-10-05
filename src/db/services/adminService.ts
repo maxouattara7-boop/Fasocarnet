@@ -187,7 +187,7 @@ export const adminService = {
       });
     }
 
-    return Array.from(allShopsMap.values()).map(({ profile, salesCount, salesVolume, customersCount, debtsAmount }) => {
+    const result = Array.from(allShopsMap.values()).map(({ profile, salesCount, salesVolume, customersCount, debtsAmount }) => {
       const info = subscriptionService.getSubscriptionInfo(profile);
       return {
         ...profile,
@@ -200,6 +200,13 @@ export const adminService = {
         statusType: info.status,
         formattedExpiresAt: info.formattedExpiresAt
       };
+    });
+
+    // Tri automatique : les comptes les plus récents en premier (date d'arrivée décroissante)
+    return result.sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
     });
   },
 
@@ -424,14 +431,14 @@ export const adminService = {
   getWhatsAppDispatchUrl(key: LicenseKey, clientPhone?: string): string {
     const planConfig = SUBSCRIPTION_PLANS.find(p => p.id === key.plan);
     const planLabel = planConfig ? planConfig.name : key.plan;
-    const text = `🌟 *Votre Clé de Licence FasoCarnet* 🌟\n\n` +
-      `Bonjour ! Voici votre clé d'activation pour le forfait *${planLabel}* :\n\n` +
-      `🔑 *CODE DE LICENCE* :\n👉 \`${key.code}\` 👈\n\n` +
-      `*Comment l'activer ?*\n` +
+    const text = `VOTRE CLÉ DE LICENCE FASOCARNET\n\n` +
+      `Bonjour ! Voici votre clé d'activation pour le forfait ${planLabel} :\n\n` +
+      `CODE DE LICENCE : ${key.code}\n\n` +
+      `Comment l'activer ?\n` +
       `1. Ouvrez FasoCarnet sur votre téléphone\n` +
-      `2. Allez dans *Paramètres ⚙️* > *Licence*\n` +
-      `3. Collez ce code et validez.\n\n` +
-      `Merci de votre confiance ! 🇧🇫`;
+      `2. Allez dans Paramètres > Licence\n` +
+      `3. Saisissez ce code et validez.\n\n` +
+      `Merci de votre confiance !`;
 
     const encoded = encodeURIComponent(text);
     const cleanPhone = clientPhone ? clientPhone.replace(/\D/g, '') : '';
@@ -442,9 +449,9 @@ export const adminService = {
    * Génère un lien WhatsApp pour relancer un commerçant dont la licence expire
    */
   getWhatsAppReminderUrl(shop: ShopAdminDetails): string {
-    const text = `🔔 *Rappel Abonnement FasoCarnet* 🇧🇫\n\n` +
+    const text = `RAPPEL ABONNEMENT FASOCARNET\n\n` +
       `Bonjour ${shop.ownerName ? shop.ownerName : 'gérant de ' + shop.name},\n\n` +
-      `Votre licence FasoCarnet pour *${shop.name}* arrive à expiration (*${shop.formattedExpiresAt}*).\n\n` +
+      `Votre licence FasoCarnet pour ${shop.name} arrive à expiration (${shop.formattedExpiresAt}).\n\n` +
       `Pour continuer à gérer vos ventes et relances clients sans interruption, vous pouvez renouveler dès maintenant via Orange Money ou Moov Money (2 000 F / mois).\n\n` +
       `Besoin d'aide ? Répondez directement à ce message.`;
 
@@ -991,17 +998,17 @@ export const adminService = {
     const currentSunday = this.getCurrentWeekSundayIso();
     const currentMonday = this.getWeekMondayIso(currentSunday);
 
-    const message = `🌟 *RELEVÉ DE COMMISSIONS FASOCARNET (15%)* 🌟\n\n` +
-      `👤 *Commercial / Code* : *${commercial.code}*\n` +
-      `📅 *Période* : Semaine du ${currentMonday} au Dimanche ${currentSunday}\n\n` +
-      `📊 *BILAN HEBDOMADAIRE* :\n` +
-      `• Boutiques rattachées : *${commercial.totalShopsReferred}*\n` +
-      `• Abonnements validés cette semaine : *${commercial.currentWeekPaidCount}*\n` +
-      `• Chiffre d'affaires généré : *${commercial.currentWeekRevenue.toLocaleString('fr-FR')} FCFA*\n\n` +
-      `💰 *MONTANT DU BONUS À VERSER (15%)* :\n` +
-      `👉 *${commercial.currentWeekCommissionDue.toLocaleString('fr-FR')} FCFA* 👈\n` +
-      `_(Calculé à 300 FCFA par abonnement mensuel de 2000 FCFA)_\n\n` +
-      `🤝 Merci pour votre engagement et vos excellentes performances sur le terrain !\n` +
+    const message = `RELEVÉ DE COMMISSIONS FASOCARNET (15%)\n\n` +
+      `Commercial / Code : ${commercial.code}\n` +
+      `Période : Semaine du ${currentMonday} au Dimanche ${currentSunday}\n\n` +
+      `BILAN HEBDOMADAIRE :\n` +
+      `- Boutiques rattachées : ${commercial.totalShopsReferred}\n` +
+      `- Abonnements validés cette semaine : ${commercial.currentWeekPaidCount}\n` +
+      `- Chiffre d'affaires généré : ${commercial.currentWeekRevenue.toLocaleString('fr-FR')} FCFA\n\n` +
+      `MONTANT DU BONUS À VERSER (15%) :\n` +
+      `${commercial.currentWeekCommissionDue.toLocaleString('fr-FR')} FCFA\n` +
+      `(Calculé à 300 FCFA par abonnement mensuel de 2000 FCFA)\n\n` +
+      `Merci pour votre engagement et vos excellentes performances sur le terrain !\n` +
       `L'équipe FasoCarnet.`;
 
     return phoneParam 
@@ -1298,24 +1305,24 @@ export const adminService = {
     const currentMonday = this.getWeekMondayIso(currentSunday);
 
     const membersBreakdown = teamReport.commercials.map(c => 
-      `• *${c.code}* : ${c.currentWeekPaidCount} abonnement(s) = *${c.currentWeekCommissionDue.toLocaleString('fr-FR')} F* (${c.activeSubscribedShops} abonnés actifs)`
+      `- ${c.code} : ${c.currentWeekPaidCount} abonnement(s) = ${c.currentWeekCommissionDue.toLocaleString('fr-FR')} F (${c.activeSubscribedShops} abonnés actifs)`
     ).join('\n');
 
-    const message = `🌟 *RELEVÉ HEBDOMADAIRE ÉQUIPE FASOCARNET (15%)* 🌟\n\n` +
-      `🏢 *Équipe* : *${teamReport.team.name}* ${teamReport.team.zone ? `(📍 ${teamReport.team.zone})` : ''}\n` +
-      `👑 *Responsable / Superviseur* : *${teamReport.team.leaderName || 'Non défini'}*\n` +
-      `📅 *Période* : Semaine du ${currentMonday} au Dimanche ${currentSunday}\n\n` +
-      `📊 *PERFORMANCES GLOBALES DE L'ÉQUIPE* :\n` +
-      `• Commerciaux actifs : *${teamReport.membersCount}*\n` +
-      `• Boutiques rattachées : *${teamReport.totalShopsReferred}*\n` +
-      `• Abonnements validés cette semaine : *${teamReport.currentWeekPaidCount}*\n` +
-      `• Chiffre d'affaires semaine : *${teamReport.currentWeekRevenue.toLocaleString('fr-FR')} FCFA*\n\n` +
-      `💰 *TOTAL COMMISSIONS À VERSER À L'ÉQUIPE (15%)* :\n` +
-      `👉 *${teamReport.currentWeekCommissionDue.toLocaleString('fr-FR')} FCFA* 👈\n` +
-      `_(Calculé à 300 FCFA par abonnement de 2000 FCFA)_\n\n` +
-      `📋 *Détail par Commercial* :\n` +
+    const message = `RELEVÉ HEBDOMADAIRE ÉQUIPE FASOCARNET (15%)\n\n` +
+      `Équipe : ${teamReport.team.name}${teamReport.team.zone ? ` (${teamReport.team.zone})` : ''}\n` +
+      `Responsable / Superviseur : ${teamReport.team.leaderName || 'Non défini'}\n` +
+      `Période : Semaine du ${currentMonday} au Dimanche ${currentSunday}\n\n` +
+      `PERFORMANCES GLOBALES DE L'ÉQUIPE :\n` +
+      `- Commerciaux actifs : ${teamReport.membersCount}\n` +
+      `- Boutiques rattachées : ${teamReport.totalShopsReferred}\n` +
+      `- Abonnements validés cette semaine : ${teamReport.currentWeekPaidCount}\n` +
+      `- Chiffre d'affaires semaine : ${teamReport.currentWeekRevenue.toLocaleString('fr-FR')} FCFA\n\n` +
+      `TOTAL COMMISSIONS À VERSER À L'ÉQUIPE (15%) :\n` +
+      `${teamReport.currentWeekCommissionDue.toLocaleString('fr-FR')} FCFA\n` +
+      `(Calculé à 300 FCFA par abonnement de 2000 FCFA)\n\n` +
+      `Détail par Commercial :\n` +
       `${membersBreakdown || 'Aucune activité pour le moment'}\n\n` +
-      `🤝 Bravo à toute l'équipe pour ces résultats ! Rendez-vous au sommet 🚀\n` +
+      `Bravo à toute l'équipe pour ces résultats !\n` +
       `Direction FasoCarnet.`;
 
     return phoneParam 
@@ -1517,6 +1524,118 @@ export const adminService = {
   },
 
   /**
+   * Récupère l'ensemble de tous les codes commerciaux valides et enregistrés dans le système
+   */
+  async getValidCommercialCodes(): Promise<Set<string>> {
+    const validCodes = new Set<string>();
+
+    // 1. Agents commerciaux
+    try {
+      const agents = await this.getAllCommercialAgents();
+      agents.forEach(a => {
+        if (a.code && a.status !== 'inactive') {
+          validCodes.add(a.code.trim().toUpperCase());
+        }
+      });
+    } catch (e) {
+      console.warn('Erreur récupération codes agents:', e);
+    }
+
+    // 2. Équipes commerciales (codes affiliés)
+    try {
+      const teams = await this.getAllCommercialTeams();
+      teams.forEach(t => {
+        if (Array.isArray(t.affiliateCodes)) {
+          t.affiliateCodes.forEach(c => {
+            if (c && c.trim()) validCodes.add(c.trim().toUpperCase());
+          });
+        }
+      });
+    } catch (e) {
+      console.warn('Erreur récupération codes équipes:', e);
+    }
+
+    // 3. Fallback sur localStorage direct
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      try {
+        const rawAgents = localStorage.getItem('fasocarnet_admin_commercial_agents');
+        if (rawAgents) {
+          const parsed = JSON.parse(rawAgents);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((a: any) => {
+              if (a.code && a.status !== 'inactive') validCodes.add(a.code.trim().toUpperCase());
+            });
+          }
+        }
+        const rawTeams = localStorage.getItem('fasocarnet_admin_commercial_teams');
+        if (rawTeams) {
+          const parsed = JSON.parse(rawTeams);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((t: any) => {
+              if (Array.isArray(t.affiliateCodes)) {
+                t.affiliateCodes.forEach((c: any) => {
+                  if (c && typeof c === 'string') validCodes.add(c.trim().toUpperCase());
+                });
+              }
+            });
+          }
+        }
+      } catch {}
+    }
+
+    return validCodes;
+  },
+
+  /**
+   * Vérifie si un code commercial donné existe et est disponible dans le système
+   */
+  async isCommercialCodeAvailable(code?: string): Promise<boolean> {
+    if (!code || !code.trim()) return false;
+    const clean = code.trim().toUpperCase().replace(/\s/g, '');
+    const validCodes = await this.getValidCommercialCodes();
+    return validCodes.has(clean);
+  },
+
+  /**
+   * Filtre un code commercial : le conserve s'il est enregistré dans le système,
+   * sinon renvoie undefined (ignore tout ce qui n'est pas un code officiel).
+   */
+  async filterValidCommercialCode(code?: string): Promise<string | undefined> {
+    if (!code || !code.trim()) return undefined;
+    const clean = code.trim().toUpperCase().replace(/\s/g, '');
+    const isValid = await this.isCommercialCodeAvailable(clean);
+    return isValid ? clean : undefined;
+  },
+
+  /**
+   * Vérifie si un profil de compte boutique correspond en réalité à un agent commercial ou chef d'équipe
+   */
+  async isCommercialShopProfile(shop: { phone?: string; ownerPhone?: string; name?: string }): Promise<boolean> {
+    if (!shop) return false;
+    const p1 = (shop.phone || '').replace(/\D/g, '').slice(-8);
+    const p2 = (shop.ownerPhone || '').replace(/\D/g, '').slice(-8);
+    
+    const [agents, leaders] = await Promise.all([
+      this.getAllCommercialAgents(),
+      this.getAllTeamLeaders()
+    ]);
+
+    const commercialPhones = new Set<string>();
+    agents.forEach(a => {
+      const p = (a.phone || '').replace(/\D/g, '').slice(-8);
+      if (p) commercialPhones.add(p);
+    });
+    leaders.forEach(l => {
+      const p = (l.phone || '').replace(/\D/g, '').slice(-8);
+      if (p) commercialPhones.add(p);
+    });
+
+    if (p1 && commercialPhones.has(p1)) return true;
+    if (p2 && commercialPhones.has(p2)) return true;
+    return false;
+  },
+
+  /**
    * Génère le lien WhatsApp d'onboarding avec le code unique pour le commercial
    */
   getWhatsAppCommercialWelcomeUrl(agent: CommercialAgent, teamName?: string, zone?: string): string {
@@ -1526,17 +1645,17 @@ export const adminService = {
     const effectiveTeam = teamName || agent.teamName || 'Flotte Commerciale';
     const effectiveZone = zone || agent.zone || '';
 
-    const message = `🇧🇫 *BIENVENUE DANS L'ÉQUIPE COMMERCIALE FASOCARNET* 🇧🇫\n\n` +
-      `Bonjour *${agent.fullName}*,\n` +
+    const message = `BIENVENUE DANS L'ÉQUIPE COMMERCIALE FASOCARNET\n\n` +
+      `Bonjour ${agent.fullName},\n` +
       `Voici tes accès officiels pour ton travail de prospection sur le terrain :\n\n` +
-      `🎯 *Ton Code Commercial Unique* : 👉 *${agent.code}* 👈\n` +
-      `🏢 *Équipe* : *${effectiveTeam}* ${effectiveZone ? `(📍 ${effectiveZone})` : ''}\n` +
-      `💰 *Ta Rémunération* : *300 FCFA par abonnement validé* (15%)\n\n` +
-      `📲 *INSTRUCTIONS TERRAIN (IMPORTANT)* :\n` +
+      `- Ton Code Commercial Unique : ${agent.code}\n` +
+      `- Équipe : ${effectiveTeam}${effectiveZone ? ` (${effectiveZone})` : ''}\n` +
+      `- Ta Rémunération : 300 FCFA par abonnement validé (15%)\n\n` +
+      `INSTRUCTIONS TERRAIN (IMPORTANT) :\n` +
       `1. Présente et installe Faso Carnet sur le téléphone du commerçant.\n` +
-      `2. Lors de l'inscription de sa boutique, renseigne impérativement ton code : *${agent.code}* dans la case « Code Commercial / Parrainage ».\n` +
+      `2. Lors de l'inscription de sa boutique, renseigne impérativement ton code : ${agent.code} dans la case « Code Commercial / Parrainage ».\n` +
       `3. Dès que le commerçant active son abonnement, ta commission t'est automatiquement créditée chaque dimanche !\n\n` +
-      `🚀 *Bonne prospection et plein succès sur le terrain !*\n` +
+      `Bonne prospection et plein succès sur le terrain !\n` +
       `Direction FasoCarnet.`;
 
     return phoneParam 
@@ -1595,12 +1714,12 @@ export const adminService = {
     const cleanPhone = phone.replace(/\D/g, '');
     const phoneParam = cleanPhone.startsWith('226') ? cleanPhone : (cleanPhone ? `226${cleanPhone}` : '');
 
-    const message = `🔐 *CODE DE CONFIRMATION FASOCARNET* 🔐\n\n` +
+    const message = `CODE DE CONFIRMATION FASOCARNET\n\n` +
       `Bonjour,\n` +
-      `Voici votre code de sécurité pour valider la création de votre boutique *${shopName}* :\n\n` +
-      `👉 *${code}* 👈\n\n` +
-      `_Ce code est valable 10 minutes. Ne le partagez avec personne._\n\n` +
-      `Bienvenue sur Faso Carnet ! 🇧🇫`;
+      `Voici votre code de sécurité pour valider la création de votre boutique ${shopName} :\n\n` +
+      `Code : ${code}\n\n` +
+      `Ce code est valable 10 minutes. Ne le partagez avec personne.\n\n` +
+      `Bienvenue sur Faso Carnet !`;
 
     return phoneParam
       ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
@@ -1612,7 +1731,7 @@ export const adminService = {
    */
   getWhatsAppSupportOtpRequestUrl(phone: string, shopName: string): string {
     const cleanPhone = phone.replace(/\D/g, '');
-    const message = `Bonjour le Support FasoCarnet 🇧🇫,\nJe crée actuellement mon espace boutique *${shopName}* avec le numéro WhatsApp *${cleanPhone}*.\nMerci de me transmettre mon code d'activation sécurisé.`;
+    const message = `Bonjour le Support FasoCarnet,\nJe crée actuellement mon espace boutique ${shopName} avec le numéro WhatsApp ${cleanPhone}.\nMerci de me transmettre mon code d'activation sécurisé.`;
     return `https://wa.me/22665616134?text=${encodeURIComponent(message)}`;
   },
 
@@ -1900,14 +2019,14 @@ export const adminService = {
     const cleanPhone = leader.phone.replace(/\D/g, '');
     const phoneParam = cleanPhone.startsWith('226') ? cleanPhone : (cleanPhone ? `226${cleanPhone}` : '');
 
-    const message = `🇧🇫 *ESPACE CHEF D'ÉQUIPE FASOCARNET* 🇧🇫\n\n` +
-      `Bonjour *${leader.fullName}*,\n\n` +
-      `Vous avez été nommé Chef de l'équipe commerciale *${leader.teamName}* sur FasoCarnet.\n\n` +
-      `📲 *Vos identifiants d'accès Chef d'équipe :*\n` +
-      `• *Numéro de connexion :* +226 ${cleanPhone}\n` +
-      (rawPin ? `• *Code PIN d'accès :* ${rawPin}\n` : '') +
-      `• *Zone :* ${leader.zone || 'Burkina Faso'}\n\n` +
-      `🚀 *Vos prérogatives :*\n` +
+    const message = `ESPACE CHEF D'ÉQUIPE FASOCARNET\n\n` +
+      `Bonjour ${leader.fullName},\n\n` +
+      `Vous avez été nommé Chef de l'équipe commerciale ${leader.teamName} sur FasoCarnet.\n\n` +
+      `Vos identifiants d'accès Chef d'équipe :\n` +
+      `- Numéro de connexion : +226 ${cleanPhone}\n` +
+      (rawPin ? `- Code PIN d'accès : ${rawPin}\n` : '') +
+      `- Zone : ${leader.zone || 'Burkina Faso'}\n\n` +
+      `Vos prérogatives :\n` +
       `1. Accéder au suivi des performances de votre équipe.\n` +
       `2. Recruter de nouveaux commerciaux sur le terrain.\n` +
       `3. Générer et partager instantanément leurs codes d'affiliation.\n\n` +
@@ -1925,15 +2044,16 @@ export const adminService = {
     const cleanPhone = (agent.phone || '').replace(/\D/g, '');
     const phoneParam = cleanPhone.startsWith('226') ? cleanPhone : (cleanPhone ? `226${cleanPhone}` : '');
 
-    const message = `🇧🇫 *BIENVENUE DANS L'ÉQUIPE COMMERCIALE FASOCARNET* 🇧🇫\n\n` +
-      `Bonjour *${agent.fullName}*,\n\n` +
-      (leaderName ? `Vous avez été recruté(e) par votre Chef d'équipe *${leaderName}*.\n\n` : '') +
-      `🎉 *Votre code d'affiliation officiel :* 👉 *${agent.code}* 👈\n\n` +
-      `💼 *Votre mission :*\n` +
+    const message = `BIENVENUE DANS L'ÉQUIPE COMMERCIALE FASOCARNET\n\n` +
+      `Bonjour ${agent.fullName},\n\n` +
+      (leaderName ? `Vous avez été recruté(e) par votre Chef d'équipe ${leaderName}.\n\n` : '') +
+      `- Votre code d'affiliation officiel : ${agent.code}\n\n` +
+      `Votre mission :\n` +
       `1. Présentez FasoCarnet aux commerçants et boutiques de votre zone.\n` +
-      `2. Lors de leur inscription ou abonnement, demandez-leur de saisir votre code *${agent.code}*.\n` +
-      `3. Touchez *15% de commission* directe (soit *300 FCFA* par boutique abonnée à 2000 FCFA/mois) chaque semaine !\n\n` +
-      `Bonne prospection et plein succès sur le terrain !`;
+      `2. Lors de leur inscription ou abonnement, demandez-leur de saisir votre code ${agent.code}.\n` +
+      `3. Touchez 15% de commission directe (soit 300 FCFA par boutique abonnée à 2000 FCFA/mois) chaque semaine !\n\n` +
+      `Bonne prospection et plein succès sur le terrain !\n` +
+      `Direction FasoCarnet.`;
 
     return phoneParam
       ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
@@ -1947,14 +2067,14 @@ export const adminService = {
     const cleanPhone = (commercial.phone || '').replace(/\D/g, '');
     const phoneParam = cleanPhone.startsWith('226') ? cleanPhone : (cleanPhone ? `226${cleanPhone}` : '');
 
-    const message = `👋 *MESSAGE DU CHEF D'ÉQUIPE FASOCARNET* 🇧🇫\n\n` +
-      `Bonjour *${commercial.name || commercial.code}*,\n` +
-      (leaderName ? `C'est ton chef d'équipe *${leaderName}*.\n\n` : '') +
-      `🎯 *Point Terrain & Motivation* :\n` +
-      `• Ton Code Commercial : *${commercial.code}*\n` +
-      `• Boutiques enregistrées : *${commercial.totalShopsReferred || 0}*\n` +
-      `• Abonnements validés cette semaine : *${commercial.currentWeekPaidCount || 0}*\n\n` +
-      `💪 Continue sur cette lancée ! Chaque boutique abonnée te rapporte 300 FCFA nets reversés chaque dimanche.\n` +
+    const message = `MESSAGE DU CHEF D'ÉQUIPE FASOCARNET\n\n` +
+      `Bonjour ${commercial.name || commercial.code},\n` +
+      (leaderName ? `C'est ton chef d'équipe ${leaderName}.\n\n` : '') +
+      `Point Terrain & Motivation :\n` +
+      `- Ton Code Commercial : ${commercial.code}\n` +
+      `- Boutiques enregistrées : ${commercial.totalShopsReferred || 0}\n` +
+      `- Abonnements validés cette semaine : ${commercial.currentWeekPaidCount || 0}\n\n` +
+      `Continue sur cette lancée ! Chaque boutique abonnée te rapporte 300 FCFA nets reversés chaque dimanche.\n` +
       `N'hésite pas si tu as besoin d'aide ou d'accompagnement sur le terrain. Bonnes ventes !`;
 
     return phoneParam
