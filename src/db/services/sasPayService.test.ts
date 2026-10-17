@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { sasPayService, DEFAULT_SASPAY_API_KEY, SASPAY_API_BASE_URL } from './sasPayService';
+import { sasPayService, DEFAULT_SASPAY_API_KEY } from './sasPayService';
 import { ShopProfile } from '../../types';
 import { SubscriptionPlan } from './subscriptionService';
 
