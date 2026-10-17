@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   CheckCircle2, 
-  Clock, 
   Smartphone, 
   ExternalLink, 
   AlertTriangle, 
@@ -35,7 +34,6 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [newExpirationDate, setNewExpirationDate] = useState<string | null>(null);
-  const [isSimulating, setIsSimulating] = useState(false);
 
   const pollingTimerRef = useRef<any>(null);
 
@@ -122,7 +120,6 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
           window.open(response.redirectUrl, '_blank');
         }
       } else {
-        // Mode simulation / Sandbox disponible
         setStep('WAITING_VALIDATION');
         startPolling(response.refCommand, selectedPlan);
       }
@@ -133,37 +130,6 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
         : rawMsg || 'Échec de la connexion à la passerelle de paiement.';
       setErrorMessage(friendlyMsg);
       setStep('ERROR');
-    }
-  };
-
-  const handleSimulateSuccess = async () => {
-    if (!refCommand) return;
-    setIsSimulating(true);
-    try {
-      const sim = await subscriptionService.simulatePaymentSuccess(refCommand);
-      if (sim.success) {
-        if (pollingTimerRef.current) {
-          clearInterval(pollingTimerRef.current);
-          pollingTimerRef.current = null;
-        }
-
-        const res = await subscriptionService.applyAutomaticSubscription(
-          shopProfile,
-          selectedPlan.id,
-          sim.subscriptionExpiresAt
-        );
-
-        if (res.success) {
-          setSuccessMessage(res.message);
-          setNewExpirationDate(res.shop.subscriptionExpiresAt || null);
-          setStep('SUCCESS');
-          onSubscriptionSuccess(res.shop);
-        }
-      }
-    } catch (e: any) {
-      setErrorMessage(e.message || 'Erreur lors de la simulation');
-    } finally {
-      setIsSimulating(false);
     }
   };
 
@@ -340,28 +306,20 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
                 </div>
               )}
 
-              {/* Outil de simulation bac à sable / Test */}
-              <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-200 text-left space-y-2">
-                <div className="flex items-center space-x-1.5 text-amber-900 font-bold text-xs">
-                  <Clock className="w-3.5 h-3.5 text-amber-700" />
-                  <span>Mode Test & Démonstration Instantanée</span>
+              {/* Note de sécurité production */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-left space-y-1">
+                <div className="flex items-center space-x-1.5 text-slate-800 font-bold text-xs">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Paiement 100% sécurisé via SasPay</span>
                 </div>
-                <p className="text-[11px] text-amber-800">
-                  Vous pouvez cliquer ci-dessous pour simuler la validation du paiement et vérifier l'activation immédiate de votre compte :
+                <p className="text-[11px] text-slate-500">
+                  Transaction chiffrée de bout en bout. Votre compte s'active dès la validation de votre code secret sur votre téléphone.
                 </p>
-                <button
-                  type="button"
-                  onClick={handleSimulateSuccess}
-                  disabled={isSimulating}
-                  className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-lg text-xs shadow-xs flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  {isSimulating ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Zap className="w-3.5 h-3.5" />
-                  )}
-                  <span>Simuler le paiement réussi ({selectedPlan.price} F)</span>
-                </button>
+                {refCommand && (
+                  <p className="text-[10px] text-slate-400 font-mono pt-1 border-t border-slate-200/60">
+                    Réf : {refCommand}
+                  </p>
+                )}
               </div>
             </div>
           )}

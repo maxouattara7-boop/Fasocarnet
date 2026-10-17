@@ -423,7 +423,7 @@ export const subscriptionService = {
     redirectUrls?: { successUrl?: string; cancelUrl?: string }
   ): Promise<{
     success: boolean;
-    mode?: 'saspay_live' | 'sandbox_simulation';
+    mode?: 'saspay_live';
     redirectUrl?: string;
     token?: string;
     refCommand: string;
@@ -469,23 +469,6 @@ export const subscriptionService = {
       console.warn('[SubscriptionService] checkPaymentStatus error:', e);
       return { status: 'PENDING' };
     }
-  },
-
-  /**
-   * Simule la validation d'un paiement (mode Test)
-   */
-  async simulatePaymentSuccess(_sessionId: string): Promise<{
-    success: boolean;
-    status: string;
-    message: string;
-    subscriptionExpiresAt: string;
-  }> {
-    return {
-      success: true,
-      status: 'PAID',
-      message: 'Paiement test simulé avec succès.',
-      subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-    };
   },
 
   /**
