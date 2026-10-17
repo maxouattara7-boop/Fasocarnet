@@ -115,4 +115,14 @@ describe('sasPayService', () => {
     expect(statusResult.isPaid).toBe(false);
     expect(statusResult.status).toBe('PENDING');
   });
+
+  it('falls back to permanent SasPay link when proxy fails or is static', async () => {
+    global.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+
+    const result = await sasPayService.createCheckoutSession(dummyShop, dummyPlan);
+    expect(result.success).toBe(true);
+    expect(result.checkoutUrl).toBe('https://link.saspay.me/ztx0-32fdti');
+    expect(result.amount).toBe(2000);
+  });
 });
+

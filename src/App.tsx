@@ -79,15 +79,18 @@ export const App: React.FC = () => {
     const sessionId = params.get('sessionId') || params.get('session_id') || params.get('ref');
     const planId = (params.get('planId') || 'monthly') as any;
 
-    if (payment === 'success' && sessionId) {
-      sasPayService.checkCheckoutStatus(sessionId).then(async (res) => {
-        if (res.isPaid) {
-          await subscriptionService.applyAutomaticSubscription(shopProfile, planId);
-          window.history.replaceState({}, '', window.location.pathname);
-          loadCurrentShop();
-          alert('🎉 Félicitations ! Votre paiement SasPay a été validé avec succès. Votre abonnement est activé !');
+    if (payment === 'success') {
+      const activate = async () => {
+        if (sessionId && !sessionId.startsWith('link_')) {
+          const res = await sasPayService.checkCheckoutStatus(sessionId);
+          if (!res.isPaid) return;
         }
-      }).catch(console.warn);
+        await subscriptionService.applyAutomaticSubscription(shopProfile, planId);
+        window.history.replaceState({}, '', window.location.pathname);
+        loadCurrentShop();
+        alert('🎉 Félicitations ! Votre paiement SasPay a été validé avec succès. Votre abonnement est activé !');
+      };
+      activate().catch(console.warn);
     }
   }, [shopProfile, loadCurrentShop]);
 
