@@ -127,7 +127,11 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
         startPolling(response.refCommand, selectedPlan);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Échec de la connexion à la passerelle de paiement.');
+      const rawMsg = err?.message || '';
+      const friendlyMsg = rawMsg.includes('Failed to fetch')
+        ? 'Impossible de contacter la passerelle de paiement. Vérifiez votre connexion Internet et réessayez.'
+        : rawMsg || 'Échec de la connexion à la passerelle de paiement.';
+      setErrorMessage(friendlyMsg);
       setStep('ERROR');
     }
   };

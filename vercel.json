@@ -1,8 +1,16 @@
 {
   "rewrites": [
     {
+      "source": "/api/saspay/checkout-sessions/:sessionId/status/?",
+      "destination": "/api/saspay?sessionId=:sessionId"
+    },
+    {
+      "source": "/api/saspay/checkout-sessions/?",
+      "destination": "/api/saspay"
+    },
+    {
       "source": "/api/saspay/:path*",
-      "destination": "https://api.saspay.me/api/v1/:path*"
+      "destination": "https://api.saspay.me/api/v1/:path*/"
     },
     {
       "source": "/(.*)",

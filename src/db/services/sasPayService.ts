@@ -4,12 +4,12 @@
  * Documentation officielle : https://docs.saspay.me/
  */
 
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { ShopProfile } from '../../types';
 import { SubscriptionPlan } from './subscriptionService';
 
 export const DEFAULT_SASPAY_API_KEY = 'sk_live_vdGAFS2yW-eHEJc-mM8tuvdByunepYKBr-7vIjvmo1s';
 export const SASPAY_API_BASE_URL = 'https://api.saspay.me/api/v1';
-export const BACKEND_RENDER_URL = 'https://fasocarnet-cloud-api.onrender.com';
 
 export interface SasPayCheckoutResult {
   success: boolean;
@@ -63,7 +63,7 @@ export const sasPayService = {
 
   /**
    * Crée une session de checkout SasPay hébergée pour le renouvellement d'abonnement
-   * avec résolution multi-niveaux anti-CORS (Vercel proxy / Render backend / direct).
+   * avec support natif Android (CapacitorHttp anti-CORS), proxy Vercel serverless et direct.
    */
   async createCheckoutSession(
     shop: ShopProfile,
@@ -105,52 +105,20 @@ export const sasPayService = {
 
     let lastErrorMessage = '';
 
-    // 1. Priorité 1 : Proxy même origine (/api/saspay/...) - Fonctionne sur Vercel et Vite dev avec ZÉRO problème CORS
-    if (typeof window !== 'undefined') {
+    // 1. Sur Mobile Natif Android/iOS : Utilisation de CapacitorHttp (appel natif SANS aucune restriction CORS)
+    if (Capacitor.isNativePlatform()) {
       try {
-        const res = await fetch('/api/saspay/checkout-sessions/', {
-          method: 'POST',
+        const nativeRes = await CapacitorHttp.post({
+          url: `${SASPAY_API_BASE_URL}/checkout-sessions/`,
           headers: {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(payload)
+          data: payload
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.success && data.data) {
-            const s = data.data;
-            return {
-              success: true,
-              sessionId: s.id,
-              checkoutUrl: s.checkout_url,
-              slug: s.slug,
-              amount: plan.price,
-              currency: s.currency || 'XOF',
-              status: s.status || 'PENDING'
-            };
-          }
-        }
-      } catch (proxyErr: any) {
-        console.warn('[SasPayService] Échec proxy relatif, tentative serveur :', proxyErr);
-        lastErrorMessage = proxyErr?.message || '';
-      }
-    }
-
-    // 2. Priorité 2 : Serveur backend Render (/api/payments/saspay/create-session)
-    try {
-      const res = await fetch(`${BACKEND_RENDER_URL}/api/payments/saspay/create-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.success && data.data) {
+        const data = typeof nativeRes.data === 'string' ? JSON.parse(nativeRes.data) : nativeRes.data;
+        if (nativeRes.status >= 200 && nativeRes.status < 300 && data && data.success && data.data) {
           const s = data.data;
           return {
             success: true,
@@ -162,13 +130,52 @@ export const sasPayService = {
             status: s.status || 'PENDING'
           };
         }
+
+        if (data && data.error) {
+          throw new Error(typeof data.error === 'object' ? JSON.stringify(data.error) : String(data.error));
+        }
+      } catch (nativeErr: any) {
+        console.warn('[SasPayService] Échec appel natif CapacitorHttp, bascule fallback :', nativeErr);
+        lastErrorMessage = nativeErr?.message || '';
       }
-    } catch (renderErr: any) {
-      console.warn('[SasPayService] Échec serveur Render, tentative directe :', renderErr);
-      lastErrorMessage = renderErr?.message || lastErrorMessage;
     }
 
-    // 3. Priorité 3 : Appel direct sur l'API SasPay
+    // 2. Sur le Web : Proxy même origine (/api/saspay/checkout-sessions/ ou /api/saspay)
+    if (typeof window !== 'undefined') {
+      const proxyEndpoints = ['/api/saspay/checkout-sessions/', '/api/saspay'];
+      for (const endpoint of proxyEndpoints) {
+        try {
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.success && data.data) {
+              const s = data.data;
+              return {
+                success: true,
+                sessionId: s.id,
+                checkoutUrl: s.checkout_url,
+                slug: s.slug,
+                amount: plan.price,
+                currency: s.currency || 'XOF',
+                status: s.status || 'PENDING'
+              };
+            }
+          }
+        } catch (proxyErr: any) {
+          lastErrorMessage = proxyErr?.message || lastErrorMessage;
+        }
+      }
+    }
+
+    // 3. Appel direct sur l'API SasPay (navigateur avec support CORS ou environnement sécurisé)
     try {
       const res = await fetch(`${SASPAY_API_BASE_URL}/checkout-sessions/`, {
         method: 'POST',
@@ -204,8 +211,8 @@ export const sasPayService = {
 
     throw new Error(
       lastErrorMessage.includes('Failed to fetch')
-        ? 'Impossible de contacter la passerelle SasPay. Le déploiement de la configuration réseau est en cours.'
-        : `Erreur d'initialisation du paiement : ${lastErrorMessage}`
+        ? 'Impossible de joindre la passerelle SasPay. Vérifiez votre connexion Internet ou réessayez dans quelques instants.'
+        : `Erreur d'initialisation du paiement : ${lastErrorMessage || 'Service indisponible'}`
     );
   },
 
@@ -219,39 +226,19 @@ export const sasPayService = {
 
     const apiKey = this.getApiKey();
 
-    // 1. Essai via le proxy relatif /api/saspay
-    if (typeof window !== 'undefined') {
+    // 1. Mobile Natif Android/iOS via CapacitorHttp
+    if (Capacitor.isNativePlatform()) {
       try {
-        const res = await fetch(`/api/saspay/checkout-sessions/${sessionId}/status/`, {
-          method: 'GET',
+        const nativeRes = await CapacitorHttp.get({
+          url: `${SASPAY_API_BASE_URL}/checkout-sessions/${sessionId}/status/`,
           headers: {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
           }
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.success && data.data) {
-            const rawStatus = (data.data.status || '').toUpperCase();
-            const isPaid = rawStatus === 'SUCCESS' || rawStatus === 'PAID';
-            return {
-              sessionId,
-              status: isPaid ? 'SUCCESS' : rawStatus as any,
-              isPaid,
-              transactionId: data.data.transaction_id || undefined
-            };
-          }
-        }
-      } catch {}
-    }
-
-    // 2. Essai via le backend Render
-    try {
-      const res = await fetch(`${BACKEND_RENDER_URL}/api/payments/saspay/status/${sessionId}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.success && data.data) {
+        const data = typeof nativeRes.data === 'string' ? JSON.parse(nativeRes.data) : nativeRes.data;
+        if (nativeRes.status >= 200 && nativeRes.status < 300 && data && data.success && data.data) {
           const rawStatus = (data.data.status || '').toUpperCase();
           const isPaid = rawStatus === 'SUCCESS' || rawStatus === 'PAID';
           return {
@@ -261,10 +248,46 @@ export const sasPayService = {
             transactionId: data.data.transaction_id || undefined
           };
         }
+      } catch (nativeErr) {
+        console.warn('[SasPayService] Échec vérification statut natif :', nativeErr);
       }
-    } catch {}
+    }
 
-    // 3. Essai direct
+    // 2. Web : Proxy /api/saspay
+    if (typeof window !== 'undefined') {
+      const endpoints = [
+        `/api/saspay/checkout-sessions/${sessionId}/status/`,
+        `/api/saspay?sessionId=${sessionId}`
+      ];
+
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.success && data.data) {
+              const rawStatus = (data.data.status || '').toUpperCase();
+              const isPaid = rawStatus === 'SUCCESS' || rawStatus === 'PAID';
+              return {
+                sessionId,
+                status: isPaid ? 'SUCCESS' : rawStatus as any,
+                isPaid,
+                transactionId: data.data.transaction_id || undefined
+              };
+            }
+          }
+        } catch {}
+      }
+    }
+
+    // 3. Appel direct SasPay
     try {
       const res = await fetch(`${SASPAY_API_BASE_URL}/checkout-sessions/${sessionId}/status/`, {
         method: 'GET',
@@ -288,7 +311,7 @@ export const sasPayService = {
         }
       }
     } catch (e: any) {
-      console.warn('[SasPayService] Erreur vérification statut :', e);
+      console.warn('[SasPayService] Erreur vérification direct statut :', e);
     }
 
     return { sessionId, status: 'PENDING', isPaid: false };
