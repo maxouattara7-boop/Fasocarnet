@@ -178,14 +178,14 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
           
           <div className="flex items-center space-x-2 text-amber-300 font-bold text-xs uppercase tracking-wider mb-1">
             <Zap className="w-4 h-4 text-amber-400" />
-            <span>Paiement Instantané Sans Code</span>
+            <span>Paiement Sécurisé SasPay</span>
           </div>
 
           <h2 className="text-lg sm:text-xl font-black text-white">
-            Activation Automatique
+            Paiement Orange & Moov Money BF
           </h2>
           <p className="text-xs text-emerald-100/90 mt-0.5">
-            Payez par <strong>Orange Money</strong>, <strong>Moov</strong>, <strong>Wave</strong> ou <strong>Carte</strong>. Votre compte s'active dès validation.
+            Réglez par <strong>Orange Money</strong>, <strong>Moov Money</strong>, <strong>Wave</strong> ou <strong>Carte</strong> via la passerelle SasPay. Votre compte s'active dès validation.
           </p>
         </div>
 
@@ -323,15 +323,15 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
               </div>
 
               {redirectUrl && (
-                <div className="pt-1">
+                <div className="pt-2">
                   <a
                     href={redirectUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-1.5 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs border border-emerald-300 transition-all"
+                    className="inline-flex items-center justify-center space-x-2 w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-[0.99] text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-md transition-all cursor-pointer"
                   >
-                    <span>Rouvrir la page de paiement</span>
-                    <ExternalLink className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Ouvrir la page de paiement sécurisée SasPay</span>
+                    <ExternalLink className="w-4 h-4 text-emerald-200" />
                   </a>
                 </div>
               )}

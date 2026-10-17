@@ -2,7 +2,7 @@ import { db } from '../db';
 import { ShopProfile, LicenseKey, AdminDepositNumbers } from '../../types';
 import { syncService } from './syncService';
 import { verifyLicenseSignature } from '../../utils/crypto';
-import { getApiBaseUrl } from '../../utils/apiConfig';
+import { sasPayService } from './sasPayService';
 
 export interface SubscriptionPlan {
   id: 'monthly' | 'quarterly' | 'semi-annual' | 'annual';
@@ -415,10 +415,7 @@ export const subscriptionService = {
   },
 
   /**
-   * Initialise un paiement en ligne PayTech via le serveur
-   */
-  /**
-   * Initialise un paiement en ligne PayTech (avec fallback direct transparent sur l'API PayTech)
+   * Initialise un paiement en ligne SasPay (Orange Money BF, Moov Money BF, Wave, Cartes)
    */
   async initiateOnlinePayment(
     shop: ShopProfile,
@@ -426,104 +423,31 @@ export const subscriptionService = {
     redirectUrls?: { successUrl?: string; cancelUrl?: string }
   ): Promise<{
     success: boolean;
-    mode?: 'paytech_live' | 'sandbox_simulation';
+    mode?: 'saspay_live' | 'sandbox_simulation';
     redirectUrl?: string;
     token?: string;
     refCommand: string;
     message?: string;
   }> {
-    const refCommand = `fct_${shop.id}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    const baseUrl = getApiBaseUrl();
-
-    // 1. Tentative via le serveur Backend Cloud
     try {
-      const res = await fetch(`${baseUrl}/api/payments/paytech/request-payment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          shopId: shop.id,
-          planId: plan.id,
-          shopName: shop.name,
-          shopPhone: shop.phone,
-          successRedirectUrl: redirectUrls?.successUrl,
-          cancelRedirectUrl: redirectUrls?.cancelUrl
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.success) {
-          return data;
-        }
-      }
-    } catch (serverErr) {
-      console.warn('[SubscriptionService] Backend Cloud non joignable, bascule sur passerelle directe PayTech:', serverErr);
-    }
-
-    // 2. Fallback direct sécurisé sur l'API officielle PayTech
-    try {
-      const apiKey = (import.meta as any).env?.VITE_PAYTECH_API_KEY || '8697f52da95472d2a3d245d554de26fa4deba0b58a92f2b483891b6f9fa5dade';
-      const apiSecret = (import.meta as any).env?.VITE_PAYTECH_API_SECRET || '0dbd188150697c49ed94359de034ecb8d9d1cdc898d0e541196a2838686d8925';
-      const envMode = (import.meta as any).env?.VITE_PAYTECH_ENV || 'test';
-
-      const payload = {
-        item_name: `FasoCarnet - ${plan.name}`,
-        item_price: plan.price,
-        command_name: `Abonnement FasoCarnet ${plan.name} (${shop.name || shop.id})`,
-        ref_command: refCommand,
-        currency: 'XOF',
-        env: envMode,
-        ipn_url: 'https://paytech.sn',
-        success_url: redirectUrls?.successUrl || (typeof window !== 'undefined' ? `${window.location.origin}/?payment=success&ref=${refCommand}` : 'https://paytech.sn'),
-        cancel_url: redirectUrls?.cancelUrl || (typeof window !== 'undefined' ? `${window.location.origin}/?payment=cancel&ref=${refCommand}` : 'https://paytech.sn'),
-        custom_field: JSON.stringify({
-          shopId: shop.id,
-          planId: plan.id,
-          durationMonths: plan.durationMonths,
-          refCommand
-        })
-      };
-
-      const directRes = await fetch('https://paytech.sn/api/payment/request-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'API_KEY': apiKey,
-          'API_SECRET': apiSecret
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const directData = await directRes.json();
-      if (directData && (directData.success === 1 || directData.token)) {
-        return {
-          success: true,
-          mode: 'paytech_live',
-          redirectUrl: directData.redirect_url || directData.redirectUrl,
-          token: directData.token,
-          refCommand
-        };
-      } else {
-        throw new Error(directData.message || directData.error || 'Réponse invalide de PayTech');
-      }
-    } catch (directErr: any) {
-      console.error('[SubscriptionService] Échec appel direct PayTech:', directErr);
-      // Mode simulation bac à sable en dernier recours
+      const session = await sasPayService.createCheckoutSession(shop, plan, redirectUrls?.successUrl);
       return {
         success: true,
-        mode: 'sandbox_simulation',
-        refCommand,
-        message: 'Passerelle en mode démonstration test.'
+        mode: 'saspay_live',
+        redirectUrl: session.checkoutUrl,
+        refCommand: session.sessionId,
+        message: 'Session SasPay initialisée avec succès'
       };
+    } catch (err: any) {
+      console.error('[SubscriptionService] Erreur création session SasPay :', err);
+      throw new Error(err.message || 'Impossible d\'initialiser le paiement SasPay.');
     }
   },
 
   /**
-   * Vérifie le statut d'un paiement en ligne
+   * Vérifie le statut d'un paiement en ligne SasPay
    */
-  async checkPaymentStatus(refCommand: string): Promise<{
+  async checkPaymentStatus(sessionId: string): Promise<{
     status: 'PAID' | 'PENDING' | 'FAILED' | 'NOT_FOUND';
     shopId?: string;
     planId?: string;
@@ -532,14 +456,15 @@ export const subscriptionService = {
     paidAt?: string;
     subscriptionExpiresAt?: string;
   }> {
-    const baseUrl = getApiBaseUrl();
-
     try {
-      const res = await fetch(`${baseUrl}/api/payments/status/${refCommand}`);
-      if (!res.ok) {
-        return { status: 'NOT_FOUND' };
+      const check = await sasPayService.checkCheckoutStatus(sessionId);
+      if (check.isPaid) {
+        return { status: 'PAID' };
       }
-      return await res.json();
+      if (check.status === 'FAILED' || check.status === 'CANCELLED') {
+        return { status: 'FAILED' };
+      }
+      return { status: 'PENDING' };
     } catch (e) {
       console.warn('[SubscriptionService] checkPaymentStatus error:', e);
       return { status: 'PENDING' };
@@ -547,27 +472,20 @@ export const subscriptionService = {
   },
 
   /**
-   * Simule la validation d'un paiement (mode Bac à sable / Démo)
+   * Simule la validation d'un paiement (mode Test)
    */
-  async simulatePaymentSuccess(refCommand: string): Promise<{
+  async simulatePaymentSuccess(_sessionId: string): Promise<{
     success: boolean;
     status: string;
     message: string;
     subscriptionExpiresAt: string;
   }> {
-    const baseUrl = getApiBaseUrl();
-
-    const res = await fetch(`${baseUrl}/api/payments/paytech/simulate-payment-success`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refCommand })
-    });
-
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.message || 'Erreur lors de la validation simulée.');
-    }
-    return data;
+    return {
+      success: true,
+      status: 'PAID',
+      message: 'Paiement test simulé avec succès.',
+      subscriptionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    };
   },
 
   /**

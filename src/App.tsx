@@ -13,6 +13,7 @@ import { AdminView } from './components/admin/AdminView';
 import { MiniAdminDashboard } from './components/admin/MiniAdminDashboard';
 import { LandingPageView } from './components/landing/LandingPageView';
 import { subscriptionService } from './db/services/subscriptionService';
+import { sasPayService } from './db/services/sasPayService';
 import { syncService } from './db/services/syncService';
 import { adminService } from './db/services/adminService';
 import { AdminBroadcastMessage } from './types';
@@ -69,6 +70,26 @@ export const App: React.FC = () => {
       }
     }
   }, []);
+
+  // Détection et validation automatique du retour de paiement SasPay
+  useEffect(() => {
+    if (typeof window === 'undefined' || !shopProfile) return;
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get('payment');
+    const sessionId = params.get('sessionId') || params.get('session_id') || params.get('ref');
+    const planId = (params.get('planId') || 'monthly') as any;
+
+    if (payment === 'success' && sessionId) {
+      sasPayService.checkCheckoutStatus(sessionId).then(async (res) => {
+        if (res.isPaid) {
+          await subscriptionService.applyAutomaticSubscription(shopProfile, planId);
+          window.history.replaceState({}, '', window.location.pathname);
+          loadCurrentShop();
+          alert('🎉 Félicitations ! Votre paiement SasPay a été validé avec succès. Votre abonnement est activé !');
+        }
+      }).catch(console.warn);
+    }
+  }, [shopProfile, loadCurrentShop]);
 
   useEffect(() => {
     if (!shopProfile || !shopProfile.isConfigured) return;
