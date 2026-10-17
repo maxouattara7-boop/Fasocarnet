@@ -504,6 +504,60 @@ app.post('/api/payments/paytech/simulate-payment-success', (req, res) => {
   }
 });
 
+// 4b. Initialiser une session SasPay (Burkina Faso Orange Money BF / Moov BF / Wave / Cartes)
+app.post('/api/payments/saspay/create-session', async (req, res) => {
+  try {
+    const { amount, currency, description, customer_name, customer_email, customer_phone, return_url, metadata } = req.body;
+    const apiKey = process.env.SASPAY_API_KEY || 'sk_live_vdGAFS2yW-eHEJc-mM8tuvdByunepYKBr-7vIjvmo1s';
+
+    const sasPayRes = await fetch('https://api.saspay.me/api/v1/checkout-sessions/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        amount,
+        currency: currency || 'XOF',
+        description,
+        customer_name,
+        customer_email,
+        customer_phone,
+        return_url,
+        metadata
+      })
+    });
+
+    const data = await sasPayRes.json();
+    return res.status(sasPayRes.status).json(data);
+  } catch (error) {
+    console.error('[SasPay Backend] Erreur create-session:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 4c. Vérifier le statut d'une session SasPay
+app.get('/api/payments/saspay/status/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const apiKey = process.env.SASPAY_API_KEY || 'sk_live_vdGAFS2yW-eHEJc-mM8tuvdByunepYKBr-7vIjvmo1s';
+
+    const sasPayRes = await fetch(`https://api.saspay.me/api/v1/checkout-sessions/${sessionId}/status/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await sasPayRes.json();
+    return res.status(sasPayRes.status).json(data);
+  } catch (error) {
+    console.error('[SasPay Backend] Erreur status:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // 5. Initialiser une demande de paiement LigdiCash (Orange Money BF / Moov BF)
 app.post('/api/payments/ligdicash/request-payment', async (req, res) => {
   try {

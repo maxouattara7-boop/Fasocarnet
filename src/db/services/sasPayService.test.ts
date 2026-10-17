@@ -65,7 +65,7 @@ describe('sasPayService', () => {
     expect(result.currency).toBe('XOF');
 
     expect(global.fetch).toHaveBeenCalledWith(
-      `${SASPAY_API_BASE_URL}/checkout-sessions/`,
+      '/api/saspay/checkout-sessions/',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({

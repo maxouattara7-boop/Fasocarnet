@@ -78,6 +78,14 @@ export default defineConfig({
   plugins: [react(), cloudSyncPlugin()],
   server: {
     port: 3000,
-    host: true
+    host: true,
+    proxy: {
+      '/api/saspay': {
+        target: 'https://api.saspay.me/api/v1',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/saspay/, ''),
+        secure: true
+      }
+    }
   }
 });
