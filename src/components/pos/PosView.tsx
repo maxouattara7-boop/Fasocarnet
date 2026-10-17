@@ -781,13 +781,23 @@ export const PosView: React.FC = () => {
                   >
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-1.5">
-                        <div className={`w-8 h-8 rounded-xl font-black text-sm flex items-center justify-center shadow-xs shrink-0 font-display ${
-                          isZeroStock
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-emerald-100 text-emerald-800'
-                        }`}>
-                          {prod.name.charAt(0).toUpperCase()}
-                        </div>
+                        {prod.imageUrl ? (
+                          <img
+                            src={prod.imageUrl}
+                            alt={prod.name}
+                            className={`w-8 h-8 rounded-xl object-cover border shadow-xs shrink-0 ${
+                              isZeroStock ? 'border-red-200 grayscale opacity-75' : 'border-slate-200/80'
+                            }`}
+                          />
+                        ) : (
+                          <div className={`w-8 h-8 rounded-xl font-black text-sm flex items-center justify-center shadow-xs shrink-0 font-display ${
+                            isZeroStock
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {prod.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
 
                         <span
                           className={`text-xs font-black px-2.5 py-1 rounded-lg border shrink-0 ${
@@ -931,13 +941,23 @@ export const PosView: React.FC = () => {
                       }`}
                     >
                       <div className="flex items-center space-x-2.5 min-w-0">
-                        <div className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center shadow-xs shrink-0 font-display ${
-                          isZeroStock
-                            ? 'bg-red-100 text-red-700 border border-red-200'
-                            : 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white'
-                        }`}>
-                          {prod.name.charAt(0).toUpperCase()}
-                        </div>
+                        {prod.imageUrl ? (
+                          <img
+                            src={prod.imageUrl}
+                            alt={prod.name}
+                            className={`w-8 h-8 rounded-xl object-cover border shadow-xs shrink-0 ${
+                              isZeroStock ? 'border-red-200 grayscale opacity-75' : 'border-slate-200/80'
+                            }`}
+                          />
+                        ) : (
+                          <div className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center shadow-xs shrink-0 font-display ${
+                            isZeroStock
+                              ? 'bg-red-100 text-red-700 border border-red-200'
+                              : 'bg-gradient-to-br from-emerald-600 to-teal-700 text-white'
+                          }`}>
+                            {prod.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
                         <div className="min-w-0">
                           <div className="flex items-center space-x-1.5">
                             <span className="font-extrabold text-slate-900 block text-sm truncate">{prod.name}</span>

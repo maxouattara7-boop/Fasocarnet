@@ -18,7 +18,8 @@ export const productsService = {
     category?: string,
     stockQuantity?: number,
     minStockAlert: number = 5,
-    costPrice?: number
+    costPrice?: number,
+    imageUrl?: string
   ): Promise<Product> {
     let cleanCategory: string | undefined = undefined;
     let cleanStock: number | undefined = undefined;
@@ -47,6 +48,7 @@ export const productsService = {
       costPrice: cleanCost,
       barcode: barcode?.trim() || undefined,
       category: cleanCategory,
+      imageUrl: imageUrl?.trim() || undefined,
       stockQuantity: initialStock,
       minStockAlert: typeof cleanMinAlert === 'number' ? Math.max(0, cleanMinAlert) : 5,
       createdAt: new Date().toISOString()

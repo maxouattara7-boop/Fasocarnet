@@ -82,4 +82,18 @@ describe('productsService', () => {
     const p2Overridden = await productsService.getById(p2.id);
     expect(p2Overridden?.stockQuantity).toBe(50);
   });
+
+  it('creates and updates a product with an optional imageUrl photo', async () => {
+    const dummyImage = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD...';
+    const prod = await productsService.create('Savon BF', 300, undefined, undefined, 20, 5, 200, dummyImage);
+    expect(prod.imageUrl).toBe(dummyImage);
+
+    const fetched = await productsService.getById(prod.id);
+    expect(fetched?.imageUrl).toBe(dummyImage);
+
+    const newImage = 'data:image/jpeg;base64,UPDATED_IMAGE_DATA';
+    await productsService.update(prod.id, { imageUrl: newImage });
+    const updated = await productsService.getById(prod.id);
+    expect(updated?.imageUrl).toBe(newImage);
+  });
 });

@@ -42,7 +42,8 @@ import {
   Lock,
   Unlock,
   PenTool,
-  CheckCircle
+  CheckCircle,
+  RefreshCw
 } from 'lucide-react';
 import { SuppliesHistoryModal } from '../inventory/SuppliesHistoryModal';
 import { SignaturePadModal } from '../common/SignaturePadModal';
@@ -196,11 +197,28 @@ export const SettingsView: React.FC = () => {
   const [newProductBarcode, setNewProductBarcode] = useState('');
   const [newProductStock, setNewProductStock] = useState('');
   const [newProductMinAlert, setNewProductMinAlert] = useState('5');
+  const [newProductImage, setNewProductImage] = useState<string | null>(null);
+  const [isCompressingProductImage, setIsCompressingProductImage] = useState(false);
   const [isBarcodeModalOpen, setIsBarcodeModalOpen] = useState(false);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isSuppliesHistoryModalOpen, setIsSuppliesHistoryModalOpen] = useState(false);
   const [catalogFilter, setCatalogFilter] = useState<'all' | 'low_stock'>('all');
   const [catalogSearch, setCatalogSearch] = useState('');
+
+  const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsCompressingProductImage(true);
+    try {
+      const dataUrl = await compressImage(file, 256, 256, 0.85);
+      setNewProductImage(dataUrl);
+    } catch (err) {
+      console.warn('Erreur compression photo article:', err);
+      alert("Impossible de charger cette image.");
+    } finally {
+      setIsCompressingProductImage(false);
+    }
+  };
 
   // Gestion des Approvisionnements
   const [suppliesList, setSuppliesList] = useState<StockSupply[]>([]);
@@ -376,7 +394,8 @@ export const SettingsView: React.FC = () => {
         undefined,
         stockQty,
         minAlert,
-        costPrice
+        costPrice,
+        newProductImage || undefined
       );
       setNewProductName('');
       setNewProductCostPrice('');
@@ -384,6 +403,7 @@ export const SettingsView: React.FC = () => {
       setNewProductBarcode('');
       setNewProductStock('');
       setNewProductMinAlert('5');
+      setNewProductImage(null);
       await loadProducts();
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 2500);
@@ -1324,6 +1344,72 @@ export const SettingsView: React.FC = () => {
                       />
                     </div>
 
+                    {/* Photo de l'article (Optionnelle) */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 font-display">
+                          Photo de l'article <span className="text-slate-400 text-[9px] font-normal">(optionnel)</span>
+                        </label>
+                        {newProductImage && (
+                          <button
+                            type="button"
+                            onClick={() => setNewProductImage(null)}
+                            className="text-[10px] text-red-600 hover:text-red-700 font-bold hover:underline cursor-pointer"
+                          >
+                            Supprimer la photo
+                          </button>
+                        )}
+                      </div>
+
+                      {newProductImage ? (
+                        <div className="flex items-center space-x-3 bg-emerald-50/60 p-2 rounded-2xl border border-emerald-200 shadow-2xs">
+                          <img
+                            src={newProductImage}
+                            alt="Aperçu article"
+                            className="w-12 h-12 object-cover rounded-xl border border-emerald-200 bg-white shrink-0 shadow-xs"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-slate-900 truncate">Photo sélectionnée</p>
+                            <p className="text-[10px] text-slate-500">Visible sur la caisse & le catalogue</p>
+                          </div>
+                          <label className="px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-bold rounded-xl cursor-pointer transition-colors shadow-2xs shrink-0">
+                            <span>Changer</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleProductImageUpload}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      ) : (
+                        <label className="flex items-center space-x-3 p-2.5 bg-slate-50 border border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/40 rounded-2xl cursor-pointer transition-all group">
+                          <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-emerald-600 group-hover:border-emerald-300 shadow-2xs shrink-0 transition-colors">
+                            {isCompressingProductImage ? (
+                              <RefreshCw className="w-4 h-4 animate-spin text-emerald-600" />
+                            ) : (
+                              <Camera className="w-4 h-4" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <span className="block text-xs font-bold text-slate-700 group-hover:text-emerald-800">
+                              {isCompressingProductImage ? 'Optimisation en cours...' : 'Ajouter une photo'}
+                            </span>
+                            <span className="block text-[10px] text-slate-400 font-medium">
+                              Appareil photo ou galerie (compressée automatiquement)
+                            </span>
+                          </div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleProductImageUpload}
+                            disabled={isCompressingProductImage}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+
                     {/* Prix d'Achat & Prix de Vente */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
@@ -1566,8 +1652,40 @@ export const SettingsView: React.FC = () => {
                             className="p-3.5 bg-white border border-slate-200/80 hover:border-emerald-300 rounded-2xl shadow-2xs transition-all flex items-center justify-between group"
                           >
                             <div className="flex items-center space-x-3 min-w-0">
-                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white font-black text-sm flex items-center justify-center shadow-xs shrink-0 font-display">
-                                {prod.name.charAt(0).toUpperCase()}
+                              <div className="relative group/photo shrink-0">
+                                {prod.imageUrl ? (
+                                  <img
+                                    src={prod.imageUrl}
+                                    alt={prod.name}
+                                    className="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-2xs"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white font-black text-sm flex items-center justify-center shadow-xs font-display">
+                                    {prod.name.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <label
+                                  className="absolute -bottom-1 -right-1 w-4.5 h-4.5 bg-white text-slate-600 hover:text-emerald-700 rounded-full shadow-xs border border-slate-200 flex items-center justify-center cursor-pointer transition-transform hover:scale-110 opacity-70 group-hover/photo:opacity-100"
+                                  title={prod.imageUrl ? "Changer la photo" : "Ajouter une photo"}
+                                >
+                                  <Camera className="w-2.5 h-2.5" />
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      try {
+                                        const compressed = await compressImage(file, 256, 256, 0.85);
+                                        await productsService.update(prod.id, { imageUrl: compressed });
+                                        await loadProducts();
+                                      } catch (err) {
+                                        console.warn('Erreur mise à jour photo article:', err);
+                                      }
+                                    }}
+                                  />
+                                </label>
                               </div>
 
                               <div className="min-w-0 space-y-0.5">

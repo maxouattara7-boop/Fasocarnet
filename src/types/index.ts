@@ -55,6 +55,7 @@ export interface Product {
   costPrice?: number; // Prix d'achat unitaire (coût de revient)
   barcode?: string;
   category?: string;
+  imageUrl?: string; // Photo / Image de l'article (Base64 data URL optimisée)
   stockQuantity?: number; // Quantité en stock disponible (si indéfini, stock non géré / illimité)
   minStockAlert?: number; // Seuil d'alerte de stock faible (par défaut 5)
   createdAt: string;
