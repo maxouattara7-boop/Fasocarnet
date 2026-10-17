@@ -295,6 +295,10 @@ describe('adminService', () => {
     expect(activated.isSuspended).toBe(false);
     expect(activated.subscriptionPlan).toBe('quarterly');
     expect(new Date(activated.subscriptionExpiresAt!).getTime()).toBeGreaterThan(Date.now() + 80 * 24 * 60 * 60 * 1000);
+    expect(activated.licenseKey).toMatch(/^ADMIN-MANUAL-3M-/);
+
+    const licenses = await db.licenses.toArray();
+    expect(licenses.some(l => l.code === activated.licenseKey && l.usedByShopId === 'shop_manual_act')).toBe(true);
   });
 
   it('creates, manages commercial teams and aggregates performance tracking by affiliate code', async () => {
@@ -467,6 +471,96 @@ describe('adminService', () => {
 
     // 5. Nettoyer
     await adminService.deleteCommercialAgent(agent.id);
+  });
+
+  it('corrects accidental double-clicks with reduceShopLicense, setShopLicenseExactMonths, and revokeShopLicense', async () => {
+    const shop: ShopProfile = {
+      id: 'shop_rectif_test',
+      name: 'Boutique Rectification Test',
+      phone: '70998877',
+      currency: 'FCFA',
+      isConfigured: true,
+      subscriptionStatus: 'expired',
+      subscriptionExpiresAt: new Date(Date.now() - 10000).toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await db.shopProfiles.put(shop);
+
+    // 1. Simuler un double clic accidentel (+1 mois, puis +1 mois => +2 mois / 60 jours)
+    await adminService.extendShopLicense('shop_rectif_test', 1);
+    const doubleClicked = await adminService.extendShopLicense('shop_rectif_test', 1);
+    const doubleExpiry = new Date(doubleClicked.subscriptionExpiresAt!).getTime();
+    const daysFromNowDouble = Math.round((doubleExpiry - Date.now()) / (24 * 60 * 60 * 1000));
+    expect(daysFromNowDouble).toBeGreaterThanOrEqual(58); // ~60 jours
+
+    // 2. Rectification par réduction : -1 mois (30 jours)
+    const reduced = await adminService.reduceShopLicense('shop_rectif_test', 1);
+    const reducedExpiry = new Date(reduced.subscriptionExpiresAt!).getTime();
+    const daysFromNowReduced = Math.round((reducedExpiry - Date.now()) / (24 * 60 * 60 * 1000));
+    expect(daysFromNowReduced).toBeGreaterThanOrEqual(28);
+    expect(daysFromNowReduced).toBeLessThanOrEqual(32); // ramené à ~30 jours
+    expect(reduced.subscriptionStatus).toBe('active');
+
+    // 3. Rectification par fixation exacte : fixer à 1 mois pile (30 jours) dès aujourd'hui
+    const exact = await adminService.setShopLicenseExactMonths('shop_rectif_test', 1);
+    const exactExpiry = new Date(exact.subscriptionExpiresAt!).getTime();
+    const daysFromNowExact = Math.round((exactExpiry - Date.now()) / (24 * 60 * 60 * 1000));
+    expect(daysFromNowExact).toBeGreaterThanOrEqual(29);
+    expect(daysFromNowExact).toBeLessThanOrEqual(31);
+    expect(exact.subscriptionStatus).toBe('active');
+    expect(exact.subscriptionPlan).toBe('monthly');
+
+    // 4. Rectification par révocation / annulation complète
+    const revoked = await adminService.revokeShopLicense('shop_rectif_test');
+    expect(revoked.subscriptionStatus).toBe('expired');
+    expect(new Date(revoked.subscriptionExpiresAt!).getTime()).toBeLessThan(Date.now());
+
+    // 5. Test réduction au-delà de la durée restante => bascule en 'expired'
+    await adminService.setShopLicenseExactMonths('shop_rectif_test', 1);
+    const reducedToPast = await adminService.reduceShopLicense('shop_rectif_test', 2); // -60j sur un abonnement de 30j
+    expect(reducedToPast.subscriptionStatus).toBe('expired');
+    expect(new Date(reducedToPast.subscriptionExpiresAt!).getTime()).toBeLessThan(Date.now());
+  });
+
+  it('grants free bonus days correctly to expired and active shops without charging', async () => {
+    const expiredShop: ShopProfile = {
+      id: 'shop_bonus_expired',
+      name: 'Boutique Bonus Expirée',
+      phone: '70110011',
+      currency: 'FCFA',
+      isConfigured: true,
+      subscriptionStatus: 'expired',
+      subscriptionExpiresAt: new Date(Date.now() - 50000).toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    await db.shopProfiles.put(expiredShop);
+
+    // 1. Accorder 15 jours gratuits à une boutique expirée
+    const granted15 = await adminService.grantShopBonusDays('shop_bonus_expired', 15, 'Cadeau Tabaski');
+    expect(granted15.subscriptionStatus).toBe('active');
+    const expiry15 = new Date(granted15.subscriptionExpiresAt!).getTime();
+    const days15 = Math.round((expiry15 - Date.now()) / (24 * 60 * 60 * 1000));
+    expect(days15).toBeGreaterThanOrEqual(14);
+    expect(days15).toBeLessThanOrEqual(16);
+
+    // Vérifier la licence d'audit à 0 FCFA
+    const licenses = await adminService.getAllLicenses();
+    const bonusLic = licenses.find(l => l.code === granted15.licenseKey);
+    expect(bonusLic).toBeDefined();
+    expect(bonusLic?.price).toBe(0);
+    expect(bonusLic?.notes).toContain('Cadeau Tabaski');
+
+    // 2. Accorder 7 jours gratuits à une boutique active (cumul au-delà de l'échéance)
+    const granted7 = await adminService.grantShopBonusDays('shop_bonus_expired', 7, 'Geste commercial');
+    const expiry22 = new Date(granted7.subscriptionExpiresAt!).getTime();
+    const daysTotal = Math.round((expiry22 - Date.now()) / (24 * 60 * 60 * 1000));
+    expect(daysTotal).toBeGreaterThanOrEqual(21);
+    expect(daysTotal).toBeLessThanOrEqual(23);
+
+    // 3. Rejet d'un nombre de jours invalide
+    await expect(adminService.grantShopBonusDays('shop_bonus_expired', 0)).rejects.toThrow();
   });
 });
 

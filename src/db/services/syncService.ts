@@ -88,12 +88,13 @@ export const syncService = {
   async pushRemoteDatabase(data: Record<string, CloudShopData>, replace: boolean = false): Promise<void> {
     this.saveCloudDatabase(data);
 
-    // 1. Sync Supabase si configuré
+    // 1. Sync Supabase si configuré (par lots contrôlés pour éviter les surcharges)
     if (supabaseClient.isConfigured()) {
-      for (const shopData of Object.values(data)) {
-        if (shopData && shopData.profile) {
-          supabaseClient.pushShop(shopData).catch(() => {});
-        }
+      const shops = Object.values(data).filter(s => s && s.profile);
+      const batchSize = 5;
+      for (let i = 0; i < shops.length; i += batchSize) {
+        const batch = shops.slice(i, i + batchSize);
+        await Promise.all(batch.map(shopData => supabaseClient.pushShop(shopData, false).catch(() => false)));
       }
     }
 
@@ -254,31 +255,31 @@ export const syncService = {
   /**
    * Sauvegarde la partition d'une boutique isolée
    */
-  async pushShopPartition(shopId: string, data: CloudShopData, token?: string, isRegistration: boolean = false): Promise<void> {
+  async pushShopPartition(shopId: string, data: CloudShopData, token?: string, isRegistration: boolean = false, forceSubscriptionUpdate: boolean = false): Promise<void> {
     const fullDb = this.getCloudDatabase();
     fullDb[shopId] = data;
     this.saveCloudDatabase(fullDb);
 
-    // 1. Sync Supabase — CRITIQUE lors de la création de compte : on attend le résultat
+    // 1. Sync Supabase — CRITIQUE lors de la création de compte ou action d'autorité Admin
     if (supabaseClient.isConfigured()) {
-      if (isRegistration) {
-        // Lors de l'inscription, on retente jusqu'à 3 fois pour garantir que le compte est bien enregistré
+      if (isRegistration || forceSubscriptionUpdate) {
+        // Lors de l'inscription ou mise à jour explicite Admin : on attend le résultat
         let pushed = false;
         for (let attempt = 1; attempt <= 3 && !pushed; attempt++) {
-          pushed = await supabaseClient.pushShop(data);
+          pushed = await supabaseClient.pushShop(data, forceSubscriptionUpdate);
           if (!pushed && attempt < 3) {
-            await new Promise(r => setTimeout(r, 500 * attempt));
+            await new Promise(r => setTimeout(r, 400 * attempt));
           }
         }
         if (pushed) {
           supabaseClient.broadcastShopChange(shopId).catch(() => {});
-        } else {
+        } else if (isRegistration) {
           console.error('[Sync] CRITIQUE: Échec enregistrement Supabase après 3 tentatives.');
           throw new Error('Échec de synchronisation avec la base de données centrale. Veuillez vérifier votre connexion Internet et réessayer.');
         }
       } else {
-      // Pour les mises à jour normales : push synchrone (garantit que Supabase reçoit l'update)
-        supabaseClient.pushShop(data).then(() => {
+        // Pour les mises à jour normales : push synchrone avec garde d'autorité
+        supabaseClient.pushShop(data, false).then(() => {
           supabaseClient.broadcastShopChange(shopId).catch(() => {});
         }).catch((err) => {
           console.warn('[Sync] Push Supabase non critique échoué (sera retenté au prochain sync):', err);
@@ -623,11 +624,58 @@ export const syncService = {
   },
 
   /**
-   * Envoie toutes les données locales vers le Cloud
+   * Envoie toutes les données locales vers le Cloud (avec protection et rapprochement d'abonnement actif)
    */
   async pushLocalChanges(shopId: string) {
     const shop = await db.shopProfiles.get(shopId);
     if (!shop) return;
+
+    // Vérification d'autorité : si le Cloud possède une date de licence plus récente ou un statut actif
+    // accordé par l'administrateur, adopter ces informations en local au lieu d'écraser avec un ancien statut expiré.
+    try {
+      const remoteData = await this.fetchShopPartition(shopId);
+      if (remoteData && remoteData.profile) {
+        const remoteExp = remoteData.profile.subscriptionExpiresAt ? new Date(remoteData.profile.subscriptionExpiresAt).getTime() : 0;
+        const localExp = shop.subscriptionExpiresAt ? new Date(shop.subscriptionExpiresAt).getTime() : 0;
+        let profileChanged = false;
+
+        if (remoteExp > localExp) {
+          shop.subscriptionExpiresAt = remoteData.profile.subscriptionExpiresAt;
+          shop.subscriptionPlan = remoteData.profile.subscriptionPlan || shop.subscriptionPlan;
+          shop.subscriptionStatus = remoteData.profile.subscriptionStatus || 'active';
+          if (remoteData.profile.licenseKey) shop.licenseKey = remoteData.profile.licenseKey;
+          profileChanged = true;
+        } else if (remoteData.profile.subscriptionStatus === 'active' && shop.subscriptionStatus !== 'active') {
+          const now = Date.now();
+          if (remoteExp > now) {
+            shop.subscriptionStatus = 'active';
+            shop.subscriptionPlan = remoteData.profile.subscriptionPlan || shop.subscriptionPlan;
+            shop.subscriptionExpiresAt = remoteData.profile.subscriptionExpiresAt;
+            if (remoteData.profile.licenseKey) shop.licenseKey = remoteData.profile.licenseKey;
+            profileChanged = true;
+          }
+        }
+
+        if (profileChanged) {
+          await db.shopProfiles.put(shop);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('fasocarnet_database_updated', { detail: { shopId } }));
+          }
+        }
+
+        // Récupérer et importer les licences Cloud manquantes en local (ex: jeton ADMIN-MANUAL)
+        if (remoteData.licenses && remoteData.licenses.length) {
+          const existingLicenses = await db.licenses.toArray();
+          const existingCodes = new Set(existingLicenses.map(l => l.code));
+          const newLicenses = remoteData.licenses.filter(l => !existingCodes.has(l.code));
+          if (newLicenses.length > 0) {
+            await db.licenses.bulkPut(newLicenses);
+          }
+        }
+      }
+    } catch (checkErr) {
+      console.warn('[Sync] Rapprochement licence locale/distante ignoré:', checkErr);
+    }
 
     const [products, customers, debts, debtPayments, sales, licenses] = await Promise.all([
       db.products.toArray(),
@@ -924,8 +972,8 @@ export const syncService = {
    * Synchronise bidirectionnellement (Push + Pull)
    */
   async syncNow(shopId: string): Promise<string> {
-    await this.pushLocalChanges(shopId);
     await this.pullRemoteChanges(shopId);
+    await this.pushLocalChanges(shopId);
     return new Date().toISOString();
   },
 

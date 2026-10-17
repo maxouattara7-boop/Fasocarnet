@@ -218,9 +218,9 @@ export const adminService = {
   },
 
   /**
-   * Prolonge manuellement la licence d'une boutique (Action Admin)
+   * Prolonge manuellement la licence d'une boutique (Action Admin avec enregistrement d'audit et notification temps-réel)
    */
-  async extendShopLicense(shopId: string, durationMonths: number, _notes?: string): Promise<ShopProfile> {
+  async extendShopLicense(shopId: string, durationMonths: number, notes?: string): Promise<ShopProfile> {
     const cloudDb = await syncService.fetchRemoteDatabase();
     let shop = await db.shopProfiles.get(shopId);
 
@@ -239,19 +239,246 @@ export const adminService = {
     else if (durationMonths >= 6) planId = 'semi-annual';
     else if (durationMonths >= 3) planId = 'quarterly';
 
+    const nowIso = new Date().toISOString();
+    const licenseCode = `ADMIN-MANUAL-${durationMonths}M-${Date.now().toString(36).toUpperCase()}`;
+
     const updated: ShopProfile = {
       ...shop,
       subscriptionPlan: planId,
       subscriptionStatus: 'active',
       subscriptionExpiresAt: newExpiry.toISOString(),
+      licenseKey: licenseCode,
       isSuspended: false,
-      updatedAt: new Date().toISOString()
+      updatedAt: nowIso
     };
+
+    const manualLicenseRecord: LicenseKey = {
+      id: 'lic_admin_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      code: licenseCode,
+      plan: planId,
+      durationDays: durationMonths * 30,
+      price: durationMonths >= 12 ? 20000 : durationMonths >= 6 ? 10000 : durationMonths >= 3 ? 5000 : 2000,
+      createdAt: nowIso,
+      isUsed: true,
+      usedByShopId: shop.id,
+      usedByShopName: shop.name,
+      usedAt: nowIso,
+      notes: notes || `Activation manuelle par l'administrateur (+${durationMonths} mois)`
+    };
+
+    return this._persistShopLicenseChange(shopId, updated, manualLicenseRecord, cloudDb);
+  },
+
+  /**
+   * Accorde un bonus de jours gratuits à une boutique (geste commercial, dédommagement, promo, etc.)
+   * N'impacte pas le chiffre d'affaires (prix 0 FCFA) et prolonge intelligemment l'abonnement.
+   */
+  async grantShopBonusDays(shopId: string, durationDays: number, reason?: string): Promise<ShopProfile> {
+    if (!durationDays || durationDays <= 0) {
+      throw new Error('Le nombre de jours de bonus doit être supérieur à zéro.');
+    }
+
+    const cloudDb = await syncService.fetchRemoteDatabase();
+    let shop = await db.shopProfiles.get(shopId);
+
+    if (!shop && cloudDb[shopId]) {
+      shop = cloudDb[shopId].profile;
+    }
+
+    if (!shop) throw new Error('Boutique introuvable');
+
+    const currentExpiry = shop.subscriptionExpiresAt ? new Date(shop.subscriptionExpiresAt) : new Date();
+    // Si l'abonnement est encore en cours de validité, on ajoute les jours à la fin. Sinon on démarre d'aujourd'hui.
+    const baseDate = currentExpiry.getTime() > Date.now() ? currentExpiry : new Date();
+    const newExpiry = new Date(baseDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+    const nowIso = new Date().toISOString();
+    const licenseCode = `ADMIN-BONUS-${durationDays}D-${Date.now().toString(36).toUpperCase()}`;
+    const effectivePlan = (shop.subscriptionPlan && shop.subscriptionPlan !== 'trial' ? shop.subscriptionPlan : 'monthly') as 'monthly' | 'quarterly' | 'semi-annual' | 'annual';
+
+    const updated: ShopProfile = {
+      ...shop,
+      subscriptionPlan: effectivePlan,
+      subscriptionStatus: 'active',
+      subscriptionExpiresAt: newExpiry.toISOString(),
+      licenseKey: licenseCode,
+      isSuspended: false,
+      updatedAt: nowIso
+    };
+
+    const bonusLicenseRecord: LicenseKey = {
+      id: 'lic_admin_bonus_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      code: licenseCode,
+      plan: effectivePlan,
+      durationDays,
+      price: 0, // Gratuit : aucun impact sur le chiffre d'affaires
+      createdAt: nowIso,
+      isUsed: true,
+      usedByShopId: shop.id,
+      usedByShopName: shop.name,
+      usedAt: nowIso,
+      notes: reason ? `Bonus gratuit (+${durationDays} jours) : ${reason}` : `Bonus / Geste commercial (+${durationDays} jours gratuits) par l'administrateur`
+    };
+
+    return this._persistShopLicenseChange(shopId, updated, bonusLicenseRecord, cloudDb);
+  },
+
+  /**
+   * Réduit manuellement la durée de licence d'une boutique (ex: rectification suite à un double clic accidentel)
+   */
+  async reduceShopLicense(shopId: string, durationMonths: number = 1, notes?: string): Promise<ShopProfile> {
+    const cloudDb = await syncService.fetchRemoteDatabase();
+    let shop = await db.shopProfiles.get(shopId);
+
+    if (!shop && cloudDb[shopId]) {
+      shop = cloudDb[shopId].profile;
+    }
+
+    if (!shop) throw new Error('Boutique introuvable');
+
+    const currentExpiry = shop.subscriptionExpiresAt ? new Date(shop.subscriptionExpiresAt) : new Date();
+    const reductionMs = durationMonths * 30 * 24 * 60 * 60 * 1000;
+    const newExpiry = new Date(currentExpiry.getTime() - reductionMs);
+    const isStillActive = newExpiry.getTime() > Date.now();
+
+    const nowIso = new Date().toISOString();
+    const licenseCode = `ADMIN-REDUCE-${durationMonths}M-${Date.now().toString(36).toUpperCase()}`;
+
+    const updated: ShopProfile = {
+      ...shop,
+      subscriptionStatus: isStillActive ? 'active' : 'expired',
+      subscriptionExpiresAt: newExpiry.toISOString(),
+      licenseKey: licenseCode,
+      updatedAt: nowIso
+    };
+
+    const auditLicenseRecord: LicenseKey = {
+      id: 'lic_admin_red_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      code: licenseCode,
+      plan: (shop.subscriptionPlan && shop.subscriptionPlan !== 'trial' ? shop.subscriptionPlan : 'monthly') as 'monthly' | 'quarterly' | 'semi-annual' | 'annual',
+      durationDays: -durationMonths * 30,
+      price: 0,
+      createdAt: nowIso,
+      isUsed: true,
+      usedByShopId: shop.id,
+      usedByShopName: shop.name,
+      usedAt: nowIso,
+      notes: notes || `Rectification / Réduction manuelle de licence (-${durationMonths} mois) par l'administrateur`
+    };
+
+    return this._persistShopLicenseChange(shopId, updated, auditLicenseRecord, cloudDb);
+  },
+
+  /**
+   * Fixe la licence d'une boutique à exactement N mois à compter de maintenant (ex: corriger un mauvais cumul)
+   */
+  async setShopLicenseExactMonths(shopId: string, durationMonths: number = 1, notes?: string): Promise<ShopProfile> {
+    const cloudDb = await syncService.fetchRemoteDatabase();
+    let shop = await db.shopProfiles.get(shopId);
+
+    if (!shop && cloudDb[shopId]) {
+      shop = cloudDb[shopId].profile;
+    }
+
+    if (!shop) throw new Error('Boutique introuvable');
+
+    const newExpiry = new Date(Date.now() + durationMonths * 30 * 24 * 60 * 60 * 1000);
+
+    let planId: 'monthly' | 'quarterly' | 'semi-annual' | 'annual' = 'monthly';
+    if (durationMonths >= 12) planId = 'annual';
+    else if (durationMonths >= 6) planId = 'semi-annual';
+    else if (durationMonths >= 3) planId = 'quarterly';
+
+    const nowIso = new Date().toISOString();
+    const licenseCode = `ADMIN-EXACT-${durationMonths}M-${Date.now().toString(36).toUpperCase()}`;
+
+    const updated: ShopProfile = {
+      ...shop,
+      subscriptionPlan: planId,
+      subscriptionStatus: 'active',
+      subscriptionExpiresAt: newExpiry.toISOString(),
+      licenseKey: licenseCode,
+      isSuspended: false,
+      updatedAt: nowIso
+    };
+
+    const auditLicenseRecord: LicenseKey = {
+      id: 'lic_admin_exact_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      code: licenseCode,
+      plan: planId,
+      durationDays: durationMonths * 30,
+      price: durationMonths >= 12 ? 20000 : durationMonths >= 6 ? 10000 : durationMonths >= 3 ? 5000 : 2000,
+      createdAt: nowIso,
+      isUsed: true,
+      usedByShopId: shop.id,
+      usedByShopName: shop.name,
+      usedAt: nowIso,
+      notes: notes || `Fixation manuelle exacte à ${durationMonths} mois pile par l'administrateur`
+    };
+
+    return this._persistShopLicenseChange(shopId, updated, auditLicenseRecord, cloudDb);
+  },
+
+  /**
+   * Révoke / Annule immédiatement l'abonnement d'une boutique (remise en état expiré)
+   */
+  async revokeShopLicense(shopId: string, notes?: string): Promise<ShopProfile> {
+    const cloudDb = await syncService.fetchRemoteDatabase();
+    let shop = await db.shopProfiles.get(shopId);
+
+    if (!shop && cloudDb[shopId]) {
+      shop = cloudDb[shopId].profile;
+    }
+
+    if (!shop) throw new Error('Boutique introuvable');
+
+    const nowIso = new Date().toISOString();
+    const expiredDate = new Date(Date.now() - 1000).toISOString();
+    const licenseCode = `ADMIN-REVOKE-${Date.now().toString(36).toUpperCase()}`;
+
+    const updated: ShopProfile = {
+      ...shop,
+      subscriptionStatus: 'expired',
+      subscriptionExpiresAt: expiredDate,
+      licenseKey: licenseCode,
+      updatedAt: nowIso
+    };
+
+    const auditLicenseRecord: LicenseKey = {
+      id: 'lic_admin_rev_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      code: licenseCode,
+      plan: (shop.subscriptionPlan && shop.subscriptionPlan !== 'trial' ? shop.subscriptionPlan : 'monthly') as 'monthly' | 'quarterly' | 'semi-annual' | 'annual',
+      durationDays: 0,
+      price: 0,
+      createdAt: nowIso,
+      isUsed: true,
+      usedByShopId: shop.id,
+      usedByShopName: shop.name,
+      usedAt: nowIso,
+      notes: notes || `Révocation / Annulation immédiate de l'abonnement par l'administrateur`
+    };
+
+    return this._persistShopLicenseChange(shopId, updated, auditLicenseRecord, cloudDb);
+  },
+
+  /**
+   * Sauvegarde et propage de manière autoritaire les modifications de licence d'une boutique
+   */
+  async _persistShopLicenseChange(
+    shopId: string,
+    updated: ShopProfile,
+    auditLicenseRecord: LicenseKey,
+    cloudDb: Record<string, any>
+  ): Promise<ShopProfile> {
+    const nowIso = new Date().toISOString();
 
     // Mettre à jour en local dans IndexedDB
     await db.shopProfiles.put(updated);
+    try {
+      await db.licenses.put(auditLicenseRecord);
+    } catch {}
 
-    // Mettre à jour sur le Cloud
+    // Préparer la partition de la boutique
     if (!cloudDb[shopId]) {
       cloudDb[shopId] = {
         profile: updated,
@@ -260,14 +487,30 @@ export const adminService = {
         products: [],
         debts: [],
         debtPayments: [],
-        licenses: [],
-        lastUpdatedAt: new Date().toISOString()
+        licenses: [auditLicenseRecord],
+        lastUpdatedAt: nowIso
       };
     } else {
       cloudDb[shopId].profile = updated;
-      cloudDb[shopId].lastUpdatedAt = new Date().toISOString();
+      if (!cloudDb[shopId].licenses) cloudDb[shopId].licenses = [];
+      cloudDb[shopId].licenses = [
+        ...cloudDb[shopId].licenses!.filter((l: any) => l.code !== auditLicenseRecord.code),
+        auditLicenseRecord
+      ];
+      cloudDb[shopId].lastUpdatedAt = nowIso;
     }
-    await syncService.pushRemoteDatabase(cloudDb);
+
+    // 1. Sauvegarder dans le cache local Cloud
+    syncService.saveCloudDatabase(cloudDb);
+
+    // 2. Synchronisation Supabase d'autorité (forceSubscriptionUpdate: true) avec broadcast temps-réel
+    if (supabaseClient.isConfigured()) {
+      await supabaseClient.pushShop(cloudDb[shopId], true);
+      await supabaseClient.broadcastShopChange(shopId).catch(() => {});
+    }
+
+    // 3. Pousser vers le serveur REST / partition dédiée
+    await syncService.pushShopPartition(shopId, cloudDb[shopId], undefined, false, true);
 
     return updated;
   },

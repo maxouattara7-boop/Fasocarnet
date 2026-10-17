@@ -163,9 +163,9 @@ export const supabaseClient = {
   },
 
   /**
-   * Envoie les données d'une boutique vers Supabase (Upsert)
+   * Envoie les données d'une boutique vers Supabase (Upsert avec garde d'autorité sur les abonnements)
    */
-  async pushShop(shopData: CloudShopData): Promise<boolean> {
+  async pushShop(shopData: CloudShopData, forceSubscriptionUpdate: boolean = false): Promise<boolean> {
     const client = this.getClient();
     if (!client) return false;
 
@@ -174,6 +174,49 @@ export const supabaseClient = {
       // Normaliser les numéros de téléphone (8 derniers chiffres) pour garantir la fiabilité des recherches ILIKE
       const normalizePhoneCol = (p: string | undefined | null) =>
         p ? p.replace(/\D/g, '').slice(-8) : null;
+
+      let targetPlan = profile.subscriptionPlan || 'trial';
+      let targetStatus = profile.subscriptionStatus || 'trial';
+      let targetExpiresAt = profile.subscriptionExpiresAt || null;
+
+      // Si ce n'est PAS un push d'autorité (action admin explicite ou activation PayTech/licence),
+      // on préserve l'abonnement actif ou plus récent existant sur Supabase pour empêcher qu'un téléphone client
+      // avec un état local ancien/expiré n'écrase l'activation manuelle effectuée par l'Admin.
+      if (!forceSubscriptionUpdate) {
+        try {
+          const { data: existing } = await client
+            .from('shops')
+            .select('subscription_plan, subscription_status, subscription_expires_at')
+            .eq('id', profile.id)
+            .maybeSingle();
+
+          if (existing) {
+            const existingExp = existing.subscription_expires_at ? new Date(existing.subscription_expires_at).getTime() : 0;
+            const incomingExp = targetExpiresAt ? new Date(targetExpiresAt).getTime() : 0;
+
+            if (existingExp > incomingExp) {
+              targetExpiresAt = existing.subscription_expires_at;
+              targetPlan = existing.subscription_plan || targetPlan;
+              targetStatus = existing.subscription_status || targetStatus;
+            } else if (existing.subscription_status === 'active' && targetStatus !== 'active') {
+              const now = Date.now();
+              if (existingExp > now) {
+                targetStatus = existing.subscription_status;
+                targetPlan = existing.subscription_plan || targetPlan;
+                targetExpiresAt = existing.subscription_expires_at;
+              }
+            }
+          }
+        } catch (fetchErr) {
+          console.warn('[Supabase] Vérification abonnement distant ignorée:', fetchErr);
+        }
+      }
+
+      // Aligner également profile dans data pour que le JSONB soit parfaitement synchrone
+      shopData.profile.subscriptionPlan = targetPlan as any;
+      shopData.profile.subscriptionStatus = targetStatus as any;
+      shopData.profile.subscriptionExpiresAt = targetExpiresAt || undefined;
+
       const { error } = await client
         .from('shops')
         .upsert({
@@ -184,9 +227,9 @@ export const supabaseClient = {
           owner_phone: normalizePhoneCol(profile.ownerPhone),
           city: profile.city || null,
           pin_code: profile.pinCode || null,
-          subscription_plan: profile.subscriptionPlan || 'trial',
-          subscription_status: profile.subscriptionStatus || 'trial',
-          subscription_expires_at: profile.subscriptionExpiresAt || null,
+          subscription_plan: targetPlan,
+          subscription_status: targetStatus,
+          subscription_expires_at: targetExpiresAt,
           data: shopData,
           telemetry: profile.telemetry || null,
           updated_at: new Date().toISOString()
@@ -213,12 +256,22 @@ export const supabaseClient = {
     try {
       const { data, error } = await client
         .from('shops')
-        .select('data')
+        .select('data, subscription_plan, subscription_status, subscription_expires_at')
         .eq('id', shopId)
         .single();
 
       if (error || !data) return null;
-      return (data.data as CloudShopData) || null;
+      const shopData = (data.data as CloudShopData) || null;
+      if (shopData && shopData.profile && data.subscription_expires_at) {
+        const colExp = new Date(data.subscription_expires_at).getTime();
+        const jsonExp = shopData.profile.subscriptionExpiresAt ? new Date(shopData.profile.subscriptionExpiresAt).getTime() : 0;
+        if (colExp > jsonExp) {
+          shopData.profile.subscriptionExpiresAt = data.subscription_expires_at;
+          shopData.profile.subscriptionStatus = data.subscription_status || shopData.profile.subscriptionStatus;
+          shopData.profile.subscriptionPlan = data.subscription_plan || shopData.profile.subscriptionPlan;
+        }
+      }
+      return shopData;
     } catch {
       return null;
     }
@@ -240,10 +293,25 @@ export const supabaseClient = {
     if (!clean || clean.length < 8) return null;
 
     try {
+      const parseFoundShop = (item: any): CloudShopData | null => {
+        if (!item || !item.data) return null;
+        const shopData = item.data as CloudShopData;
+        if (shopData && shopData.profile && item.subscription_expires_at) {
+          const colExp = new Date(item.subscription_expires_at).getTime();
+          const jsonExp = shopData.profile.subscriptionExpiresAt ? new Date(shopData.profile.subscriptionExpiresAt).getTime() : 0;
+          if (colExp > jsonExp) {
+            shopData.profile.subscriptionExpiresAt = item.subscription_expires_at;
+            shopData.profile.subscriptionStatus = item.subscription_status || shopData.profile.subscriptionStatus;
+            shopData.profile.subscriptionPlan = item.subscription_plan || shopData.profile.subscriptionPlan;
+          }
+        }
+        return shopData;
+      };
+
       // Recherche 1 : numéro normalisé (les nouvelles lignes sont stockées sans espaces)
       const { data: data1, error: err1 } = await client
         .from('shops')
-        .select('data')
+        .select('data, subscription_plan, subscription_status, subscription_expires_at')
         .or(`phone.ilike.%${clean}%,owner_phone.ilike.%${clean}%`)
         .limit(1);
 
@@ -252,14 +320,14 @@ export const supabaseClient = {
       }
 
       if (data1 && data1.length > 0) {
-        return (data1[0].data as CloudShopData) || null;
+        return parseFoundShop(data1[0]);
       }
 
       // Recherche 2 : pattern souple pour les anciens numéros stockés avec espaces (+226 65 61 61 34)
       const spacedPattern = `%${clean.split('').join('%')}%`;
       const { data: data2, error: err2 } = await client
         .from('shops')
-        .select('data')
+        .select('data, subscription_plan, subscription_status, subscription_expires_at')
         .or(`phone.ilike.${spacedPattern},owner_phone.ilike.${spacedPattern}`)
         .limit(1);
 
@@ -268,7 +336,7 @@ export const supabaseClient = {
       }
 
       if (data2 && data2.length > 0) {
-        return (data2[0].data as CloudShopData) || null;
+        return parseFoundShop(data2[0]);
       }
 
       return null;
@@ -297,14 +365,24 @@ export const supabaseClient = {
     try {
       const { data, error } = await client
         .from('shops')
-        .select('id, data');
+        .select('id, data, subscription_plan, subscription_status, subscription_expires_at');
 
       if (error || !data) return null;
 
       const result: Record<string, CloudShopData> = {};
       data.forEach(item => {
         if (item.data) {
-          result[item.id] = item.data as CloudShopData;
+          const shopData = item.data as CloudShopData;
+          if (shopData && shopData.profile && item.subscription_expires_at) {
+            const colExp = new Date(item.subscription_expires_at).getTime();
+            const jsonExp = shopData.profile.subscriptionExpiresAt ? new Date(shopData.profile.subscriptionExpiresAt).getTime() : 0;
+            if (colExp > jsonExp) {
+              shopData.profile.subscriptionExpiresAt = item.subscription_expires_at;
+              shopData.profile.subscriptionStatus = item.subscription_status || shopData.profile.subscriptionStatus;
+              shopData.profile.subscriptionPlan = item.subscription_plan || shopData.profile.subscriptionPlan;
+            }
+          }
+          result[item.id] = shopData;
         }
       });
       return result;

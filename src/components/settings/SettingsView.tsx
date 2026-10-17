@@ -76,7 +76,7 @@ const getInitialSettingsTab = (): SettingsTab => {
 };
 
 export const SettingsView: React.FC = () => {
-  const { shopProfile, updateShopProfile } = useAppStore();
+  const { shopProfile, updateShopProfile, loadCurrentShop } = useAppStore();
 
   const [activeSubTab, setActiveSubTabState] = useState<SettingsTab>(getInitialSettingsTab);
   const [catalogSubTab, setCatalogSubTab] = useState<CatalogSubTab>('catalog');
@@ -267,6 +267,7 @@ export const SettingsView: React.FC = () => {
     const handleDbUpdated = () => {
       loadProducts();
       loadSupplies();
+      loadCurrentShop();
     };
     window.addEventListener('fasocarnet_database_updated', handleDbUpdated);
 

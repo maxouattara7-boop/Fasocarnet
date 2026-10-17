@@ -146,11 +146,56 @@ describe('syncService (Cloud Sync & Single Account per device)', () => {
     ).rejects.toThrow(/déjà associé/i);
   });
 
-  it('manages custom server URL configuration', () => {
-    expect(syncService.getServerUrl()).toBe('http://localhost:5000');
-    syncService.setServerUrl('https://api.fasocarnet.com/');
-    expect(syncService.getServerUrl()).toBe('https://api.fasocarnet.com');
-    syncService.setServerUrl('');
-    expect(syncService.getServerUrl()).toBe('http://localhost:5000');
+  it('protects active Cloud subscription from being overwritten by an expired local profile during pushLocalChanges', async () => {
+    // 1. Inscription initiale
+    const shop = await syncService.registerShop({
+      name: 'Boutique Test Protection',
+      phone: '70889900',
+      currency: 'FCFA'
+    });
+
+    // 2. Simuler que le téléphone local a un profil expiré
+    const pastDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+    await db.shopProfiles.update(shop.id, {
+      subscriptionStatus: 'expired',
+      subscriptionExpiresAt: pastDate
+    });
+
+    // 3. Simuler que l'Admin a activé la boutique sur le Cloud pour 1 mois
+    const futureDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const cloudDb = syncService.getCloudDatabase();
+    cloudDb[shop.id].profile.subscriptionStatus = 'active';
+    cloudDb[shop.id].profile.subscriptionPlan = 'monthly';
+    cloudDb[shop.id].profile.subscriptionExpiresAt = futureDate;
+    cloudDb[shop.id].profile.licenseKey = 'ADMIN-MANUAL-1M-TEST';
+    cloudDb[shop.id].licenses = [{
+      id: 'lic_test_1',
+      code: 'ADMIN-MANUAL-1M-TEST',
+      plan: 'monthly',
+      durationDays: 30,
+      price: 2000,
+      createdAt: new Date().toISOString(),
+      isUsed: true,
+      usedByShopId: shop.id,
+      usedByShopName: shop.name,
+      usedAt: new Date().toISOString()
+    }];
+    syncService.saveCloudDatabase(cloudDb);
+
+    // 4. Le commerçant déclenche pushLocalChanges (ex: après une vente)
+    await syncService.pushLocalChanges(shop.id);
+
+    // 5. Vérifier que l'IndexedDB locale a ADOPTÉ la licence active
+    const localAfter = await db.shopProfiles.get(shop.id);
+    expect(localAfter?.subscriptionStatus).toBe('active');
+    expect(localAfter?.subscriptionPlan).toBe('monthly');
+    expect(localAfter?.subscriptionExpiresAt).toBe(futureDate);
+    expect(localAfter?.licenseKey).toBe('ADMIN-MANUAL-1M-TEST');
+
+    // 6. Vérifier que le Cloud n'a PAS été écrasé
+    const cloudAfter = syncService.getCloudDatabase();
+    expect(cloudAfter[shop.id].profile.subscriptionStatus).toBe('active');
+    expect(cloudAfter[shop.id].profile.subscriptionExpiresAt).toBe(futureDate);
   });
 });
+

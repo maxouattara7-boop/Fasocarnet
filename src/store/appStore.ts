@@ -103,6 +103,29 @@ export const useAppStore = create<AppState>((set, get) => {
       const detail = (e as CustomEvent).detail;
       set({ hasPendingOfflineData: !!detail?.pending });
     });
+    window.addEventListener('fasocarnet_database_updated', async (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const targetShopId = detail?.shopId || get().activeShopId;
+      if (targetShopId) {
+        const refreshed = await db.shopProfiles.get(targetShopId);
+        if (refreshed) {
+          const current = get().shopProfile;
+          if (
+            !current ||
+            current.subscriptionExpiresAt !== refreshed.subscriptionExpiresAt ||
+            current.subscriptionStatus !== refreshed.subscriptionStatus ||
+            current.name !== refreshed.name ||
+            current.licenseKey !== refreshed.licenseKey
+          ) {
+            set({
+              shopProfile: refreshed,
+              activeShopId: refreshed.id,
+              lastSyncedAt: new Date().toISOString()
+            });
+          }
+        }
+      }
+    });
     window.addEventListener('fasocarnet_account_deleted', () => {
       syncService.stopAutoRealtimeSync();
       set({
@@ -188,7 +211,7 @@ export const useAppStore = create<AppState>((set, get) => {
       }
 
       // Sur cet appareil, charger l'unique profil existant
-      const shop = await db.shopProfiles.toCollection().first();
+      let shop = await db.shopProfiles.toCollection().first();
       if (shop) {
         // RÈGLE STRICTE : AUCUNE CONNEXION SI LE COMPTE N'EXISTE PAS SUR LE CLOUD
         if (typeof navigator !== 'undefined' && navigator.onLine) {
@@ -200,22 +223,54 @@ export const useAppStore = create<AppState>((set, get) => {
               await syncService.handleShopDeletedLocally(shop.id);
               set({ activeShopId: null, shopProfile: null, isLocked: false, isInitialized: true });
               return;
+            } else if (remoteShop.profile) {
+              // Si le Cloud possède une date d'expiration plus récente ou un statut actif accordé par l'Admin,
+              // mettre à jour immédiatement IndexedDB ET le profil local pour l'affichage initial !
+              const remoteExp = remoteShop.profile.subscriptionExpiresAt ? new Date(remoteShop.profile.subscriptionExpiresAt).getTime() : 0;
+              const localExp = shop.subscriptionExpiresAt ? new Date(shop.subscriptionExpiresAt).getTime() : 0;
+              if (remoteExp > localExp || (remoteShop.profile.subscriptionStatus === 'active' && shop.subscriptionStatus !== 'active')) {
+                shop = {
+                  ...shop,
+                  subscriptionPlan: remoteShop.profile.subscriptionPlan || shop.subscriptionPlan,
+                  subscriptionStatus: remoteShop.profile.subscriptionStatus || 'active',
+                  subscriptionExpiresAt: remoteShop.profile.subscriptionExpiresAt,
+                  licenseKey: remoteShop.profile.licenseKey || shop.licenseKey,
+                  isSuspended: false
+                };
+                await db.shopProfiles.put(shop);
+              }
             }
           } catch {
             // Hors-ligne ou erreur réseau : accès temporaire toléré
           }
         }
 
+        const currentShopId = shop.id;
+
         set({
-          activeShopId: shop.id,
+          activeShopId: currentShopId,
           shopProfile: shop,
           isLocked: false,
           isInitialized: true
         });
-        // Démarrer la synchronisation continue temps-réel (Téléphone ⇄ PC)
-        syncService.startAutoRealtimeSync(shop.id);
-        // Tenter une synchronisation initiale
-        get().syncNow();
+
+        // Fonction de rafraîchissement réactif du profil en mémoire vive
+        const refreshShopInState = async () => {
+          const fresh = await db.shopProfiles.get(currentShopId);
+          if (fresh) {
+            set({
+              shopProfile: fresh,
+              activeShopId: fresh.id,
+              lastSyncedAt: new Date().toISOString()
+            });
+          }
+        };
+
+        // Démarrer la synchronisation continue temps-réel (Téléphone ⇄ PC) avec callback d'actualisation d'écran
+        syncService.startAutoRealtimeSync(currentShopId, refreshShopInState);
+
+        // Synchronisation initiale fiable en tâche de fond (non-bloquante)
+        get().syncNow().catch(() => {});
       } else {
         set({ activeShopId: null, shopProfile: null, isLocked: false, isInitialized: true });
       }
@@ -258,16 +313,22 @@ export const useAppStore = create<AppState>((set, get) => {
               localStorage.removeItem('fasocarnet_is_mini_admin_open');
               localStorage.removeItem('fasocarnet_active_team_leader');
             }
+            const currentShop = res.shop;
             set({
-              activeShopId: res.shop.id,
-              shopProfile: res.shop,
+              activeShopId: currentShop.id,
+              shopProfile: currentShop,
               isMiniAdminOpen: false,
               activeTeamLeader: null,
               isLocked: false,
               isInitialized: true,
               lastSyncedAt: new Date().toISOString()
             });
-            syncService.startAutoRealtimeSync(res.shop.id);
+            syncService.startAutoRealtimeSync(currentShop.id, async () => {
+              const fresh = await db.shopProfiles.get(currentShop.id);
+              if (fresh) {
+                set({ shopProfile: fresh, activeShopId: fresh.id, lastSyncedAt: new Date().toISOString() });
+              }
+            });
           }
         }
         return res;
@@ -292,7 +353,12 @@ export const useAppStore = create<AppState>((set, get) => {
           isInitialized: true,
           lastSyncedAt: new Date().toISOString()
         });
-        syncService.startAutoRealtimeSync(newShop.id);
+        syncService.startAutoRealtimeSync(newShop.id, async () => {
+          const fresh = await db.shopProfiles.get(newShop.id);
+          if (fresh) {
+            set({ shopProfile: fresh, activeShopId: fresh.id, lastSyncedAt: new Date().toISOString() });
+          }
+        });
         return newShop;
       } finally {
         set({ isSyncing: false });

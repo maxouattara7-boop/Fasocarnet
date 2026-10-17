@@ -5,7 +5,8 @@ import {
   BarChart3, Download, Users,
   MapPin, Send, CheckCircle2, Megaphone,
   X, ChevronRight, Calendar, Phone, User, Building, FileText, Clock, Wallet,
-  Plus, Edit2, Zap, Sparkles, UserPlus, AlertCircle, Bell, BellOff
+  Plus, Edit2, Zap, Sparkles, UserPlus, AlertCircle, Bell, BellOff,
+  MinusCircle, RotateCcw, ShieldAlert, Gift
 } from 'lucide-react';
 import { adminService, AdminStats, ShopAdminDetails } from '../../db/services/adminService';
 import { syncService } from '../../db/services/syncService';
@@ -124,6 +125,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'trial' | 'expired'>('all');
   const [selectedShop, setSelectedShop] = useState<ShopAdminDetails | null>(null);
   const [shopActionFeedback, setShopActionFeedback] = useState<string>('');
+  const [isProcessingLicense, setIsProcessingLicense] = useState<string | null>(null);
+  const [customBonusDays, setCustomBonusDays] = useState<number>(15);
+  const [customBonusReason, setCustomBonusReason] = useState<string>('');
+  const [showCustomBonusInput, setShowCustomBonusInput] = useState<boolean>(false);
 
   // Dissociation Boutiques Commerçantes vs Comptes Commerciaux
   const [accountCategoryFilter, setAccountCategoryFilter] = useState<'merchants' | 'all' | 'commercials'>('merchants');
@@ -643,14 +648,87 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
   };
 
   const handleManualActivation = async (shopId: string, months: number = 1) => {
+    if (isProcessingLicense) return;
+    setIsProcessingLicense(shopId);
     try {
       const updated = await adminService.activateShopManually(shopId, months);
       const planLabel = months >= 12 ? '1 an' : months >= 6 ? '6 mois' : months >= 3 ? '3 mois' : '1 mois';
-      setShopActionFeedback(`⚡ Abonnement de « ${updated.name} » activé manuellement avec succès pour ${planLabel} !`);
+      setShopActionFeedback(`⚡ Abonnement de « ${updated.name} » activé manuellement avec succès pour +${planLabel} !`);
       setTimeout(() => setShopActionFeedback(''), 4500);
       await loadData();
     } catch (err: any) {
       alert(err.message || 'Erreur lors de l\'activation manuelle.');
+    } finally {
+      setIsProcessingLicense(null);
+    }
+  };
+
+  const handleReduceLicense = async (shopId: string, months: number = 1) => {
+    if (isProcessingLicense) return;
+    setIsProcessingLicense(shopId);
+    try {
+      const updated = await adminService.reduceShopLicense(shopId, months);
+      setShopActionFeedback(`↩️ Rectification appliquée : -${months} mois pour « ${updated.name} » !`);
+      setTimeout(() => setShopActionFeedback(''), 4500);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de la réduction de la licence.');
+    } finally {
+      setIsProcessingLicense(null);
+    }
+  };
+
+  const handleSetExactLicense = async (shopId: string, months: number = 1) => {
+    if (isProcessingLicense) return;
+    setIsProcessingLicense(shopId);
+    try {
+      const updated = await adminService.setShopLicenseExactMonths(shopId, months);
+      setShopActionFeedback(`🎯 Licence réinitialisée avec succès à exactement ${months} mois dès aujourd'hui pour « ${updated.name} » !`);
+      setTimeout(() => setShopActionFeedback(''), 4500);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de la réinitialisation de la licence.');
+    } finally {
+      setIsProcessingLicense(null);
+    }
+  };
+
+  const handleRevokeLicense = async (shopId: string, shopName: string) => {
+    if (isProcessingLicense) return;
+    if (!confirm(`Voulez-vous vraiment annuler / révoquer immédiatement l'abonnement de « ${shopName} » ?\n\nLe compte sera instantanément marqué comme expiré sur tous ses appareils.`)) {
+      return;
+    }
+    setIsProcessingLicense(shopId);
+    try {
+      const updated = await adminService.revokeShopLicense(shopId);
+      setShopActionFeedback(`🛑 Abonnement révoqué avec succès pour « ${updated.name} » (compte remis en expiré).`);
+      setTimeout(() => setShopActionFeedback(''), 4500);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de l\'annulation de l\'abonnement.');
+    } finally {
+      setIsProcessingLicense(null);
+    }
+  };
+
+  const handleGrantBonus = async (shopId: string, days: number, reason?: string) => {
+    if (isProcessingLicense) return;
+    if (!days || days <= 0) {
+      alert('Veuillez entrer un nombre de jours valide supérieur à 0.');
+      return;
+    }
+    setIsProcessingLicense(shopId);
+    try {
+      const updated = await adminService.grantShopBonusDays(shopId, days, reason);
+      setShopActionFeedback(`🎁 Bonus de +${days} jours offert avec succès à « ${updated.name} » !`);
+      setTimeout(() => setShopActionFeedback(''), 4500);
+      setCustomBonusReason('');
+      setShowCustomBonusInput(false);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de l\'attribution du bonus.');
+    } finally {
+      setIsProcessingLicense(null);
     }
   };
 
@@ -1274,17 +1352,39 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
                         {/* Bouton d'activation manuelle rapide */}
                         <button
                           type="button"
+                          disabled={isProcessingLicense === shop.id}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleManualActivation(shop.id, 1);
                           }}
-                          className="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded-xl text-[10px] sm:text-xs font-black border border-emerald-500/30 transition-all flex items-center space-x-1 cursor-pointer font-display active:scale-95"
+                          className={`px-2.5 py-1.5 ${isProcessingLicense === shop.id ? 'opacity-50 cursor-not-allowed bg-slate-800' : 'bg-emerald-600/20 hover:bg-emerald-600 active:scale-95 cursor-pointer'} text-emerald-300 hover:text-white rounded-xl text-[10px] sm:text-xs font-black border border-emerald-500/30 transition-all flex items-center space-x-1 font-display`}
                           title="Activer manuellement l'abonnement (+1 mois)"
                         >
-                          <Zap className="w-3.5 h-3.5 text-amber-300" />
+                          {isProcessingLicense === shop.id ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                          ) : (
+                            <Zap className="w-3.5 h-3.5 text-amber-300" />
+                          )}
                           <span className="hidden sm:inline">Activer</span>
                           <span>+1m</span>
                         </button>
+
+                        {/* Bouton de réduction rapide -1m en cas d'erreur */}
+                        {shop.daysRemaining > 0 && (
+                          <button
+                            type="button"
+                            disabled={isProcessingLicense === shop.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleReduceLicense(shop.id, 1);
+                            }}
+                            className={`px-2 py-1.5 ${isProcessingLicense === shop.id ? 'opacity-50 cursor-not-allowed bg-slate-800' : 'bg-amber-600/20 hover:bg-amber-600 active:scale-95 cursor-pointer'} text-amber-300 hover:text-white rounded-xl text-[10px] sm:text-xs font-black border border-amber-500/30 transition-all flex items-center space-x-1 font-display`}
+                            title="Rectifier : Réduire l'abonnement de 1 mois (-1m)"
+                          >
+                            <MinusCircle className="w-3.5 h-3.5 text-amber-300" />
+                            <span>-1m</span>
+                          </button>
+                        )}
 
                         <span className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider border ${badge.style}`}>
                           {badge.label}
@@ -3772,50 +3872,232 @@ export const AdminView: React.FC<AdminViewProps> = ({ onClose }) => {
 
             {/* BLOC ACTIVATION MANUELLE EN CAS DE PROBLÈME TECHNIQUE OU PAIEMENT DIRECT */}
             <div className="bg-gradient-to-br from-emerald-950/70 via-slate-900 to-slate-950 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-emerald-500/40 shadow-inner space-y-3">
-              <div className="flex items-start space-x-2.5 text-emerald-300">
-                <Zap className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="font-black text-xs sm:text-sm text-white font-display">
-                    Activation Manuelle Immédiate (Super-Admin)
-                  </h4>
-                  <p className="text-[11px] text-slate-400">
-                    Débloque ou active instantanément l'abonnement du commerçant en cas de difficulté technique après paiement ou pour un accord direct.
-                  </p>
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-2.5 text-emerald-300">
+                  <Zap className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-black text-xs sm:text-sm text-white font-display">
+                      Activation Manuelle Immédiate (Super-Admin)
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      Débloque ou active instantanément l'abonnement du commerçant en cas de difficulté technique après paiement ou pour un accord direct.
+                    </p>
+                  </div>
                 </div>
+                {isProcessingLicense === selectedShop.id && (
+                  <div className="flex items-center space-x-1 px-2.5 py-1 bg-amber-500/20 text-amber-300 rounded-lg text-[10px] font-bold border border-amber-500/40 animate-pulse shrink-0">
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                    <span>Synchronisation...</span>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
                 <button
                   type="button"
+                  disabled={isProcessingLicense === selectedShop.id}
                   onClick={() => handleManualActivation(selectedShop.id, 1)}
-                  className="p-2.5 bg-slate-800/90 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold rounded-xl border border-slate-700 hover:border-emerald-500 transition-all text-center cursor-pointer font-display shadow-xs min-h-[44px]"
+                  className={`p-2.5 bg-slate-800/90 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl border border-slate-700 hover:border-emerald-500 transition-all text-center font-display shadow-xs min-h-[44px] ${isProcessingLicense === selectedShop.id ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 cursor-pointer'}`}
                 >
                   <span className="block font-black text-amber-300">+1 Mois</span>
                   <span className="text-[10px] text-slate-400 block font-normal">2 000 FCFA</span>
                 </button>
                 <button
                   type="button"
+                  disabled={isProcessingLicense === selectedShop.id}
                   onClick={() => handleManualActivation(selectedShop.id, 3)}
-                  className="p-2.5 bg-slate-800/90 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold rounded-xl border border-slate-700 hover:border-emerald-500 transition-all text-center cursor-pointer font-display shadow-xs min-h-[44px]"
+                  className={`p-2.5 bg-slate-800/90 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl border border-slate-700 hover:border-emerald-500 transition-all text-center font-display shadow-xs min-h-[44px] ${isProcessingLicense === selectedShop.id ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 cursor-pointer'}`}
                 >
                   <span className="block font-black text-amber-300">+3 Mois</span>
                   <span className="text-[10px] text-slate-400 block font-normal">5 000 FCFA</span>
                 </button>
                 <button
                   type="button"
+                  disabled={isProcessingLicense === selectedShop.id}
                   onClick={() => handleManualActivation(selectedShop.id, 6)}
-                  className="p-2.5 bg-slate-800/90 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold rounded-xl border border-slate-700 hover:border-emerald-500 transition-all text-center cursor-pointer font-display shadow-xs min-h-[44px]"
+                  className={`p-2.5 bg-slate-800/90 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl border border-slate-700 hover:border-emerald-500 transition-all text-center font-display shadow-xs min-h-[44px] ${isProcessingLicense === selectedShop.id ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 cursor-pointer'}`}
                 >
                   <span className="block font-black text-amber-300">+6 Mois</span>
                   <span className="text-[10px] text-slate-400 block font-normal">10 000 FCFA</span>
                 </button>
                 <button
                   type="button"
+                  disabled={isProcessingLicense === selectedShop.id}
                   onClick={() => handleManualActivation(selectedShop.id, 12)}
-                  className="p-2.5 bg-slate-800/90 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold rounded-xl border border-slate-700 hover:border-emerald-500 transition-all text-center cursor-pointer font-display shadow-xs min-h-[44px]"
+                  className={`p-2.5 bg-slate-800/90 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl border border-slate-700 hover:border-emerald-500 transition-all text-center font-display shadow-xs min-h-[44px] ${isProcessingLicense === selectedShop.id ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 cursor-pointer'}`}
                 >
                   <span className="block font-black text-emerald-300">+1 An (Promo)</span>
                   <span className="text-[10px] text-slate-400 block font-normal">20 000 FCFA</span>
+                </button>
+              </div>
+            </div>
+
+            {/* BLOC BONUS & JOURS GRATUITS (GESTES COMMERCIAUX / PROMOTIONS) */}
+            <div className="bg-gradient-to-br from-purple-950/50 via-slate-900 to-slate-950 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-purple-500/40 shadow-inner space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-2.5 text-purple-300">
+                  <Gift className="w-5 h-5 text-fuchsia-400 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-black text-xs sm:text-sm text-white font-display flex items-center gap-1.5">
+                      <span>Bonus & Jours Gratuits</span>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono">
+                        0 FCFA / Offert
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-slate-400">
+                      Accordez des jours supplémentaires ou débloquez l'accès à titre de geste commercial ou de promotion sans impacter les ventes.
+                    </p>
+                  </div>
+                </div>
+                {isProcessingLicense === selectedShop.id && (
+                  <div className="flex items-center space-x-1 px-2.5 py-1 bg-purple-500/20 text-purple-300 rounded-lg text-[10px] font-bold border border-purple-500/40 animate-pulse shrink-0">
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                    <span>Application...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Boutons Rapides */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                <button
+                  type="button"
+                  disabled={isProcessingLicense === selectedShop.id}
+                  onClick={() => handleGrantBonus(selectedShop.id, 7, 'Geste commercial (+7 jours)')}
+                  className={`p-2.5 bg-slate-800/90 hover:bg-purple-600/30 text-purple-200 text-xs font-bold rounded-xl border border-purple-500/30 hover:border-purple-400 transition-all text-center font-display shadow-xs min-h-[44px] flex flex-col items-center justify-center ${isProcessingLicense === selectedShop.id ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 cursor-pointer'}`}
+                  title="Ajouter 7 jours gratuits à l'abonnement du commerçant"
+                >
+                  <span className="font-black text-purple-300 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300" /> +7 Jours
+                  </span>
+                  <span className="text-[10px] text-slate-400 block font-normal">Geste rapide</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isProcessingLicense === selectedShop.id}
+                  onClick={() => handleGrantBonus(selectedShop.id, 15, 'Bonus exceptionnel (+15 jours gratuits)')}
+                  className={`p-2.5 bg-slate-800/90 hover:bg-fuchsia-600/30 text-fuchsia-200 text-xs font-bold rounded-xl border border-fuchsia-500/40 hover:border-fuchsia-400 transition-all text-center font-display shadow-xs min-h-[44px] flex flex-col items-center justify-center ${isProcessingLicense === selectedShop.id ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 cursor-pointer'}`}
+                  title="Offrir 15 jours gratuits au commerçant"
+                >
+                  <span className="font-black text-fuchsia-300 flex items-center gap-1">
+                    <Gift className="w-3.5 h-3.5 text-fuchsia-400" /> +15 Jours Gratuits
+                  </span>
+                  <span className="text-[10px] text-slate-400 block font-normal">Bonus recommandé</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isProcessingLicense === selectedShop.id}
+                  onClick={() => setShowCustomBonusInput(!showCustomBonusInput)}
+                  className={`col-span-2 sm:col-span-1 p-2.5 bg-slate-800/90 hover:bg-slate-700/80 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 hover:border-slate-500 transition-all text-center font-display shadow-xs min-h-[44px] flex flex-col items-center justify-center ${isProcessingLicense === selectedShop.id ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 cursor-pointer'}`}
+                >
+                  <span className="font-black text-slate-300 flex items-center gap-1">
+                    <Plus className="w-3.5 h-3.5" /> Personnalisé
+                  </span>
+                  <span className="text-[10px] text-slate-400 block font-normal">{showCustomBonusInput ? 'Fermer' : 'Choisir la durée'}</span>
+                </button>
+              </div>
+
+              {/* Formulaire Personnalisé dépliable */}
+              {showCustomBonusInput && (
+                <div className="p-3 bg-slate-900/90 rounded-xl border border-purple-500/30 space-y-2.5 mt-2 animate-fadeIn">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">Nombre de jours à offrir :</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="365"
+                        value={customBonusDays}
+                        onChange={(e) => setCustomBonusDays(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-purple-500"
+                        placeholder="Ex: 15"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">Motif du bonus (optionnel) :</label>
+                      <input
+                        type="text"
+                        value={customBonusReason}
+                        onChange={(e) => setCustomBonusReason(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-purple-500"
+                        placeholder="Ex: Dédommagement panne, Promo..."
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      disabled={isProcessingLicense === selectedShop.id || customBonusDays <= 0}
+                      onClick={() => handleGrantBonus(selectedShop.id, customBonusDays, customBonusReason || undefined)}
+                      className={`px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-black font-display flex items-center space-x-1.5 shadow-sm transition-all ${isProcessingLicense === selectedShop.id ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 cursor-pointer'}`}
+                    >
+                      <Gift className="w-3.5 h-3.5" />
+                      <span>Appliquer +{customBonusDays} jours gratuits</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ZONE DE RECTIFICATION / CORRECTION D'ERREUR EN CAS DE DOUBLE-CLIC */}
+            <div className="bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-950 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-amber-500/30 shadow-inner space-y-3">
+              <div className="flex items-start space-x-2.5 text-amber-300">
+                <RotateCcw className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-black text-xs sm:text-sm text-white font-display flex items-center gap-1.5">
+                    <span>Rectification / Correction d'Erreur</span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
+                      Anti-Erreur
+                    </span>
+                  </h4>
+                  <p className="text-[11px] text-slate-400">
+                    En cas de double-clic involontaire ou d'erreur sur la durée attribuée, utilisez ces outils pour ajuster immédiatement la licence.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                {/* 1. Réduire -1 mois */}
+                <button
+                  type="button"
+                  disabled={isProcessingLicense === selectedShop.id}
+                  onClick={() => handleReduceLicense(selectedShop.id, 1)}
+                  className={`p-2.5 bg-slate-800/90 hover:bg-amber-600/30 text-amber-200 text-xs font-bold rounded-xl border border-amber-500/30 hover:border-amber-500 transition-all text-center font-display shadow-xs min-h-[44px] flex flex-col items-center justify-center ${isProcessingLicense === selectedShop.id ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 cursor-pointer'}`}
+                  title="Enlever 1 mois (30 jours) à la date d'expiration actuelle"
+                >
+                  <span className="font-black text-amber-300 flex items-center gap-1">
+                    <MinusCircle className="w-3.5 h-3.5" /> Réduire (-1 Mois)
+                  </span>
+                  <span className="text-[10px] text-slate-400 block font-normal">Corriger un double clic</span>
+                </button>
+
+                {/* 2. Fixer à 1 mois pile dès aujourd'hui */}
+                <button
+                  type="button"
+                  disabled={isProcessingLicense === selectedShop.id}
+                  onClick={() => handleSetExactLicense(selectedShop.id, 1)}
+                  className={`p-2.5 bg-slate-800/90 hover:bg-blue-600/30 text-blue-200 text-xs font-bold rounded-xl border border-blue-500/30 hover:border-blue-500 transition-all text-center font-display shadow-xs min-h-[44px] flex flex-col items-center justify-center ${isProcessingLicense === selectedShop.id ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 cursor-pointer'}`}
+                  title="Réinitialiser l'abonnement à exactement 1 mois (30 jours) dès aujourd'hui"
+                >
+                  <span className="font-black text-blue-300 flex items-center gap-1">
+                    <RotateCcw className="w-3.5 h-3.5" /> Fixer à 1 Mois pile
+                  </span>
+                  <span className="text-[10px] text-slate-400 block font-normal">Dès aujourd'hui (30 j)</span>
+                </button>
+
+                {/* 3. Annuler / Révoquer */}
+                <button
+                  type="button"
+                  disabled={isProcessingLicense === selectedShop.id}
+                  onClick={() => handleRevokeLicense(selectedShop.id, selectedShop.name)}
+                  className={`p-2.5 bg-slate-800/90 hover:bg-red-600/30 text-red-200 text-xs font-bold rounded-xl border border-red-500/30 hover:border-red-500 transition-all text-center font-display shadow-xs min-h-[44px] flex flex-col items-center justify-center ${isProcessingLicense === selectedShop.id ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 cursor-pointer'}`}
+                  title="Annuler immédiatement l'abonnement et marquer comme expiré"
+                >
+                  <span className="font-black text-red-400 flex items-center gap-1">
+                    <ShieldAlert className="w-3.5 h-3.5" /> Annuler / Révoquer
+                  </span>
+                  <span className="text-[10px] text-slate-400 block font-normal">Remettre en expiré</span>
                 </button>
               </div>
             </div>
