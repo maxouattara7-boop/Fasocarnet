@@ -81,13 +81,46 @@ export const App: React.FC = () => {
 
     if (payment === 'success') {
       const activate = async () => {
-        if (sessionId && !sessionId.startsWith('link_')) {
-          const res = await sasPayService.checkCheckoutStatus(sessionId);
-          if (!res.isPaid) return;
+        // 1. Vérification contre l'activation intempestive sans initiation
+        const rawPending = sessionStorage.getItem('fasocarnet_pending_payment') || localStorage.getItem('fasocarnet_pending_payment');
+        let isValidInitiation = false;
+        if (rawPending) {
+          try {
+            const pending = JSON.parse(rawPending);
+            if (pending.shopId === shopProfile.id && (Date.now() - (pending.timestamp || 0) < 3600000)) {
+              isValidInitiation = true;
+            }
+          } catch {}
         }
+
+        // 2. Si une session ID SasPay est fournie, vérifier son statut réel
+        if (sessionId) {
+          const res = await sasPayService.checkCheckoutStatus(sessionId);
+          if (!res.isPaid) {
+            console.warn('[SasPay] Paiement non confirmé par la passerelle');
+            return;
+          }
+        } else if (!isValidInitiation) {
+          console.warn('[SasPay] Tentative d\'activation sans initiation préalable');
+          window.history.replaceState({}, '', window.location.pathname);
+          return;
+        }
+
+        // 3. Nettoyer la trace d'initiation
+        try {
+          sessionStorage.removeItem('fasocarnet_pending_payment');
+          localStorage.removeItem('fasocarnet_pending_payment');
+        } catch {}
+
         await subscriptionService.applyAutomaticSubscription(shopProfile, planId);
         window.history.replaceState({}, '', window.location.pathname);
         loadCurrentShop();
+
+        // 4. Notifier les autres onglets
+        try {
+          localStorage.setItem('fasocarnet_payment_success_broadcast', Date.now().toString());
+        } catch {}
+
         alert('🎉 Félicitations ! Votre paiement SasPay a été validé avec succès. Votre abonnement est activé !');
       };
       activate().catch(console.warn);

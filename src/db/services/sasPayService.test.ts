@@ -124,5 +124,11 @@ describe('sasPayService', () => {
     expect(result.checkoutUrl).toBe('https://link.saspay.me/ztx0-32fdti');
     expect(result.amount).toBe(2000);
   });
+
+  it('ensures permanent link sessions remain pending and are never auto-validated', async () => {
+    const statusResult = await sasPayService.checkCheckoutStatus('link_monthly_1729201234567');
+    expect(statusResult.isPaid).toBe(false);
+    expect(statusResult.status).toBe('PENDING');
+  });
 });
 

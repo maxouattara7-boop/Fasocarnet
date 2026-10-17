@@ -66,6 +66,21 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
     };
   }, []);
 
+  // Écouter si le paiement est validé depuis un autre onglet (ex: onglet de redirection SasPay)
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'fasocarnet_payment_success_broadcast' && e.newValue) {
+        if (pollingTimerRef.current) {
+          clearInterval(pollingTimerRef.current);
+          pollingTimerRef.current = null;
+        }
+        setStep('SUCCESS');
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
   if (!isOpen || !shopProfile) return null;
 
   const startPolling = (ref: string, plan: SubscriptionPlan) => {
@@ -104,6 +119,16 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
     setErrorMessage(null);
 
     try {
+      try {
+        const pendingData = JSON.stringify({
+          shopId: shopProfile.id,
+          planId: selectedPlan.id,
+          timestamp: Date.now()
+        });
+        sessionStorage.setItem('fasocarnet_pending_payment', pendingData);
+        localStorage.setItem('fasocarnet_pending_payment', pendingData);
+      } catch {}
+
       const response = await subscriptionService.initiateOnlinePayment(shopProfile, selectedPlan);
       
       setRefCommand(response.refCommand);
@@ -321,6 +346,25 @@ export const OnlinePaymentModal: React.FC<OnlinePaymentModalProps> = ({
                   </p>
                 )}
               </div>
+
+              {/* Bouton d'annulation pour revenir au choix */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (pollingTimerRef.current) {
+                    clearInterval(pollingTimerRef.current);
+                    pollingTimerRef.current = null;
+                  }
+                  try {
+                    sessionStorage.removeItem('fasocarnet_pending_payment');
+                    localStorage.removeItem('fasocarnet_pending_payment');
+                  } catch {}
+                  setStep('SELECT');
+                }}
+                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
+              >
+                Annuler / Revenir aux forfaits
+              </button>
             </div>
           )}
 

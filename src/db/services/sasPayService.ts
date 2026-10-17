@@ -208,9 +208,10 @@ export const sasPayService = {
       return { sessionId, status: 'UNKNOWN', isPaid: false };
     }
 
-    // Les sessions basées sur les liens de paiement permanents
+    // Les sessions basées sur les liens de paiement permanents restent strictement en attente
+    // Aucune activation n'est permise tant que le paiement n'est pas formellement confirmé
     if (sessionId.startsWith('link_')) {
-      return { sessionId, status: 'PAID', isPaid: true };
+      return { sessionId, status: 'PENDING', isPaid: false };
     }
 
     const apiKey = this.getApiKey();
