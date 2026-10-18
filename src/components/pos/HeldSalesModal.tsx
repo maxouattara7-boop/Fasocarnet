@@ -1,7 +1,8 @@
 import React from 'react';
 import { HeldSale } from './PosView';
+import { Product } from '../../types';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
-import { Clock, Play, Trash2, X, AlertCircle, ShoppingCart } from 'lucide-react';
+import { Clock, Play, Trash2, X, AlertCircle, ShoppingCart, AlertTriangle } from 'lucide-react';
 
 interface HeldSalesModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface HeldSalesModalProps {
   onRestore: (sale: HeldSale) => void;
   onDelete: (id: string) => void;
   hasCurrentSale: boolean;
+  products?: Product[];
 }
 
 export const HeldSalesModal: React.FC<HeldSalesModalProps> = ({
@@ -18,9 +20,20 @@ export const HeldSalesModal: React.FC<HeldSalesModalProps> = ({
   heldSales,
   onRestore,
   onDelete,
-  hasCurrentSale
+  hasCurrentSale,
+  products = []
 }) => {
   if (!isOpen) return null;
+
+  const findProduct = (item: { id?: string; productId?: string; description?: string }) => {
+    if (!products || products.length === 0) return null;
+    const targetId = item.productId || item.id;
+    return (
+      products.find((p) => p.id === targetId) ||
+      products.find((p) => p.name.trim().toLowerCase() === (item.description || '').trim().toLowerCase()) ||
+      null
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
@@ -78,10 +91,30 @@ export const HeldSalesModal: React.FC<HeldSalesModalProps> = ({
           ) : (
             heldSales.map((sale, idx) => {
               const itemCount = sale.selectedItems?.reduce((sum, it) => sum + it.quantity, 0) || 0;
+              const stockIssues = (sale.selectedItems || [])
+                .map((it) => {
+                  const p = findProduct(it);
+                  if (!p || typeof p.stockQuantity !== 'number') return null;
+                  if (p.stockQuantity <= 0) {
+                    return { item: it, currentStock: 0, status: 'exhausted' as const };
+                  }
+                  if (p.stockQuantity < it.quantity) {
+                    return { item: it, currentStock: p.stockQuantity, status: 'insufficient' as const };
+                  }
+                  return null;
+                })
+                .filter(Boolean);
+
+              const hasExhaustedStock = stockIssues.some((issue) => issue?.status === 'exhausted');
+
               return (
                 <div
                   key={sale.id}
-                  className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-amber-300 transition-all space-y-3"
+                  className={`bg-white p-4 rounded-2xl border shadow-2xs transition-all space-y-3 ${
+                    hasExhaustedStock
+                      ? 'border-red-300 ring-1 ring-red-300/50 hover:border-red-400'
+                      : 'border-slate-200/90 hover:border-amber-300'
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -115,6 +148,30 @@ export const HeldSalesModal: React.FC<HeldSalesModalProps> = ({
                     </button>
                   </div>
 
+                  {/* Alerte stock temps réel si du stock a été vendu pendant la mise en pause */}
+                  {stockIssues.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-2.5 space-y-1">
+                      <div className="flex items-center space-x-1.5 text-xs font-bold text-red-700">
+                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                        <span>Alerte stock ({stockIssues.length} article{stockIssues.length > 1 ? 's' : ''}) :</span>
+                      </div>
+                      <div className="text-[11px] font-semibold text-red-700 space-y-0.5">
+                        {stockIssues.map((issue, i) => (
+                          <div key={i} className="flex items-center space-x-1">
+                            <span>•</span>
+                            <span>
+                              {issue?.status === 'exhausted' ? (
+                                <>Stock épuisé pour <strong>"{issue.item.description}"</strong> (0 restant en stock)</>
+                              ) : (
+                                <>Stock insuffisant pour <strong>"{issue?.item.description}"</strong> ({issue?.currentStock} dispo sur {issue?.item.quantity} demandés)</>
+                              )}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Résumé des articles */}
                   {sale.selectedItems && sale.selectedItems.length > 0 ? (
                     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs text-slate-700 space-y-1">
@@ -123,11 +180,23 @@ export const HeldSalesModal: React.FC<HeldSalesModalProps> = ({
                         <span>{itemCount} article{itemCount > 1 ? 's' : ''} au panier :</span>
                       </div>
                       <div className="flex flex-wrap gap-1 pt-0.5">
-                        {sale.selectedItems.slice(0, 4).map((it, i) => (
-                          <span key={i} className="bg-white border border-slate-200 px-2 py-0.5 rounded text-[11px] font-semibold text-slate-800">
-                            {it.quantity > 1 ? `${it.quantity}× ` : ''}{it.description}
-                          </span>
-                        ))}
+                        {sale.selectedItems.slice(0, 4).map((it, i) => {
+                          const prod = findProduct(it);
+                          const isExhausted = prod && typeof prod.stockQuantity === 'number' && prod.stockQuantity <= 0;
+                          return (
+                            <span
+                              key={i}
+                              className={`border px-2 py-0.5 rounded text-[11px] font-semibold ${
+                                isExhausted
+                                  ? 'bg-red-50 border-red-300 text-red-700 font-bold'
+                                  : 'bg-white border-slate-200 text-slate-800'
+                              }`}
+                            >
+                              {it.quantity > 1 ? `${it.quantity}× ` : ''}{it.description}
+                              {isExhausted && ' (Épuisé)'}
+                            </span>
+                          );
+                        })}
                         {sale.selectedItems.length > 4 && (
                           <span className="text-[10px] text-slate-500 font-bold self-center">
                             +{sale.selectedItems.length - 4} autre(s)
@@ -145,10 +214,16 @@ export const HeldSalesModal: React.FC<HeldSalesModalProps> = ({
                   <button
                     type="button"
                     onClick={() => onRestore(sale)}
-                    className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-2 shadow-xs transition-all active:scale-98 cursor-pointer font-display"
+                    className={`w-full py-2.5 px-3 text-white font-black rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-2 shadow-xs transition-all active:scale-98 cursor-pointer font-display ${
+                      hasExhaustedStock
+                        ? 'bg-amber-600 hover:bg-amber-700 active:bg-amber-800'
+                        : 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800'
+                    }`}
                   >
                     <Play className="w-4 h-4 fill-white" />
-                    <span>Reprendre cette vente</span>
+                    <span>
+                      {hasExhaustedStock ? 'Reprendre et vérifier le stock' : 'Reprendre cette vente'}
+                    </span>
                   </button>
                 </div>
               );

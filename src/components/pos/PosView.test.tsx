@@ -9,20 +9,22 @@ vi.mock('../../db/services/salesService', () => ({
   }
 }));
 
+let mockProducts = [
+  {
+    id: 'prod_1',
+    name: 'Pain Sucré',
+    price: 250,
+    costPrice: 200,
+    stockQuantity: 10,
+    shopId: 'shop_1',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
+
 vi.mock('../../db/services/productsService', () => ({
   productsService: {
-    getAll: () => Promise.resolve([
-      {
-        id: 'prod_1',
-        name: 'Pain Sucré',
-        price: 250,
-        costPrice: 200,
-        stockQuantity: 10,
-        shopId: 'shop_1',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ]),
+    getAll: () => Promise.resolve([...mockProducts]),
     create: () => Promise.resolve()
   }
 }));
@@ -40,17 +42,20 @@ vi.mock('../../utils/soundEffects', () => ({
 
 describe('PosView component', () => {
   beforeEach(async () => {
+    mockProducts = [
+      {
+        id: 'prod_1',
+        name: 'Pain Sucré',
+        price: 250,
+        costPrice: 200,
+        stockQuantity: 10,
+        shopId: 'shop_1',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
     await db.products.clear();
-    await db.products.add({
-      id: 'prod_1',
-      name: 'Pain Sucré',
-      price: 250,
-      costPrice: 200,
-      stockQuantity: 10,
-      shopId: 'shop_1',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    });
+    await db.products.add(mockProducts[0]);
   });
 
   it('renders without crashing and displays products', async () => {
@@ -163,5 +168,66 @@ describe('PosView component', () => {
       expect(screen.queryByText('Ventes en Attente (1)')).not.toBeInTheDocument();
       expect(screen.getByTitle('Retirer cet article')).toBeInTheDocument();
     });
+  });
+
+  it('detects exhausted stock when resuming a held sale and blocks checkout', async () => {
+    localStorage.clear();
+    render(<PosView />);
+    await waitFor(() => {
+      expect(screen.getAllByText('Pain Sucré').length).toBeGreaterThan(0);
+    });
+
+    // Add Pain Sucré to cart
+    const productBtn = screen.getAllByText('Pain Sucré')[0].closest('button');
+    fireEvent.click(productBtn!);
+
+    await waitFor(() => {
+      expect(screen.getByText("Quantité d'article")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText("Valider l'ajout").closest('button')!);
+
+    await waitFor(() => {
+      expect(screen.getByText(/ENCAISSER/)).toBeInTheDocument();
+    });
+
+    // Hold the sale
+    fireEvent.click(screen.getByRole('button', { name: /En attente/i }));
+    await waitFor(() => {
+      expect(screen.getByText('1 en attente')).toBeInTheDocument();
+    });
+
+    // Simulate another customer buying out the stock (stock drops to 0)
+    mockProducts[0].stockQuantity = 0;
+    await db.products.update('prod_1', { stockQuantity: 0 });
+
+    // Open held sales modal
+    fireEvent.click(screen.getByText('1 en attente'));
+    await waitFor(() => {
+      expect(screen.getByText('Ventes en Attente (1)')).toBeInTheDocument();
+      expect(screen.getByText(/Alerte stock/)).toBeInTheDocument();
+      expect(screen.getByText(/Stock épuisé pour/)).toBeInTheDocument();
+    });
+
+    // Click resume
+    const restoreBtn = screen.getByRole('button', { name: /Reprendre/i });
+    fireEvent.click(restoreBtn);
+
+    // Stock alert modal must pop up
+    await waitFor(() => {
+      expect(screen.getByText('Stock Épuisé Pendant la Mise en Attente')).toBeInTheDocument();
+      expect(screen.getByText('Épuisé (0 en stock)')).toBeInTheDocument();
+    });
+
+    // Choose to load into cart anyway
+    fireEvent.click(screen.getByText('Charger quand même dans le panier (décaissement bloqué)'));
+
+    // Cart shows the blocked ENCAISSER button
+    await waitFor(() => {
+      expect(screen.getByText(/STOCK ÉPUISÉ — DÉCAISSEMENT BLOQUÉ/)).toBeInTheDocument();
+    });
+
+    // Clicking ENCAISSER is blocked
+    fireEvent.click(screen.getByText(/STOCK ÉPUISÉ — DÉCAISSEMENT BLOQUÉ/));
+    expect(screen.queryByText('Mode de Règlement')).not.toBeInTheDocument();
   });
 });
