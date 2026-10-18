@@ -375,19 +375,27 @@ export const DebtsView: React.FC = () => {
 
                 {/* Badge Montant Dette */}
                 <div className="text-right shrink-0 ml-3">
-                  <span className="text-[10px] font-bold uppercase text-amber-800 tracking-wider block font-display">
-                    Solde Débiteur
-                  </span>
-                  <div className="text-2xl font-black text-amber-600 font-display">
-                    {formatCurrency(selectedCustomer.totalDebt)}
-                  </div>
-                  <span className={`inline-block text-[10px] font-black px-2.5 py-0.5 rounded-full mt-1 ${
-                    selectedCustomer.totalDebt > 0 
-                      ? 'bg-amber-100 text-amber-800 border border-amber-200' 
-                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                  }`}>
-                    {selectedCustomer.totalDebt > 0 ? 'Dette Active' : 'Solde 0 FCFA (Soldé)'}
-                  </span>
+                  {selectedCustomer.totalDebt > 0 ? (
+                    <>
+                      <span className="text-[10px] font-bold uppercase text-amber-800 tracking-wider block font-display">
+                        Solde Débiteur
+                      </span>
+                      <div className="text-2xl font-black text-amber-600 font-display">
+                        {formatCurrency(selectedCustomer.totalDebt)}
+                      </div>
+                      <span className="inline-block text-[10px] font-black px-2.5 py-0.5 rounded-full mt-1 bg-amber-100 text-amber-800 border border-amber-200">
+                        Dette Active
+                      </span>
+                    </>
+                  ) : (
+                    <div className="bg-emerald-50 px-3 py-2 rounded-2xl border border-emerald-200 flex items-center space-x-2 text-emerald-800">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      <div className="text-left">
+                        <div className="text-xs font-black uppercase tracking-wider font-display">Compte Soldé</div>
+                        <div className="text-[11px] font-bold text-emerald-600">0 FCFA dû</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -31,6 +31,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt,
     payments: []
   });
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const isSettled = (customer.totalDebt || 0) <= 0;
 
   const handleToggleHistory = async () => {
     if (!showHistory) {
@@ -57,10 +58,16 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt,
   };
 
   return (
-    <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200/80 shadow-xs hover:border-amber-400/80 transition-all space-y-3 relative group">
+    <div className={`bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-200/80 shadow-xs transition-all space-y-3 relative group ${
+      isSettled ? 'hover:border-emerald-400/80' : 'hover:border-amber-400/80'
+    }`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start space-x-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 flex items-center justify-center font-bold text-xs shrink-0 font-display">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 font-display ${
+            isSettled
+              ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-700'
+              : 'bg-amber-500/10 border border-amber-500/20 text-amber-700'
+          }`}>
             {customer.name ? customer.name.slice(0, 2).toUpperCase() : <User className="w-4 h-4" />}
           </div>
           <div className="min-w-0">
@@ -82,14 +89,23 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt,
         </div>
 
         <div className="flex items-center space-x-1.5 shrink-0">
-          <div className="bg-amber-50/80 px-2.5 py-1.5 rounded-xl border border-amber-200/80 text-right">
-            <span className="text-xs uppercase font-black text-amber-800 tracking-wider block font-display">
-              Dette Restante
-            </span>
-            <span className="text-sm sm:text-base font-black text-amber-700 font-display">
-              {formatCurrency(customer.totalDebt)}
-            </span>
-          </div>
+          {isSettled ? (
+            <div className="bg-emerald-50 px-2.5 py-1.5 rounded-xl border border-emerald-200/90 flex items-center space-x-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span className="text-xs uppercase font-black text-emerald-800 tracking-wider block font-display">
+                Soldé
+              </span>
+            </div>
+          ) : (
+            <div className="bg-amber-50/80 px-2.5 py-1.5 rounded-xl border border-amber-200/80 text-right">
+              <span className="text-xs uppercase font-black text-amber-800 tracking-wider block font-display">
+                Dette Restante
+              </span>
+              <span className="text-sm sm:text-base font-black text-amber-700 font-display">
+                {formatCurrency(customer.totalDebt)}
+              </span>
+            </div>
+          )}
 
           {onDelete && (
             <button
@@ -111,7 +127,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt,
         className="w-full py-1.5 px-2.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/70 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-between transition-colors cursor-pointer"
       >
         <div className="flex items-center space-x-1.5">
-          <Clock className="w-3.5 h-3.5 text-amber-600" />
+          <Clock className={`w-3.5 h-3.5 ${isSettled ? 'text-emerald-600' : 'text-amber-600'}`} />
           <span>Dates des dettes & Historique des règlements</span>
         </div>
         {showHistory ? <ChevronUp className="w-3.5 h-3.5 text-slate-500" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-500" />}
@@ -180,26 +196,28 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onPayDebt,
         </div>
       )}
 
-      {/* Boutons d'action : Relance WhatsApp & Règlement */}
-      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
-        <button
-          type="button"
-          onClick={handleWhatsAppReminder}
-          className="py-2.5 px-2 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-1.5 active:scale-95 transition-all cursor-pointer font-display"
-        >
-          <MessageSquare className="w-3.5 h-3.5 fill-[#128C7E]" />
-          <span>Relancer WhatsApp</span>
-        </button>
+      {/* Boutons d'action : Relance WhatsApp & Règlement (uniquement si dette non soldée) */}
+      {!isSettled && (
+        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={handleWhatsAppReminder}
+            className="py-2.5 px-2 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-1.5 active:scale-95 transition-all cursor-pointer font-display"
+          >
+            <MessageSquare className="w-3.5 h-3.5 fill-[#128C7E]" />
+            <span>Relancer WhatsApp</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => onPayDebt(customer)}
-          className="py-2.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
-        >
-          <ArrowDownRight className="w-3.5 h-3.5" />
-          <span>Régler / Acompte</span>
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => onPayDebt(customer)}
+            className="py-2.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display"
+          >
+            <ArrowDownRight className="w-3.5 h-3.5" />
+            <span>Régler / Acompte</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
