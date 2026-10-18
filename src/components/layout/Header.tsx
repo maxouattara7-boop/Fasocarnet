@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppStore, ActiveTab } from '../../store/appStore';
-import { ShieldCheck, Lock, Cloud, CloudOff, RefreshCw, HelpCircle, FileText, ShoppingCart, BookOpen, BarChart3, Settings, LogOut, AlertTriangle, Package, Store } from 'lucide-react';
+import { ShieldCheck, Lock, Cloud, CloudOff, RefreshCw, HelpCircle, FileText, ShoppingCart, BookOpen, BarChart3, LogOut, AlertTriangle, Package, Store } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { HelpGuideModal } from '../common/HelpGuideModal';
 
@@ -38,15 +38,9 @@ export const Header: React.FC = () => {
               <Logo size="sm" showText={false} />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center space-x-1.5">
-                <span className="text-xs text-emerald-200/90 font-semibold block leading-tight truncate">
-                  Bienvenue dans votre espace
-                </span>
-                <span className="px-1.5 py-0.2 rounded-md bg-white/10 group-hover:bg-white/20 text-emerald-200 text-[9px] font-bold border border-white/10 transition-colors shrink-0 flex items-center space-x-0.5">
-                  <Settings className="w-2.5 h-2.5 text-emerald-300" />
-                  <span className="hidden sm:inline">Paramètres</span>
-                </span>
-              </div>
+              <span className="text-xs text-emerald-200/90 font-semibold block leading-tight truncate">
+                Bienvenue
+              </span>
               <h1 className="font-extrabold text-sm sm:text-lg leading-tight truncate text-white tracking-tight font-display group-hover:text-emerald-100 transition-colors">
                 {shopProfile?.name || 'FasoCarnet'}
               </h1>
