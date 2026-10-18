@@ -248,10 +248,16 @@ export const supabaseClient = {
 
   /**
    * Récupère les données d'une boutique depuis Supabase
+   * Retourne:
+   * - CloudShopData si trouvée
+   * - null UNIQUEMENT si le serveur Supabase a répondu que la boutique n'existe pas (PGRST116)
+   * - throw Error si coupure réseau, timeout ou erreur technique (ne jamais déconnecter sur un problème de connexion)
    */
   async fetchShop(shopId: string): Promise<CloudShopData | null> {
     const client = this.getClient();
-    if (!client) return null;
+    if (!client) {
+      throw new Error('Supabase client not initialized');
+    }
 
     try {
       const { data, error } = await client
@@ -260,7 +266,16 @@ export const supabaseClient = {
         .eq('id', shopId)
         .single();
 
-      if (error || !data) return null;
+      if (error) {
+        // PGRST116 = 0 lignes retournées : la boutique n'existe pas dans la table
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        // Toute autre erreur (réseau, 5xx, timeout) doit être levée pour ne pas être confondue avec une suppression !
+        throw new Error(`Supabase error [${error.code}]: ${error.message}`);
+      }
+
+      if (!data) return null;
       const shopData = (data.data as CloudShopData) || null;
       if (shopData && shopData.profile && data.subscription_expires_at) {
         const colExp = new Date(data.subscription_expires_at).getTime();
@@ -272,8 +287,11 @@ export const supabaseClient = {
         }
       }
       return shopData;
-    } catch {
-      return null;
+    } catch (err: any) {
+      if (err.message?.includes('Supabase error')) {
+        throw err;
+      }
+      throw new Error(`Network failure in fetchShop: ${err.message || 'Unknown network error'}`);
     }
   },
 

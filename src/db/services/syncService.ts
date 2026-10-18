@@ -214,16 +214,15 @@ export const syncService = {
           fullDb[shopId] = supaShop;
           this.saveCloudDatabase(fullDb);
           return supaShop;
-        } else if (typeof navigator === 'undefined' || navigator.onLine) {
-          // Si Supabase est configuré et en ligne, mais que la boutique n'y est pas,
-          // elle a été supprimée définitivement !
+        } else if (supaShop === null) {
+          // Confirmé par Supabase (PGRST116) : la boutique a été explicitement supprimée
           const fullDb = this.getCloudDatabase();
           delete fullDb[shopId];
           this.saveCloudDatabase(fullDb);
           return null;
         }
       } catch (err) {
-        console.warn('[Sync] Fallback partition Supabase:', err);
+        console.warn('[Sync] Supabase inaccessible (panne réseau ou sortie de veille), conservation des données locales:', err);
       }
     }
 
@@ -803,11 +802,18 @@ export const syncService = {
   async pullRemoteChanges(shopId: string): Promise<boolean> {
     // Si Supabase est configuré et en ligne, vérifier l'existence
     if (supabaseClient.isConfigured() && (typeof navigator === 'undefined' || navigator.onLine)) {
-      const supaShop = await supabaseClient.fetchShop(shopId);
-      if (!supaShop) {
-        // Le compte a été supprimé sur le serveur Cloud !
-        console.warn(`[Sync] Le compte ${shopId} a été supprimé sur le Cloud.`);
-        await this.handleShopDeletedLocally(shopId);
+      try {
+        const supaShop = await supabaseClient.fetchShop(shopId);
+        if (supaShop === null) {
+          // Confirmé par le serveur Supabase (PGRST116) : le compte a été formellement supprimé sur le Cloud
+          console.warn(`[Sync] Le compte ${shopId} a été formellement supprimé sur le Cloud.`);
+          await this.handleShopDeletedLocally(shopId);
+          return false;
+        }
+      } catch (err) {
+        // En cas d'erreur réseau, timeout, coupure Wi-Fi/4G lors de la sortie de veille :
+        // NE JAMAIS DÉCONNECTER L'UTILISATEUR !
+        console.warn(`[Sync] pullRemoteChanges temporairement différé (reconnexion réseau en cours) :`, err);
         return false;
       }
     }
@@ -914,10 +920,15 @@ export const syncService = {
       } catch {}
     }, 4000);
 
-    // 3. Réaction instantanée dès que l'appareil redevient actif (focus fenêtre, déverrouillage téléphone)
+    // 3. Réaction dès que l'appareil redevient actif (focus fenêtre, déverrouillage téléphone)
+    let focusDebounceTimer: any = null;
     const handleVisibilityOrFocus = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        handleRemoteTrigger();
+        if (focusDebounceTimer) clearTimeout(focusDebounceTimer);
+        // Attendre 1,2s pour laisser à la carte Wi-Fi/4G le temps de rétablir sa connexion
+        focusDebounceTimer = setTimeout(() => {
+          handleRemoteTrigger();
+        }, 1200);
       }
     };
 
@@ -927,6 +938,10 @@ export const syncService = {
     }
 
     activeRealtimeCleanup = () => {
+      if (focusDebounceTimer) {
+        clearTimeout(focusDebounceTimer);
+        focusDebounceTimer = null;
+      }
       unsubscribeSupabase();
       if (activePollingInterval) {
         clearInterval(activePollingInterval);

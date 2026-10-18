@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { ShopProfile, TeamLeaderAccount } from '../types';
 import { db } from '../db/db';
 import { syncService, LoginResult } from '../db/services/syncService';
+import { supabaseClient } from '../db/supabaseClient';
 import { verifyHash, hashPin, isHashed } from '../utils/crypto';
 
 export type ActiveTab = 'home' | 'pos' | 'debts' | 'reports' | 'invoices' | 'inventory' | 'settings';
@@ -221,13 +222,13 @@ export const useAppStore = create<AppState>((set, get) => {
         if (typeof navigator !== 'undefined' && navigator.onLine) {
           try {
             const remoteShop = await syncService.fetchShopPartition(shop.id);
-            if (!remoteShop) {
-              // Le compte a été supprimé sur le Cloud : purge locale immédiate et affichage écran connexion
+            if (remoteShop === null && supabaseClient.isConfigured()) {
+              // Le compte a été confirmé supprimé sur le Cloud (réponse PGRST116)
               console.warn('[App] Compte supprimé ou inexistant sur le Cloud, purge locale stricte:', shop.id);
               await syncService.handleShopDeletedLocally(shop.id);
               set({ activeShopId: null, shopProfile: null, isLocked: false, isInitialized: true });
               return;
-            } else if (remoteShop.profile) {
+            } else if (remoteShop && remoteShop.profile) {
               // Si le Cloud possède une date d'expiration plus récente ou un statut actif accordé par l'Admin,
               // mettre à jour immédiatement IndexedDB ET le profil local pour l'affichage initial !
               const remoteExp = remoteShop.profile.subscriptionExpiresAt ? new Date(remoteShop.profile.subscriptionExpiresAt).getTime() : 0;
