@@ -1,9 +1,6 @@
 import { Sale, ShopProfile } from '../types';
 import { formatCurrency, formatDateTime } from './formatters';
 
-/**
- * Génère une image PNG haute définition (Canvas 2D) du ticket de caisse stylisé
- */
 export interface ParsedReceiptItem {
   description: string;
   quantity: number;
@@ -56,6 +53,59 @@ export function extractReceiptItems(sale: Sale): ParsedReceiptItem[] {
   }];
 }
 
+/**
+ * Encodage Code 39 standard pour rendu de code-barres thermique
+ */
+const CODE39_MAP: Record<string, string> = {
+  '0': '000110100', '1': '100100001', '2': '001100001', '3': '101100000',
+  '4': '000110001', '5': '100110000', '6': '001110000', '7': '000100101',
+  '8': '100100100', '9': '001100100', 'A': '100001001', 'B': '001001001',
+  'C': '101001000', 'D': '000011001', 'E': '100011000', 'F': '001011000',
+  'G': '000001101', 'H': '100001100', 'I': '001001100', 'J': '000011100',
+  'K': '100000011', 'L': '001000011', 'M': '101000010', 'N': '000010011',
+  'O': '100010010', 'P': '001010010', 'Q': '000000111', 'R': '100000110',
+  'S': '001000110', 'T': '000010110', 'U': '110000001', 'V': '011000001',
+  'W': '111000000', 'X': '010010001', 'Y': '110010000', 'Z': '011010000',
+  '-': '010000101', '.': '110000100', ' ': '011000100', '*': '010010100'
+};
+
+export function generateCode39Bars(text: string): { isBar: boolean; width: number }[] {
+  const clean = `*${text.toUpperCase().replace(/[^0-9A-Z\-\. ]/g, '')}*`;
+  const result: { isBar: boolean; width: number }[] = [];
+  
+  for (let i = 0; i < clean.length; i++) {
+    const char = clean[i];
+    const pattern = CODE39_MAP[char] || CODE39_MAP['-'];
+    for (let p = 0; p < 9; p++) {
+      const isBar = p % 2 === 0;
+      const isWide = pattern[p] === '1';
+      result.push({ isBar, width: isWide ? 3 : 1 });
+    }
+    // Espace inter-caractères
+    if (i < clean.length - 1) {
+      result.push({ isBar: false, width: 1 });
+    }
+  }
+  return result;
+}
+
+/**
+ * Génère le SVG vectoriel du code-barres pour impression HTML
+ */
+export function generateBarcodeSvg(text: string, height: number = 46): string {
+  const bars = generateCode39Bars(text);
+  const totalUnits = bars.reduce((sum, b) => sum + b.width, 0);
+  let currentX = 0;
+  let rects = '';
+  for (const b of bars) {
+    if (b.isBar) {
+      rects += `<rect x="${currentX}" y="0" width="${b.width}" height="${height}" fill="#000" />`;
+    }
+    currentX += b.width;
+  }
+  return `<svg viewBox="0 0 ${totalUnits} ${height}" style="width: 100%; max-width: 250px; height: ${height}px; display: block; margin: 0 auto;" preserveAspectRatio="none">${rects}</svg>`;
+}
+
 const loadLogoImage = (dataUrl?: string): Promise<HTMLImageElement | null> => {
   if (!dataUrl) return Promise.resolve(null);
   return new Promise((resolve) => {
@@ -75,7 +125,6 @@ const loadLogoImage = (dataUrl?: string): Promise<HTMLImageElement | null> => {
       }
     };
     img.src = dataUrl;
-    // Sécurité timeout en environnement sans rendu natif (JSDOM / réseau lent)
     setTimeout(() => {
       if (!resolved) {
         resolved = true;
@@ -86,12 +135,8 @@ const loadLogoImage = (dataUrl?: string): Promise<HTMLImageElement | null> => {
 };
 
 /**
- * Génère une image PNG haute définition (Canvas 2D) du ticket de caisse stylisé
- * En-tête vert épuré, compact et logo harmonieusement intégré
- */
-/**
- * Génère une image haute définition (Canvas 2D) d'un véritable ticket de caisse sur rouleau thermique
- * Format rouleau papier blanc réaliste avec découpe crantée, contraste thermique optimal, Date & Heure bien visibles
+ * Génère une image haute définition (Canvas 2D) d'un véritable ticket de caisse thermique
+ * Conforme au modèle standard avec séparateurs étoiles et code-barres scannable en bas
  */
 export async function generateReceiptCanvas(
   sale: Sale,
@@ -103,32 +148,31 @@ export async function generateReceiptCanvas(
   const hasTaxInfo = Boolean(shop?.ifu || shop?.rccm);
   const hasDescription = Boolean(shop?.description && shop.description.trim());
 
-  // Date et Heure bien formatées et dissociées
+  // Date et Heure bien formatées
   const dateObj = new Date(sale.createdAt);
   const isValidDate = !isNaN(dateObj.getTime());
   const dateStr = isValidDate
     ? dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
     : formatDateTime(sale.createdAt);
   const timeStr = isValidDate
-    ? dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    ? dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
     : '';
 
-  // Hauteur calculée dynamiquement selon le contenu
-  const logoSize = 56;
+  const logoSize = 52;
   let headerContentHeight = 15;
   if (logoImg) headerContentHeight += logoSize + 12;
-  headerContentHeight += 30; // Shop name
+  headerContentHeight += 32; // Shop name
   if (hasDescription) headerContentHeight += 18;
-  headerContentHeight += 20; // Téléphone & Ville
-  if (hasTaxInfo) headerContentHeight += 20; // IFU & RCCM
+  headerContentHeight += 20; // Téléphone & Adresse
+  if (hasTaxInfo) headerContentHeight += 20; // IFU / RCCM
 
   const isCredit = Boolean(sale.isCredit || sale.isPartialCredit);
   const hasDiscount = Boolean(sale.discountAmount && sale.discountAmount > 0);
-  const hasChange = Boolean(!isCredit && sale.receivedAmount && sale.receivedAmount > sale.totalAmount);
 
+  // Hauteur calculée dynamiquement pour accueillir toutes les sections et le code-barres
   const dynamicHeight = Math.max(
-    isCredit ? 920 : (hasDiscount || hasChange ? 860 : 820),
-    headerContentHeight + 380 + (itemsCount * 40) + (sale.customerName ? 26 : 0) + (isCredit ? 90 : 0) + (hasDiscount ? 30 : 0) + (hasChange ? 26 : 0) + (shop?.orangeMoneyNumber || shop?.moovMoneyNumber || shop?.waveNumber ? 26 : 0)
+    880,
+    headerContentHeight + 460 + (itemsCount * 42) + (sale.customerName ? 26 : 0) + (isCredit ? 60 : 0) + (hasDiscount ? 30 : 0)
   );
 
   const width = 640;
@@ -148,27 +192,32 @@ export async function generateReceiptCanvas(
   ctx.fillStyle = '#f1f5f9';
   ctx.fillRect(0, 0, width, height);
 
-  // 2. Bande de papier thermique blanche avec découpe crantée en bas
+  // 2. Bande de papier thermique blanche avec dentelures (massicot thermique)
   const cardX = 36;
   const cardY = 16;
   const cardW = width - 72;
-  const toothCount = 36;
+  const toothCount = 38;
   const toothW = cardW / toothCount;
-  const toothH = 8;
-  const paperBottomY = height - 20;
+  const toothH = 7;
+  const paperBottomY = height - 18;
 
-  // Ombre portée réaliste du rouleau de caisse
   ctx.save();
   ctx.shadowColor = 'rgba(15, 23, 42, 0.12)';
-  ctx.shadowBlur = 16;
+  ctx.shadowBlur = 18;
   ctx.shadowOffsetY = 6;
   ctx.fillStyle = '#ffffff';
 
-  // Tracé du ticket avec dentelure en bas (effet massicot / papier thermique déchiré)
+  // Tracé cranté haut et bas (papier thermique découpé)
   ctx.beginPath();
-  ctx.moveTo(cardX, cardY);
-  ctx.lineTo(cardX + cardW, cardY);
+  // Haut cranté
+  ctx.moveTo(cardX, cardY + toothH);
+  for (let i = 0; i <= toothCount; i++) {
+    const x = cardX + i * toothW;
+    const y = i % 2 === 0 ? cardY : cardY + toothH;
+    ctx.lineTo(x, y);
+  }
   ctx.lineTo(cardX + cardW, paperBottomY - toothH);
+  // Bas cranté
   for (let i = toothCount; i >= 0; i--) {
     const x = cardX + i * toothW;
     const y = i % 2 === 0 ? paperBottomY - toothH : paperBottomY;
@@ -178,397 +227,297 @@ export async function generateReceiptCanvas(
   ctx.fill();
   ctx.restore();
 
-  // Fine bordure latérale et supérieure pour délimiter le papier
+  // Fine bordure thermique
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(cardX, cardY);
-  ctx.lineTo(cardX + cardW, cardY);
+  ctx.moveTo(cardX, cardY + toothH);
+  for (let i = 0; i <= toothCount; i++) {
+    const x = cardX + i * toothW;
+    const y = i % 2 === 0 ? cardY : cardY + toothH;
+    ctx.lineTo(x, y);
+  }
   ctx.lineTo(cardX + cardW, paperBottomY - toothH);
   for (let i = toothCount; i >= 0; i--) {
     const x = cardX + i * toothW;
     const y = i % 2 === 0 ? paperBottomY - toothH : paperBottomY;
     ctx.lineTo(x, y);
   }
-  ctx.lineTo(cardX, cardY);
+  ctx.lineTo(cardX, cardY + toothH);
   ctx.stroke();
 
   const centerX = width / 2;
-  let currY = cardY + 22;
+  const leftX = cardX + 28;
+  const rightX = cardX + cardW - 28;
+  let currY = cardY + 28;
 
-  // 3. Logo de l'entreprise (si présent)
+  // Ligne de séparation en étoiles classique
+  const drawStarDivider = () => {
+    currY += 16;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#1e293b';
+    ctx.font = 'bold 13px "Courier New", Courier, monospace';
+    ctx.fillText('* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *', centerX, currY);
+    currY += 12;
+  };
+
+  // 3. Logo boutique (si configuré)
   if (logoImg) {
     try {
       const logoX = centerX - (logoSize / 2);
       ctx.drawImage(logoImg, logoX, currY, logoSize, logoSize);
-      currY += logoSize + 14;
+      currY += logoSize + 12;
     } catch {
-      currY += 4;
+      currY += 2;
     }
   }
 
-  // 4. En-tête thermique du commerce
+  // 4. En-tête : SHOP NAME, Adresse, Téléphone
   ctx.textAlign = 'center';
   ctx.fillStyle = '#0f172a';
-  ctx.font = '900 23px "Courier New", Courier, monospace, sans-serif';
+  ctx.font = '900 24px "Courier New", Courier, monospace, sans-serif';
   const shopName = shop?.name || 'FASOCARNET';
-  const truncatedShop = shopName.length > 28 ? shopName.slice(0, 27) + '…' : shopName;
+  const truncatedShop = shopName.length > 26 ? shopName.slice(0, 25) + '…' : shopName;
   ctx.fillText(truncatedShop.toUpperCase(), centerX, currY);
 
   if (hasDescription && shop?.description) {
     currY += 18;
     ctx.fillStyle = '#475569';
     ctx.font = 'italic 12px "Courier New", Courier, monospace, sans-serif';
-    const truncatedDesc = shop.description.length > 48 ? shop.description.slice(0, 47) + '…' : shop.description;
+    const truncatedDesc = shop.description.length > 46 ? shop.description.slice(0, 45) + '…' : shop.description;
     ctx.fillText(truncatedDesc, centerX, currY);
   }
 
-  currY += 19;
-  ctx.fillStyle = '#1e293b';
-  ctx.font = 'bold 12px "Courier New", Courier, monospace, sans-serif';
-  const contactText = shop?.phone ? `Tél : ${shop.phone}${shop?.city ? ` • ${shop.city}` : ''}` : 'Reçu de Caisse';
-  ctx.fillText(contactText, centerX, currY);
+  const addressLine = [shop?.address, shop?.city].filter(Boolean).join(', ');
+  if (addressLine) {
+    currY += 19;
+    ctx.fillStyle = '#334155';
+    ctx.font = 'bold 12.5px "Courier New", Courier, monospace, sans-serif';
+    ctx.fillText(`Adresse : ${addressLine}`, centerX, currY);
+  }
+
+  if (shop?.phone) {
+    currY += 18;
+    ctx.fillStyle = '#334155';
+    ctx.font = 'bold 12.5px "Courier New", Courier, monospace, sans-serif';
+    ctx.fillText(`Tél. : ${shop.phone}`, centerX, currY);
+  }
 
   if (hasTaxInfo) {
-    currY += 18;
+    currY += 17;
     const taxParts: string[] = [];
     if (shop?.ifu) taxParts.push(`IFU: ${shop.ifu}`);
     if (shop?.rccm) taxParts.push(`RCCM: ${shop.rccm}`);
-    ctx.fillStyle = '#475569';
+    ctx.fillStyle = '#64748b';
     ctx.font = 'bold 11px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillText(taxParts.join('  |  '), centerX, currY);
+    ctx.fillText(taxParts.join('  •  '), centerX, currY);
   }
 
-  // 5. Ligne de séparation en tirets thermiques
-  currY += 16;
-  ctx.strokeStyle = '#0f172a';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([5, 4]);
-  ctx.beginPath();
-  ctx.moveTo(cardX + 16, currY);
-  ctx.lineTo(cardX + cardW - 16, currY);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  // Séparateur 1
+  drawStarDivider();
 
-  // Titre du ticket
-  currY += 20;
+  // 5. Titre : CASH RECEIPT / TICKET DE CAISSE
+  ctx.textAlign = 'center';
   ctx.fillStyle = '#0f172a';
-  ctx.font = '900 14px "Courier New", Courier, monospace, sans-serif';
-  const ticketTitle = sale.isCredit
-    ? '*** FACTURE CRÉDIT & DETTE ***'
+  ctx.font = '900 16px "Courier New", Courier, monospace, sans-serif';
+  const receiptTitle = sale.isCredit
+    ? 'TICKET DE CRÉDIT & DETTE'
     : sale.isPartialCredit
-    ? '*** VENTE ACOMPTE & DETTE ***'
-    : '*** TICKET DE CAISSE ***';
-  ctx.fillText(ticketTitle, centerX, currY);
+    ? 'TICKET DE VENTE (AVEC ACOMPTE)'
+    : 'TICKET DE CAISSE';
+  ctx.fillText(receiptTitle, centerX, currY);
 
-  currY += 14;
-  ctx.strokeStyle = '#0f172a';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([5, 4]);
-  ctx.beginPath();
-  ctx.moveTo(cardX + 16, currY);
-  ctx.lineTo(cardX + cardW - 16, currY);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  // Séparateur 2
+  drawStarDivider();
 
-  // 6. Section Date & Heure bien visibles et métadonnées
-  currY += 20;
+  // 6. En-tête des colonnes : Désignation (Description) et Prix (Price)
+  currY += 4;
   ctx.textAlign = 'left';
   ctx.fillStyle = '#0f172a';
-  ctx.font = 'bold 12px "Courier New", Courier, monospace, sans-serif';
-  ctx.fillText(`Date  : ${dateStr}`, cardX + 18, currY);
+  ctx.font = '900 13px "Courier New", Courier, monospace, sans-serif';
+  ctx.fillText('Désignation', leftX, currY);
 
   ctx.textAlign = 'right';
-  ctx.fillText(`Heure : ${timeStr || '--:--'}`, cardX + cardW - 18, currY);
+  ctx.fillText('Prix', rightX, currY);
+  currY += 12;
 
-  currY += 18;
-  ctx.textAlign = 'left';
-  ctx.font = '12px "Courier New", Courier, monospace, sans-serif';
-  ctx.fillText(`Ticket: #${sale.id.slice(-8).toUpperCase()}`, cardX + 18, currY);
-
-  if (sale.customerName) {
-    ctx.textAlign = 'right';
-    ctx.font = 'bold 12px "Courier New", Courier, monospace, sans-serif';
-    const cleanClient = sale.customerName.length > 20 ? sale.customerName.slice(0, 19) + '…' : sale.customerName;
-    ctx.fillText(`Client: ${cleanClient}`, cardX + cardW - 18, currY);
-  }
-
-  // 7. Tableau des articles
-  currY += 14;
-  ctx.strokeStyle = '#94a3b8';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 4]);
-  ctx.beginPath();
-  ctx.moveTo(cardX + 16, currY);
-  ctx.lineTo(cardX + cardW - 16, currY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  currY += 16;
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#475569';
-  ctx.font = '900 11px "Courier New", Courier, monospace, sans-serif';
-  ctx.fillText('ARTICLE (QTÉ x P.U.)', cardX + 18, currY);
-
-  ctx.textAlign = 'right';
-  ctx.fillText('TOTAL', cardX + cardW - 18, currY);
-
-  currY += 10;
-  ctx.strokeStyle = '#94a3b8';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 4]);
-  ctx.beginPath();
-  ctx.moveTo(cardX + 16, currY);
-  ctx.lineTo(cardX + cardW - 16, currY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  currY += 18;
-
+  // 7. Liste des articles
   for (const it of items) {
-    // Ligne 1 de l'article : Nom à gauche, Total à droite
+    currY += 16;
     ctx.textAlign = 'left';
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 13px "Courier New", Courier, monospace, sans-serif';
-    const desc = it.description.length > 26 ? it.description.slice(0, 25) + '…' : it.description;
-    ctx.fillText(desc, cardX + 18, currY);
+    const desc = it.description.length > 25 ? it.description.slice(0, 24) + '…' : it.description;
+    ctx.fillText(desc, leftX, currY);
 
     ctx.textAlign = 'right';
-    ctx.font = '900 13px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillText(formatCurrency(it.total), cardX + cardW - 18, currY);
+    ctx.font = 'bold 13px "Courier New", Courier, monospace, sans-serif';
+    ctx.fillText(formatCurrency(it.total), rightX, currY);
 
-    // Ligne 2 : Détail Qté x Prix Unitaire
-    currY += 16;
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#64748b';
-    ctx.font = '11px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillText(`  Qté: ${it.quantity} x ${formatCurrency(it.unitPrice)}`, cardX + 18, currY);
-
-    currY += 12;
-    // Dotted separator between items
-    ctx.strokeStyle = '#f1f5f9';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([2, 3]);
-    ctx.beginPath();
-    ctx.moveTo(cardX + 24, currY - 4);
-    ctx.lineTo(cardX + cardW - 24, currY - 4);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    // Si quantité > 1, ligne de détail sous le nom
+    if (it.quantity > 1) {
+      currY += 15;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#64748b';
+      ctx.font = '11px "Courier New", Courier, monospace, sans-serif';
+      ctx.fillText(`  Qté: ${it.quantity} × ${formatCurrency(it.unitPrice)}`, leftX, currY);
+    }
   }
 
-  // 8. Séparateur double thermique avant le total
-  currY += 4;
-  ctx.strokeStyle = '#0f172a';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(cardX + 16, currY);
-  ctx.lineTo(cardX + cardW - 16, currY);
-  ctx.stroke();
+  // Séparateur 3
+  drawStarDivider();
 
-  currY += 4;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(cardX + 16, currY);
-  ctx.lineTo(cardX + cardW - 16, currY);
-  ctx.stroke();
-
-  // 9. Sous-total et Remise si applicables
+  // 8. Totaux & Modes de paiement (Total, Cash / Mobile Money / Crédit)
   if (hasDiscount) {
-    currY += 20;
+    currY += 4;
     const subtotal = sale.subtotalAmount || (sale.totalAmount + (sale.discountAmount || 0));
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#475569';
-    ctx.font = '12px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillText('Sous-Total Brut :', cardX + 18, currY);
-
-    ctx.textAlign = 'right';
-    ctx.fillText(formatCurrency(subtotal), cardX + cardW - 18, currY);
-
-    currY += 18;
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#0f172a';
-    ctx.font = 'bold 12px "Courier New", Courier, monospace, sans-serif';
-    const discLabel = sale.discountType === 'PERCENT' && sale.discountValue ? `(${sale.discountValue}%)` : '';
-    ctx.fillText(`Remise Accordée ${discLabel} :`, cardX + 18, currY);
-
-    ctx.textAlign = 'right';
-    ctx.fillText(`-${formatCurrency(sale.discountAmount || 0)}`, cardX + cardW - 18, currY);
-
-    currY += 10;
-    ctx.strokeStyle = '#cbd5e1';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(cardX + 16, currY);
-    ctx.lineTo(cardX + cardW - 16, currY);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  // 10. TOTAL NET À PAYER (Très grand et très visible)
-  currY += 28;
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#0f172a';
-  ctx.font = '900 16px "Courier New", Courier, monospace, sans-serif';
-  ctx.fillText(hasDiscount ? 'NET À PAYER :' : 'TOTAL :', cardX + 18, currY);
-
-  ctx.textAlign = 'right';
-  ctx.font = '900 24px "Courier New", Courier, monospace, sans-serif';
-  ctx.fillText(formatCurrency(sale.totalAmount), cardX + cardW - 18, currY);
-
-  currY += 14;
-  ctx.strokeStyle = '#0f172a';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([5, 4]);
-  ctx.beginPath();
-  ctx.moveTo(cardX + 16, currY);
-  ctx.lineTo(cardX + cardW - 16, currY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // 11. Mode de règlement & Monnaie
-  currY += 20;
-  let modeStr = 'Espèces (Cash)';
-  if (sale.paymentMethod === 'ORANGE_MONEY') modeStr = 'Orange Money';
-  else if (sale.paymentMethod === 'MOOV_MONEY') modeStr = 'Moov Money';
-  else if (sale.paymentMethod === 'WAVE') modeStr = 'Wave';
-  else if (sale.paymentMethod === 'CREDIT') modeStr = 'À Crédit (Dette)';
-
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#475569';
-  ctx.font = '12px "Courier New", Courier, monospace, sans-serif';
-  ctx.fillText('Règlement :', cardX + 18, currY);
-
-  ctx.textAlign = 'right';
-  ctx.font = 'bold 12px "Courier New", Courier, monospace, sans-serif';
-  ctx.fillStyle = '#0f172a';
-  ctx.fillText(modeStr, cardX + cardW - 18, currY);
-
-  if (sale.transactionRef) {
-    currY += 16;
-    ctx.textAlign = 'left';
     ctx.fillStyle = '#64748b';
-    ctx.font = '11px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillText('Réf. Mobile :', cardX + 18, currY);
-
-    ctx.textAlign = 'right';
-    ctx.font = 'bold 11px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillStyle = '#0f172a';
-    ctx.fillText(sale.transactionRef, cardX + cardW - 18, currY);
-  }
-
-  if (hasChange && sale.receivedAmount) {
-    currY += 18;
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#475569';
     ctx.font = '12px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillText('Montant Reçu :', cardX + 18, currY);
+    ctx.fillText('Sous-Total Brut', leftX, currY);
 
     ctx.textAlign = 'right';
-    ctx.font = 'bold 12px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillStyle = '#0f172a';
-    ctx.fillText(formatCurrency(sale.receivedAmount), cardX + cardW - 18, currY);
+    ctx.fillText(formatCurrency(subtotal), rightX, currY);
 
-    currY += 16;
+    currY += 17;
     ctx.textAlign = 'left';
-    ctx.fillText('Monnaie Rendue :', cardX + 18, currY);
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 12px "Courier New", Courier, monospace, sans-serif';
+    ctx.fillText('Remise accordée', leftX, currY);
 
     ctx.textAlign = 'right';
-    ctx.font = '900 13px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillText(formatCurrency(sale.changeAmount || 0), cardX + cardW - 18, currY);
+    ctx.fillText(`-${formatCurrency(sale.discountAmount || 0)}`, rightX, currY);
+    currY += 4;
   }
+
+  currY += 6;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#0f172a';
+  ctx.font = '900 17px "Courier New", Courier, monospace, sans-serif';
+  ctx.fillText('Total', leftX, currY);
+
+  ctx.textAlign = 'right';
+  ctx.font = '900 18px "Courier New", Courier, monospace, sans-serif';
+  ctx.fillText(formatCurrency(sale.totalAmount), rightX, currY);
+
+  // Ligne de détail du mode de règlement
+  currY += 20;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#334155';
+  ctx.font = 'bold 12.5px "Courier New", Courier, monospace, sans-serif';
+
+  let paymentLabel = 'Espèces';
+  if (sale.paymentMethod === 'ORANGE_MONEY') paymentLabel = 'Orange Money';
+  else if (sale.paymentMethod === 'MOOV_MONEY') paymentLabel = 'Moov Money';
+  else if (sale.paymentMethod === 'WAVE') paymentLabel = 'Wave';
+  else if (sale.paymentMethod === 'CREDIT') paymentLabel = '100% Crédit (Dette)';
 
   if (sale.isPartialCredit) {
+    ctx.fillText('Acompte versé', leftX, currY);
+    ctx.textAlign = 'right';
+    ctx.fillText(formatCurrency(sale.paidAmount || 0), rightX, currY);
+
+    currY += 17;
+    ctx.textAlign = 'left';
+    ctx.fillText('Reste dû (Crédit)', leftX, currY);
+    ctx.textAlign = 'right';
+    ctx.fillText(formatCurrency(sale.creditAmount || 0), rightX, currY);
+  } else {
+    ctx.fillText(paymentLabel, leftX, currY);
+    ctx.textAlign = 'right';
+    ctx.fillText(formatCurrency(sale.totalAmount), rightX, currY);
+  }
+
+  // Séparateur 4
+  drawStarDivider();
+
+  // 9. Informations de transaction (Date, Heure, N° Ticket, Client)
+  currY += 4;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#334155';
+  ctx.font = '12px "Courier New", Courier, monospace, sans-serif';
+  ctx.fillText('Date & Heure', leftX, currY);
+
+  ctx.textAlign = 'right';
+  ctx.font = 'bold 12px "Courier New", Courier, monospace, sans-serif';
+  ctx.fillText(`${dateStr}  ${timeStr}`, rightX, currY);
+
+  currY += 18;
+  ctx.textAlign = 'left';
+  ctx.font = '12px "Courier New", Courier, monospace, sans-serif';
+  ctx.fillText('N° Ticket', leftX, currY);
+
+  const ticketCode = sale.id.slice(-8).toUpperCase();
+  ctx.textAlign = 'right';
+  ctx.font = 'bold 12px "Courier New", Courier, monospace, sans-serif';
+  ctx.fillText(`#${ticketCode}`, rightX, currY);
+
+  if (sale.customerName) {
     currY += 18;
     ctx.textAlign = 'left';
     ctx.font = '12px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillText('Acompte versé :', cardX + 18, currY);
+    ctx.fillText('Client', leftX, currY);
 
     ctx.textAlign = 'right';
     ctx.font = 'bold 12px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillText(formatCurrency(sale.paidAmount || 0), cardX + cardW - 18, currY);
+    const cleanCustomer = sale.customerName.length > 22 ? sale.customerName.slice(0, 21) + '…' : sale.customerName;
+    ctx.fillText(cleanCustomer, rightX, currY);
+  }
 
-    currY += 16;
+  if (sale.transactionRef) {
+    currY += 18;
     ctx.textAlign = 'left';
-    ctx.fillText('Reste dû (Dette) :', cardX + 18, currY);
+    ctx.font = '12px "Courier New", Courier, monospace, sans-serif';
+    ctx.fillText('Réf. Transaction', leftX, currY);
 
     ctx.textAlign = 'right';
-    ctx.font = '900 13px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillText(formatCurrency(sale.creditAmount || 0), cardX + cardW - 18, currY);
+    ctx.font = 'bold 12px "Courier New", Courier, monospace, sans-serif';
+    ctx.fillText(sale.transactionRef, rightX, currY);
   }
 
-  // 12. Mention pour les ventes à crédit
-  if (isCredit) {
-    currY += 18;
-    ctx.fillStyle = '#0f172a';
-    ctx.font = 'italic bold 11px "Courier New", Courier, monospace, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(`Engagement: Le client reconnaît devoir ${formatCurrency(sale.creditAmount || sale.totalAmount)}.`, cardX + 18, currY);
-  }
+  // Séparateur 5
+  drawStarDivider();
 
-  // 13. Tampon thermique de statut
-  currY += 34;
-  ctx.save();
-  ctx.translate(centerX, currY);
-  ctx.rotate(-4 * (Math.PI / 180));
-
-  if (sale.isCredit) {
-    ctx.strokeStyle = '#dc2626';
-    ctx.fillStyle = 'rgba(239, 68, 68, 0.06)';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.roundRect(-120, -20, 240, 40, 6);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#dc2626';
-    ctx.textAlign = 'center';
-    ctx.font = '900 15px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillText('*** ACCORDÉ À CRÉDIT ***', 0, 5);
-  } else if (sale.isPartialCredit) {
-    ctx.strokeStyle = '#d97706';
-    ctx.fillStyle = 'rgba(217, 119, 6, 0.06)';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.roundRect(-135, -20, 270, 40, 6);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#d97706';
-    ctx.textAlign = 'center';
-    ctx.font = '900 13px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillText('*** ACOMPTE PAYÉ • RESTE DÛ ***', 0, 5);
-  } else {
-    ctx.strokeStyle = '#059669';
-    ctx.fillStyle = 'rgba(16, 185, 129, 0.06)';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.roundRect(-110, -20, 220, 40, 6);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#059669';
-    ctx.textAlign = 'center';
-    ctx.font = '900 15px "Courier New", Courier, monospace, sans-serif';
-    ctx.fillText('✓ PAYÉ ENTIÈREMENT', 0, 5);
-  }
-  ctx.restore();
-
-  // 14. Pied de ticket
-  currY += 38;
+  // 10. Message de remerciement (THANK YOU!)
+  currY += 4;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#0f172a';
-  ctx.font = 'bold 12px "Courier New", Courier, monospace, sans-serif';
-  ctx.fillText('*** MERCI DE VOTRE VISITE ! ***', centerX, currY);
+  ctx.font = '900 15px "Courier New", Courier, monospace, sans-serif';
+  ctx.fillText('MERCI DE VOTRE VISITE !', centerX, currY);
 
   currY += 16;
   ctx.fillStyle = '#64748b';
   ctx.font = '11px "Courier New", Courier, monospace, sans-serif';
-  ctx.fillText('Les articles vendus ne sont ni repris ni échangés', centerX, currY);
+  ctx.fillText('À très bientôt !', centerX, currY);
 
-  currY += 15;
+  // 11. Code-barres scannable en bas du ticket
+  currY += 20;
+  const barcodeText = ticketCode;
+  const bars = generateCode39Bars(barcodeText);
+  const totalUnits = bars.reduce((sum, b) => sum + b.width, 0);
+  const unitWidth = 2.4;
+  const totalBarWidth = totalUnits * unitWidth;
+  let startX = centerX - (totalBarWidth / 2);
+  const barHeight = 44;
+
+  ctx.fillStyle = '#0f172a';
+  for (const b of bars) {
+    const w = b.width * unitWidth;
+    if (b.isBar) {
+      ctx.fillRect(startX, currY, w, barHeight);
+    }
+    startX += w;
+  }
+
+  currY += barHeight + 12;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#0f172a';
+  ctx.font = 'bold 12px "Courier New", Courier, monospace, sans-serif';
+  ctx.fillText(`*${barcodeText}*`, centerX, currY);
+
+  currY += 14;
   ctx.fillStyle = '#94a3b8';
-  ctx.font = 'bold 10px "Courier New", Courier, monospace, sans-serif';
+  ctx.font = '10px "Courier New", Courier, monospace, sans-serif';
   ctx.fillText('FASOCARNET • Caisse Tactile', centerX, currY);
 
   return canvas;

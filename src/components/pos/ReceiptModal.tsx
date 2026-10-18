@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sale } from '../../types';
 import { useAppStore } from '../../store/appStore';
-import { generateReceiptDataUrl, extractReceiptItems } from '../../utils/receiptGenerator';
+import { generateReceiptDataUrl, extractReceiptItems, generateBarcodeSvg } from '../../utils/receiptGenerator';
 import { printViaBluetooth, printViaRawBt, printViaHiddenIframe, isBluetoothSupported } from '../../utils/bluetoothPrinter';
 import { formatDateTime } from '../../utils/formatters';
 import { CheckCircle2, ArrowRight, Download, Printer, Loader2, Maximize2, X, Image as ImageIcon } from 'lucide-react';
@@ -106,6 +106,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
     const city = shopProfile?.city || '';
     const ifu = shopProfile?.ifu || '';
     const rccm = shopProfile?.rccm || '';
+    const ticketCode = sale.id.slice(-8).toUpperCase();
     
     // Date et Heure bien formatées et dissociées
     const dateObj = new Date(sale.createdAt);
@@ -125,23 +126,36 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
     const items = extractReceiptItems(sale);
 
     const itemsHtml = items.map(it => `
-      <div style="margin: 4px 0; border-bottom: 1px dotted #bbb; padding-bottom: 3px;">
+      <div style="margin: 3.5px 0;">
         <div class="row bold">
           <span>${it.description}</span>
           <span>${it.total.toLocaleString('fr-FR')} F</span>
         </div>
-        <div style="font-size: 10.5px; color: #333; display: flex; justify-content: space-between;">
-          <span>Qté: ${it.quantity} x ${it.unitPrice.toLocaleString('fr-FR')} F</span>
-        </div>
+        ${it.quantity > 1 ? `
+        <div style="font-size: 10px; color: #475569; margin-left: 6px;">
+          Qté : ${it.quantity} × ${it.unitPrice.toLocaleString('fr-FR')} F
+        </div>` : ''}
       </div>
     `).join('');
+
+    let paymentLabel = 'Espèces';
+    if (sale.paymentMethod === 'ORANGE_MONEY') paymentLabel = 'Orange Money';
+    else if (sale.paymentMethod === 'MOOV_MONEY') paymentLabel = 'Moov Money';
+    else if (sale.paymentMethod === 'WAVE') paymentLabel = 'Wave';
+    else if (sale.paymentMethod === 'CREDIT') paymentLabel = '100% Crédit (Dette)';
+
+    const receiptTitle = sale.isCredit
+      ? 'TICKET DE CRÉDIT & DETTE'
+      : sale.isPartialCredit
+      ? 'TICKET DE VENTE (AVEC ACOMPTE)'
+      : 'TICKET DE CAISSE';
 
     return `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
-          <title>Ticket #${sale.id.slice(-6).toUpperCase()}</title>
+          <title>Ticket #${ticketCode}</title>
           <style>
             @page {
               size: ${rollWidthMm} auto;
@@ -171,11 +185,39 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             .bold { font-weight: 900; }
             .shop-title { font-size: 16px; font-weight: 900; margin-bottom: 2px; }
             .shop-desc { font-size: 11px; font-style: italic; color: #333; margin-bottom: 3px; }
-            .divider { border-top: 1px dashed #000; margin: 5px 0; }
-            .double-divider { border-top: 2px solid #000; margin: 6px 0; }
+            .stars {
+              text-align: center;
+              font-weight: bold;
+              letter-spacing: 1px;
+              margin: 5px 0;
+              font-size: 11px;
+              overflow: hidden;
+              white-space: nowrap;
+            }
+            .dotted-divider {
+              border-top: 1px dotted #999;
+              margin: 4px 0;
+            }
             .row { display: flex; justify-content: space-between; margin: 2.5px 0; }
-            .total-row { font-size: 15px; font-weight: 900; margin: 6px 0; }
-            .footer { font-size: 10px; margin-top: 10px; text-align: center; }
+            .total-row { font-size: 15px; font-weight: 900; margin: 5px 0; }
+            .footer { font-size: 10px; margin-top: 8px; text-align: center; }
+            .barcode-box {
+              margin: 10px auto 4px auto;
+              text-align: center;
+            }
+            .barcode-box svg {
+              max-width: 90%;
+              height: 42px;
+              margin: 0 auto;
+              display: block;
+            }
+            .barcode-label {
+              font-size: 11px;
+              font-weight: bold;
+              letter-spacing: 2px;
+              text-align: center;
+              margin-top: 3px;
+            }
           </style>
         </head>
         <body>
@@ -184,43 +226,27 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             ${description ? `<div class="shop-desc">${description}</div>` : ''}
             ${phone ? `<div>Tél : ${phone}</div>` : ''}
             ${city ? `<div>${city}</div>` : ''}
-            ${ifu ? `<div style="font-size: 11px;">IFU : ${ifu}</div>` : ''}
-            ${rccm ? `<div style="font-size: 11px;">RCCM : ${rccm}</div>` : ''}
-            <div style="font-size: 11px; margin-top: 3px; font-weight: 900; letter-spacing: 0.5px;">
-              ${sale.isCredit ? 'FACTURE COMMERCIALE & CRÉDIT' : sale.isPartialCredit ? 'FACTURE COMMERCIALE (ACOMPTE & CRÉDIT)' : 'TICKET DE CAISSE'}
-            </div>
+            ${ifu ? `<div style="font-size: 10.5px;">IFU : ${ifu}</div>` : ''}
+            ${rccm ? `<div style="font-size: 10.5px;">RCCM : ${rccm}</div>` : ''}
           </div>
 
-          <div class="divider"></div>
+          <div class="stars">* * * * * * * * * * * * * * * * * * * * * * * * * * * *</div>
 
-          <div class="row">
-            <span>Date  :</span>
-            <span class="bold">${dateStr}</span>
+          <div class="center bold" style="font-size: 13px; letter-spacing: 0.5px;">
+            ${receiptTitle}
           </div>
-          <div class="row">
-            <span>Heure :</span>
-            <span class="bold">${timeStr || '--:--'}</span>
-          </div>
-          <div class="row">
-            <span>Ticket:</span>
-            <span>#${sale.id.slice(-8).toUpperCase()}</span>
-          </div>
-          ${sale.customerName ? `
-          <div class="row">
-            <span>Client:</span>
-            <span class="bold">${sale.customerName}${sale.customerPhone ? ` (${sale.customerPhone})` : ''}</span>
-          </div>` : ''}
 
-          <div class="divider"></div>
-          <div class="row bold" style="font-size: 11px;">
-            <span>ARTICLE (QTÉ x P.U.)</span>
-            <span>TOTAL</span>
+          <div class="stars">* * * * * * * * * * * * * * * * * * * * * * * * * * * *</div>
+
+          <div class="row bold" style="font-size: 11.5px;">
+            <span>Désignation</span>
+            <span>Prix</span>
           </div>
-          <div class="divider"></div>
+          <div class="dotted-divider"></div>
 
           ${itemsHtml}
 
-          <div class="double-divider"></div>
+          <div class="stars">* * * * * * * * * * * * * * * * * * * * * * * * * * * *</div>
 
           ${sale.discountAmount && sale.discountAmount > 0 ? `
           <div class="row" style="font-size: 11px; color: #444;">
@@ -231,50 +257,28 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             <span>Remise accordée ${sale.discountType === 'PERCENT' && sale.discountValue ? `(${sale.discountValue}%)` : ''} :</span>
             <span>-${sale.discountAmount.toLocaleString('fr-FR')} F</span>
           </div>
-          <div class="divider"></div>
           ` : ''}
 
           <div class="row total-row">
-            <span>${sale.discountAmount && sale.discountAmount > 0 ? 'NET À PAYER :' : 'TOTAL :'}</span>
+            <span>TOTAL :</span>
             <span>${sale.totalAmount.toLocaleString('fr-FR')} FCFA</span>
           </div>
-
-          <div class="row">
-            <span>Mode :</span>
-            <span>${
-              sale.isPartialCredit 
-                ? 'ACOMPTE + DETTE'
-                : sale.isCredit 
-                ? 'À CRÉDIT (DETTE)' 
-                : sale.paymentMethod === 'ORANGE_MONEY' 
-                ? 'Orange Money' 
-                : sale.paymentMethod === 'WAVE' 
-                ? 'Wave' 
-                : sale.paymentMethod === 'MOOV_MONEY' 
-                ? 'Moov Money' 
-                : 'Espèces'
-            }</span>
-          </div>
-
-          ${sale.transactionRef ? `
-          <div class="row">
-            <span>Réf Trans. Mobile :</span>
-            <span class="bold">${sale.transactionRef}</span>
-          </div>
-          ` : ''}
 
           ${sale.isPartialCredit ? `
           <div class="row">
             <span>Acompte versé :</span>
             <span>${(sale.paidAmount || 0).toLocaleString('fr-FR')} F</span>
           </div>
-          <div class="row bold" style="color: #000;">
-            <span>Reste en dette :</span>
+          <div class="row bold">
+            <span>Reste dû (Crédit) :</span>
             <span>${(sale.creditAmount || 0).toLocaleString('fr-FR')} F</span>
           </div>
-          ` : ''}
-
-          ${!sale.isCredit && !sale.isPartialCredit && sale.receivedAmount && sale.receivedAmount > sale.totalAmount ? `
+          ` : `
+          <div class="row">
+            <span>Règlement :</span>
+            <span>${paymentLabel}</span>
+          </div>
+          ${!sale.isCredit && sale.receivedAmount && sale.receivedAmount > sale.totalAmount ? `
           <div class="row">
             <span>Reçu :</span>
             <span>${sale.receivedAmount.toLocaleString('fr-FR')} F</span>
@@ -284,15 +288,35 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
             <span>${(sale.changeAmount || 0).toLocaleString('fr-FR')} F</span>
           </div>
           ` : ''}
+          `}
+
+          <div class="stars">* * * * * * * * * * * * * * * * * * * * * * * * * * * *</div>
+
+          <div class="row">
+            <span>Date & Heure :</span>
+            <span class="bold">${dateStr}  ${timeStr || '--:--'}</span>
+          </div>
+          <div class="row">
+            <span>N° Ticket :</span>
+            <span class="bold">#${ticketCode}</span>
+          </div>
+          ${sale.customerName ? `
+          <div class="row">
+            <span>Client :</span>
+            <span class="bold">${sale.customerName}${sale.customerPhone ? ` (${sale.customerPhone})` : ''}</span>
+          </div>` : ''}
+          ${sale.transactionRef ? `
+          <div class="row">
+            <span>Réf. Transaction :</span>
+            <span class="bold">${sale.transactionRef}</span>
+          </div>
+          ` : ''}
 
           ${sale.isCredit || sale.isPartialCredit ? `
-          <div style="font-size: 10px; margin-top: 8px; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 0; text-align: left; font-style: italic; font-weight: bold;">
-            Arrêtée la présente facture à la somme de : ${sale.totalAmount.toLocaleString('fr-FR')} FCFA.
-          </div>
-          <div style="font-size: 10px; margin-top: 6px; border: 1px dashed #000; padding: 4px; text-align: center; font-style: italic;">
+          <div style="font-size: 10px; margin-top: 6px; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 4px 0; text-align: left; font-style: italic;">
             Engagement : Le client reconnaît devoir la somme de ${(sale.creditAmount || sale.totalAmount).toLocaleString('fr-FR')} FCFA à l'établissement ${shopName}.
           </div>
-          <div style="margin-top: 12px; margin-bottom: 6px; text-align: right; font-size: 10px;">
+          <div style="margin-top: 8px; margin-bottom: 4px; text-align: right; font-size: 10px;">
             <div style="font-weight: 900; text-transform: uppercase;">Le Responsable</div>
             <div style="font-weight: 600; margin-top: 2px;">${shopProfile?.ownerName || shopProfile?.name || 'Le Gérant'}</div>
             ${shopProfile?.managerSignature ? `
@@ -303,11 +327,19 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, sale, onClos
           </div>
           ` : ''}
 
-          <div class="divider"></div>
+          <div class="stars">* * * * * * * * * * * * * * * * * * * * * * * * * * * *</div>
 
           <div class="footer">
-            <div>${sale.isCredit ? 'Merci de respecter votre échéance !' : 'Merci pour votre achat !'}</div>
-            <div style="font-size: 9px; margin-top: 3px;">FASOCARNET</div>
+            <div class="bold" style="font-size: 12px; margin-bottom: 2px;">MERCI DE VOTRE VISITE !</div>
+            <div style="font-size: 10px; color: #444;">À très bientôt !</div>
+            
+            <!-- Code-barres scannable en bas du ticket -->
+            <div class="barcode-box">
+              ${generateBarcodeSvg(ticketCode, 42)}
+              <div class="barcode-label">*${ticketCode}*</div>
+            </div>
+
+            <div style="font-size: 9px; margin-top: 6px; color: #777; letter-spacing: 0.5px;">FASOCARNET</div>
           </div>
         </body>
       </html>
