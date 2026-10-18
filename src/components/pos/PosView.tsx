@@ -45,6 +45,7 @@ export const PosView: React.FC = () => {
 
   // Scanner Code-Barres
   const [isBarcodeScannerOpen, setIsBarcodeScannerOpen] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
   const [scannedUnknownBarcode, setScannedUnknownBarcode] = useState<string | null>(null);
   const [newBarcodeArticleName, setNewBarcodeArticleName] = useState('');
   const [newBarcodeArticlePrice, setNewBarcodeArticlePrice] = useState('');
@@ -545,17 +546,24 @@ export const PosView: React.FC = () => {
               </div>
             </div>
 
-            {/* TOUCHES D'ACTION ALLONGÉES & VISIBLES : SCANNER & REMISE */}
+            {/* TOUCHES D'ACTION ALLONGÉES & VISIBLES : CALCULATRICE & REMISE */}
             <div className="grid grid-cols-2 gap-1.5 sm:gap-2 shrink-0">
-              {/* Bouton Scanner Caméra Code-Barres grand format allongé */}
+              {/* Bouton Calculatrice pour dérouler / replier le clavier tactile */}
               <button
                 type="button"
-                onClick={() => setIsBarcodeScannerOpen(true)}
-                className="h-10 sm:h-11 lg:h-10 xl:h-11 px-2.5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:from-amber-700 active:to-amber-800 text-white rounded-xl text-xs sm:text-sm font-black flex items-center justify-center space-x-1.5 shadow-xs shadow-amber-500/20 active:scale-95 transition-all cursor-pointer font-display"
-                title="Scanner un code-barres avec la caméra ou douchette"
+                onClick={() => {
+                  triggerHaptic(20);
+                  setShowCalculator((prev) => !prev);
+                }}
+                className={`h-10 sm:h-11 lg:h-10 xl:h-11 px-2.5 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display ${
+                  showCalculator
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/25 ring-2 ring-amber-400'
+                    : 'bg-gradient-to-r from-amber-500 via-amber-600 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-amber-500/20'
+                }`}
+                title={showCalculator ? "Replier la calculatrice" : "Afficher la calculatrice"}
               >
-                <Camera className="w-4.5 h-4.5 text-amber-100 shrink-0" />
-                <span className="tracking-wide">Scanner</span>
+                <Calculator className="w-4.5 h-4.5 text-amber-100 shrink-0" />
+                <span className="tracking-wide">Calculatrice {showCalculator ? '▴' : '▾'}</span>
               </button>
 
               {/* Bouton Remise (% ou FCFA) grand format allongé */}
@@ -580,6 +588,16 @@ export const PosView: React.FC = () => {
             {/* Bouton catalogue complet & Puces rapides en 1 ligne compacte (Sur mobile) */}
             <div className="lg:hidden space-y-1 shrink-0">
               <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => setIsBarcodeScannerOpen(true)}
+                  className="h-9 sm:h-10 px-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black flex items-center space-x-1.5 shadow-2xs active:scale-95 transition-all cursor-pointer font-display shrink-0"
+                  title="Scanner un code-barres"
+                >
+                  <Camera className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Scanner</span>
+                </button>
+
                 {products.length > 0 && (
                   <button
                     type="button"
@@ -621,14 +639,65 @@ export const PosView: React.FC = () => {
             </div>
           </div>
 
-          {/* Section Centrale : Clavier tactile Agrandie & Étiré */}
-          <div className="bg-white p-2 sm:p-2.5 rounded-2xl sm:rounded-3xl shadow-xs border border-slate-200/90 shrink-0">
-            <Keypad
-              value={amountStr}
-              onChange={setAmountStr}
-              onClear={handleClear}
-            />
-          </div>
+          {/* Section Centrale : Clavier tactile Déroulable (Masqué par défaut) */}
+          {showCalculator && (
+            <div className="bg-white p-2 sm:p-2.5 rounded-2xl sm:rounded-3xl shadow-xs border border-slate-200/90 shrink-0 animate-in fade-in slide-in-from-top-2 duration-150">
+              <Keypad
+                value={amountStr}
+                onChange={setAmountStr}
+                onClear={handleClear}
+              />
+            </div>
+          )}
+
+          {/* Vue Panier détaillée lorsque la calculatrice est repliée */}
+          {!showCalculator && (
+            <div className="flex-1 flex flex-col justify-center min-h-[140px] p-1">
+              {selectedItems.length === 0 ? (
+                <div className="bg-slate-50/80 border border-dashed border-slate-200 rounded-2xl p-4 sm:p-5 text-center my-auto">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100/60 text-emerald-700 flex items-center justify-center mx-auto mb-2">
+                    <ShoppingCart className="w-5 h-5 stroke-[1.8]" />
+                  </div>
+                  <p className="text-xs sm:text-sm font-bold text-slate-700">Panier en attente</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 max-w-xs mx-auto">
+                    Sélectionnez des articles dans le catalogue ou cliquez sur « Calculatrice » ci-dessus pour saisir un montant libre.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-3 sm:p-4 shadow-2xs flex-1 flex flex-col overflow-hidden">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider pb-2 border-b border-slate-100">
+                    <span>Articles du Panier ({selectedItems.length})</span>
+                    <span>Total</span>
+                  </div>
+                  <div className="divide-y divide-slate-100 overflow-y-auto flex-1 max-h-60 sm:max-h-72 pr-1">
+                    {selectedItems.map((item, idx) => (
+                      <div key={idx} className="py-2 flex items-center justify-between text-xs sm:text-sm">
+                        <div className="min-w-0 pr-2">
+                          <p className="font-extrabold text-slate-900 truncate">{item.description}</p>
+                          <p className="text-[11px] text-slate-500">
+                            {item.quantity} × {formatCurrency(item.unitPrice)}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2 shrink-0">
+                          <span className="font-black text-emerald-800">
+                            {formatCurrency(item.unitPrice * item.quantity)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(idx)}
+                            className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            title="Retirer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Section Basse : Bouton d'encaissement immédiatement sous la calculatrice */}
           <div className="shrink-0 pt-0.5">

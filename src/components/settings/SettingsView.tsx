@@ -77,7 +77,7 @@ const getInitialSettingsTab = (): SettingsTab => {
 };
 
 export const SettingsView: React.FC = () => {
-  const { shopProfile, updateShopProfile, loadCurrentShop, setActiveTab } = useAppStore();
+  const { shopProfile, updateShopProfile, loadCurrentShop } = useAppStore();
 
   const [activeSubTab, setActiveSubTabState] = useState<SettingsTab>(getInitialSettingsTab);
   const [catalogSubTab, setCatalogSubTab] = useState<CatalogSubTab>('catalog');
@@ -716,32 +716,6 @@ export const SettingsView: React.FC = () => {
             <span>Modifications enregistrées !</span>
           </span>
         )}
-      </div>
-
-      {/* BANNIÈRE D'ACCÈS DIRECT À LA NOUVELLE FENÊTRE ARTICLES & STOCKS */}
-      <div className="p-3.5 sm:p-4 bg-emerald-50/70 border border-emerald-200/90 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
-        <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
-            <Package className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 font-display">
-              Catalogue & Gestion des Stocks
-            </h4>
-            <p className="text-[11px] text-slate-600 font-medium">
-              « Articles & Stock » est désormais une fenêtre principale située dans la barre de navigation entre Factures et Boutique.
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('inventory')}
-          className="self-stretch sm:self-auto px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all shadow-xs cursor-pointer font-display shrink-0 active:scale-95"
-        >
-          <span>Ouvrir Articles & Stock</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </button>
       </div>
 
       {/* SÉLECTEUR DE RUBRIQUES ÉTENDU SUR TOUTE LA LARGEUR (3 ONGLETS ÉPURÉS) */}

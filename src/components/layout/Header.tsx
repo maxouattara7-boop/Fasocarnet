@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppStore, ActiveTab } from '../../store/appStore';
-import { ShieldCheck, Lock, Cloud, CloudOff, RefreshCw, HelpCircle, FileText, Calculator, BookOpen, BarChart3, Settings, LogOut, AlertTriangle, Package, Store } from 'lucide-react';
+import { ShieldCheck, Lock, Cloud, CloudOff, RefreshCw, HelpCircle, FileText, ShoppingCart, BookOpen, BarChart3, Settings, LogOut, AlertTriangle, Package, Store } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { HelpGuideModal } from '../common/HelpGuideModal';
 
@@ -10,7 +10,7 @@ export const Header: React.FC = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const desktopNavItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'pos', label: 'Caisse', icon: <Calculator className="w-4 h-4 shrink-0" /> },
+    { id: 'pos', label: 'Vente', icon: <ShoppingCart className="w-4 h-4 shrink-0" /> },
     { id: 'debts', label: 'Carnet de Dettes', icon: <BookOpen className="w-4 h-4 shrink-0" /> },
     { id: 'reports', label: 'Bilan & Ventes', icon: <BarChart3 className="w-4 h-4 shrink-0" /> },
     { id: 'invoices', label: 'Factures & Devis', icon: <FileText className="w-4 h-4 shrink-0" /> },

@@ -1,12 +1,12 @@
 import React from 'react';
 import { useAppStore, ActiveTab } from '../../store/appStore';
-import { Calculator, BookOpen, BarChart3, FileText, Package, Store } from 'lucide-react';
+import { ShoppingCart, BookOpen, BarChart3, FileText, Package, Store } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
   const { activeTab, setActiveTab } = useAppStore();
 
   const navItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'pos', label: 'Caisse', icon: <Calculator className="w-5 h-5" /> },
+    { id: 'pos', label: 'Vente', icon: <ShoppingCart className="w-5 h-5" /> },
     { id: 'debts', label: 'Dettes', icon: <BookOpen className="w-5 h-5" /> },
     { id: 'reports', label: 'Bilan', icon: <BarChart3 className="w-5 h-5" /> },
     { id: 'invoices', label: 'Factures', icon: <FileText className="w-5 h-5" /> },

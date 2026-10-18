@@ -102,4 +102,21 @@ describe('PosView component', () => {
       expect(screen.queryByText('Appliquer une Remise')).not.toBeInTheDocument();
     });
   });
+
+  it('toggles calculator visibility when calculatrice button is clicked', async () => {
+    render(<PosView />);
+    // Calculator keypad is hidden by default
+    expect(screen.getByText('Panier en attente')).toBeInTheDocument();
+
+    const calcBtn = screen.getByRole('button', { name: /Calculatrice/i });
+    expect(calcBtn).toBeInTheDocument();
+
+    // Click to unfold
+    fireEvent.click(calcBtn);
+    expect(screen.queryByText('Panier en attente')).not.toBeInTheDocument();
+
+    // Click again to fold
+    fireEvent.click(calcBtn);
+    expect(screen.getByText('Panier en attente')).toBeInTheDocument();
+  });
 });
