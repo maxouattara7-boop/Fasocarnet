@@ -690,9 +690,9 @@ export const SettingsView: React.FC = () => {
     { 
       id: 'subscription', 
       label: 'Licence & Abonnement', 
-      icon: <Crown className="w-4 h-4 text-amber-500" />,
+      icon: <Crown className="w-4 h-4" />,
       badge: subInfo.isExpired ? '!' : (subInfo.daysRemaining <= 5 ? `${subInfo.daysRemaining}j` : undefined),
-      badgeColor: subInfo.isExpired ? 'bg-red-500' : 'bg-amber-500'
+      badgeColor: subInfo.isExpired ? 'bg-red-500 text-white' : 'bg-amber-400 text-slate-950'
     },
     { id: 'payments', label: 'Paiements Mobile Money', icon: <Smartphone className="w-4 h-4" /> },
   ];
@@ -718,8 +718,8 @@ export const SettingsView: React.FC = () => {
         )}
       </div>
 
-      {/* SÉLECTEUR DE RUBRIQUES ÉTENDU SUR TOUTE LA LARGEUR (3 ONGLETS ÉPURÉS) */}
-      <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-200/90 p-1.5 rounded-2xl shadow-2xs">
+      {/* SÉLECTEUR DE RUBRIQUES ÉTENDU SUR TOUTE LA LARGEUR (BARRE VERTE & FENÊTRE ACTIVE EN ORANGE DÉGRADÉ) */}
+      <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-2 bg-emerald-800 p-1.5 rounded-2xl shadow-sm border border-emerald-700/60">
         {tabs.map((tab) => {
           const isActive = activeSubTab === tab.id;
           return (
@@ -727,21 +727,23 @@ export const SettingsView: React.FC = () => {
               key={tab.id}
               type="button"
               onClick={() => setActiveSubTab(tab.id)}
-              className={`w-full py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 transition-all cursor-pointer ${
+              className={`w-full py-2.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center space-x-2 transition-all cursor-pointer font-display ${
                 isActive
-                  ? 'bg-white text-emerald-900 shadow-xs font-black'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
+                  ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 text-slate-950 shadow-md shadow-orange-500/30 font-black scale-[1.01]'
+                  : 'text-emerald-100 hover:text-white hover:bg-emerald-700/60'
               }`}
             >
-              <div className="relative flex items-center justify-center shrink-0">
+              <div className={`relative flex items-center justify-center shrink-0 ${isActive ? 'text-slate-950' : 'text-emerald-200'}`}>
                 {tab.icon}
                 {tab.badge !== undefined && (
-                  <span className={`absolute -top-2.5 -right-3 text-[9px] font-black text-white px-1.5 py-0.2 rounded-full leading-tight ${tab.badgeColor || 'bg-emerald-500'}`}>
+                  <span className={`absolute -top-2.5 -right-3 text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight shadow-xs ${
+                    isActive ? 'bg-slate-900 text-white' : (tab.badgeColor || 'bg-red-500 text-white')
+                  }`}>
                     {tab.badge}
                   </span>
                 )}
               </div>
-              <span className="font-display truncate">{tab.label}</span>
+              <span className="truncate">{tab.label}</span>
             </button>
           );
         })}
