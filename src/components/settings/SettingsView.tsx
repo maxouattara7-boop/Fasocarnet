@@ -756,484 +756,570 @@ export const SettingsView: React.FC = () => {
       </div>
 
       {/* ======================================================== */}
-      {/* RUBRIQUE 1 : BOUTIQUE (Identité, Sécurité, Sauvegarde)   */}
+      {/* RUBRIQUE 1 : BOUTIQUE (Identité, Reçus, Sécurité & Sauvegardes) */}
       {/* ======================================================== */}
       {activeSubTab === 'shop' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-start animate-in fade-in duration-150">
-          {/* Formulaire Identité du Commerce */}
-          <form onSubmit={handleSaveProfile} className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
-            <div className="flex items-center space-x-2.5 text-emerald-900 border-b border-slate-100 pb-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
-                <Store className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="font-black text-sm tracking-tight font-display text-slate-900">Identité du Commerce</h3>
-                <p className="text-[10px] text-slate-500 font-medium">Informations imprimées sur vos reçus et tickets de caisse</p>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
-                Nom de la Boutique *
-              </label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
-                placeholder="Ex: Boutique La Grâce"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
-                Slogan / Activité du Commerce
-              </label>
-              <input
-                type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
-                placeholder="Ex: Vente de tissus, prêt-à-porter & accessoires"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
-                  Nom du Gérant / Responsable
-                </label>
-                <div className="relative">
-                  <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={ownerName}
-                    onChange={(e) => setOwnerName(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
-                    placeholder="Ex: M. Moussa Ouédraogo"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
-                  Téléphone Caisse *
-                </label>
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => {
-                    setPhoneError(null);
-                    setPhone(cleanPhoneNumber(e.target.value));
-                  }}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
-                  placeholder="Ex: 70 00 00 00"
-                />
-              </div>
-            </div>
-
-            {phoneError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center space-x-2 text-red-700 text-xs font-semibold animate-in fade-in">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
-                <span>{phoneError}</span>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
-                WhatsApp du Propriétaire (Point du soir & alertes)
-              </label>
-              <input
-                type="tel"
-                value={ownerPhone}
-                onChange={(e) => {
-                  setPhoneError(null);
-                  setOwnerPhone(cleanPhoneNumber(e.target.value));
-                }}
-                className="w-full px-3 py-2 bg-emerald-50/40 border border-emerald-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
-                placeholder="Ex: 70 12 34 56"
-              />
-            </div>
-
-            {/* Mentions Légales pour Reçus : IFU & RCCM */}
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-              <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
-                  N° IFU
-                </label>
-                <input
-                  type="text"
-                  value={ifu}
-                  onChange={(e) => setIfu(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
-                  placeholder="Ex: 00012345A"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
-                  N° RCCM
-                </label>
-                <input
-                  type="text"
-                  value={rccm}
-                  onChange={(e) => setRccm(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
-                  placeholder="Ex: BF-OUA-2024"
-                />
-              </div>
-            </div>
-
-            {/* Logo de l'entreprise */}
-            <div className="pt-2 border-t border-slate-100">
-              <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1.5 font-display">
-                Logo de l'Entreprise (Reçus & Factures)
-              </label>
-              {logo ? (
-                <div className="flex items-center space-x-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
-                  <img src={logo} alt="Logo" className="w-12 h-12 object-contain rounded-xl border border-slate-200 bg-white" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-slate-800 truncate">Logo configuré</p>
-                    <p className="text-[10px] text-slate-500">Apparaît sur les tickets & factures imprimées</p>
+        <form onSubmit={handleSaveProfile} className="space-y-6 w-full animate-in fade-in duration-150">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start">
+            {/* COLONNE GAUCHE (7 cols) : Identité Commerciale & Reçus/Factures */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Carte 1 : Profil Commercial & Coordonnées */}
+              <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
+                <div className="flex items-center space-x-2.5 text-slate-900 border-b border-slate-100 pb-3">
+                  <div className="w-9 h-9 rounded-2xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shrink-0">
+                    <Store className="w-5 h-5 text-emerald-700" />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setLogo(null)}
-                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-                    title="Supprimer le logo"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <label className="flex items-center justify-center space-x-2 p-3 bg-slate-50 border border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30 rounded-2xl cursor-pointer text-xs font-bold text-emerald-700 transition-colors">
-                  <Upload className="w-4 h-4" />
-                  <span>Importer un logo (PNG / JPG)</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                  />
-                </label>
-              )}
-            </div>
-
-            {/* Signature Électronique du Gérant */}
-            <div className="pt-2 border-t border-slate-100">
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider font-display">
-                  Signature Électronique du Gérant (Factures & Devis)
-                </label>
-                {managerSignature && (
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center space-x-1">
-                    <CheckCircle className="w-3 h-3" />
-                    <span>Active</span>
-                  </span>
-                )}
-              </div>
-
-              {managerSignature ? (
-                <div className="flex items-center space-x-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
-                  <div className="w-24 h-12 bg-white rounded-xl border border-slate-200 flex items-center justify-center p-1 overflow-hidden shadow-2xs">
-                    <img src={managerSignature} alt="Signature Gérant" className="max-h-full max-w-full object-contain" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-slate-800 truncate">Signature configurée</p>
-                    <p className="text-[10px] text-slate-500">Apposée automatiquement sur vos factures & reçus</p>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <button
-                      type="button"
-                      onClick={() => setIsSignatureModalOpen(true)}
-                      className="p-2 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer"
-                      title="Modifier / Redessiner"
-                    >
-                      <PenTool className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setManagerSignature(null)}
-                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-                      title="Supprimer la signature"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  <div>
+                    <h3 className="font-black text-sm tracking-tight font-display text-slate-900">
+                      Profil Commercial & Coordonnées
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      Informations affichées sur vos reçus, devis et tickets de caisse
+                    </p>
                   </div>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsSignatureModalOpen(true)}
-                    className="flex items-center justify-center space-x-2 p-2.5 bg-emerald-50/70 hover:bg-emerald-100/70 text-emerald-800 border border-emerald-200/80 rounded-2xl cursor-pointer text-xs font-bold transition-all active:scale-98"
-                  >
-                    <PenTool className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Signer à l'écran (Doigt / Stylos)</span>
-                  </button>
 
-                  <label className="flex items-center justify-center space-x-2 p-2.5 bg-slate-50 hover:bg-slate-100/70 border border-dashed border-slate-300 rounded-2xl cursor-pointer text-xs font-bold text-slate-700 transition-colors">
-                    <Upload className="w-4 h-4 text-slate-500 shrink-0" />
-                    <span>Importer image (PNG / JPG)</span>
+                <div className="space-y-3.5">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
+                      Nom de la Boutique / Commerce <span className="text-emerald-600">*</span>
+                    </label>
                     <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleSignatureUpload}
-                      className="hidden"
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
+                      placeholder="Ex: Boutique La Grâce"
                     />
-                  </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
+                      Activité / Slogan du Commerce
+                    </label>
+                    <input
+                      type="text"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
+                      placeholder="Ex: Vente de tissus, prêt-à-porter, cosmétiques & accessoires"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
+                        Nom du Gérant / Responsable
+                      </label>
+                      <div className="relative">
+                        <User className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={ownerName}
+                          onChange={(e) => setOwnerName(e.target.value)}
+                          className="w-full pl-8.5 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
+                          placeholder="Ex: M. Moussa Ouédraogo"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
+                        Téléphone Caisse <span className="text-emerald-600">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={phone}
+                        onChange={(e) => {
+                          setPhoneError(null);
+                          setPhone(cleanPhoneNumber(e.target.value));
+                        }}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
+                        placeholder="Ex: 70 00 00 00"
+                      />
+                    </div>
+                  </div>
+
+                  {phoneError && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center space-x-2 text-red-700 text-xs font-semibold animate-in fade-in">
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
+                      <span>{phoneError}</span>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
+                      WhatsApp Propriétaire (Alertes & Bilan journalier automatique)
+                    </label>
+                    <input
+                      type="tel"
+                      value={ownerPhone}
+                      onChange={(e) => {
+                        setPhoneError(null);
+                        setOwnerPhone(cleanPhoneNumber(e.target.value));
+                      }}
+                      className="w-full px-3 py-2 bg-emerald-50/40 border border-emerald-200/80 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
+                      placeholder="Ex: 70 12 34 56"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Numéro sur lequel recevoir les synthèses de fermeture et le point du soir.
+                    </p>
+                  </div>
                 </div>
-              )}
+              </div>
+
+              {/* Carte 2 : Personnalisation des Reçus, Factures & Mentions Légales */}
+              <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
+                <div className="flex items-center space-x-2.5 text-slate-900 border-b border-slate-100 pb-3">
+                  <div className="w-9 h-9 rounded-2xl bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-700 shrink-0">
+                    <Printer className="w-5 h-5 text-slate-700" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm tracking-tight font-display text-slate-900">
+                      Reçus, Factures & Image de Marque
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      Mentions fiscales, dimensions d'impression, signature et logo
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Mentions Légales : IFU & RCCM */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
+                        N° IFU (Identifiant Fiscal Unique)
+                      </label>
+                      <input
+                        type="text"
+                        value={ifu}
+                        onChange={(e) => setIfu(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
+                        placeholder="Ex: 00012345A"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
+                        N° RCCM (Registre de Commerce)
+                      </label>
+                      <input
+                        type="text"
+                        value={rccm}
+                        onChange={(e) => setRccm(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400"
+                        placeholder="Ex: BF-OUA-2024"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Format des Tickets de Caisse (Rouleau Thermique) */}
+                  <div className="pt-2 border-t border-slate-100 space-y-2">
+                    <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider font-display">
+                      Format des Tickets de Caisse (Rouleau Thermique)
+                    </label>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setReceiptPaperWidth('58mm')}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          receiptPaperWidth === '58mm'
+                            ? 'border-emerald-500 bg-emerald-50/70 ring-2 ring-emerald-500/20 shadow-2xs'
+                            : 'border-slate-200 bg-slate-50 hover:bg-slate-100/60 text-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-extrabold text-xs text-slate-900 font-display">Rouleau 58 mm</span>
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            receiptPaperWidth === '58mm' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
+                          }`}>
+                            Par défaut
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 leading-tight">
+                          Mini-imprimantes portables Bluetooth de poche (Le standard le plus économique)
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setReceiptPaperWidth('80mm')}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                          receiptPaperWidth === '80mm'
+                            ? 'border-emerald-500 bg-emerald-50/70 ring-2 ring-emerald-500/20 shadow-2xs'
+                            : 'border-slate-200 bg-slate-50 hover:bg-slate-100/60 text-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-extrabold text-xs text-slate-900 font-display">Rouleau 80 mm</span>
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            receiptPaperWidth === '80mm' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
+                          }`}>
+                            Large
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 leading-tight">
+                          Imprimantes de caisse de comptoir (Epson, Xprinter, supermarchés)
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Logo de l'Entreprise */}
+                  <div className="pt-2 border-t border-slate-100">
+                    <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1.5 font-display">
+                      Logo du Commerce (Imprimé sur les tickets & factures)
+                    </label>
+                    {logo ? (
+                      <div className="flex items-center space-x-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+                        <img src={logo} alt="Logo" className="w-12 h-12 object-contain rounded-xl border border-slate-200 bg-white p-1" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-800 truncate">Logo configuré</p>
+                          <p className="text-[10px] text-slate-500">Apparaît en en-tête de vos reçus imprimés</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setLogo(null)}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                          title="Supprimer le logo"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center space-x-2 p-3 bg-slate-50 border border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/30 rounded-2xl cursor-pointer text-xs font-bold text-emerald-700 transition-colors">
+                        <Upload className="w-4 h-4" />
+                        <span>Importer un logo (PNG / JPG)</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Signature Électronique du Gérant */}
+                  <div className="pt-2 border-t border-slate-100">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider font-display">
+                        Signature Électronique du Gérant (Factures & Devis)
+                      </label>
+                      {managerSignature && (
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full flex items-center space-x-1 border border-emerald-200/60">
+                          <CheckCircle className="w-3 h-3" />
+                          <span>Active</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {managerSignature ? (
+                      <div className="flex items-center space-x-3 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+                        <div className="w-24 h-12 bg-white rounded-xl border border-slate-200 flex items-center justify-center p-1 overflow-hidden shadow-2xs">
+                          <img src={managerSignature} alt="Signature Gérant" className="max-h-full max-w-full object-contain" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-800 truncate">Signature configurée</p>
+                          <p className="text-[10px] text-slate-500">Apposée automatiquement au bas de vos devis et factures</p>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <button
+                            type="button"
+                            onClick={() => setIsSignatureModalOpen(true)}
+                            className="p-2 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-xl transition-colors cursor-pointer"
+                            title="Modifier / Redessiner"
+                          >
+                            <PenTool className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setManagerSignature(null)}
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                            title="Supprimer la signature"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsSignatureModalOpen(true)}
+                          className="flex items-center justify-center space-x-2 p-2.5 bg-emerald-50/70 hover:bg-emerald-100/70 text-emerald-800 border border-emerald-200/80 rounded-2xl cursor-pointer text-xs font-bold transition-all active:scale-98"
+                        >
+                          <PenTool className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>Signer à l'écran (Tactile)</span>
+                        </button>
+
+                        <label className="flex items-center justify-center space-x-2 p-2.5 bg-slate-50 hover:bg-slate-100/70 border border-dashed border-slate-300 rounded-2xl cursor-pointer text-xs font-bold text-slate-700 transition-colors">
+                          <Upload className="w-4 h-4 text-slate-500 shrink-0" />
+                          <span>Importer image (PNG / JPG)</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleSignatureUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Couleur de marque & Thème des reçus/factures */}
+                  <div className="pt-2 border-t border-slate-100">
+                    <ColorPalettePicker
+                      selectedColor={primaryColor}
+                      onChange={setPrimaryColor}
+                      shopName={name}
+                      showPreview={true}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Couleur de marque & Thème des reçus/factures */}
-            <div className="pt-2 border-t border-slate-100">
-              <ColorPalettePicker
-                selectedColor={primaryColor}
-                onChange={setPrimaryColor}
-                shopName={name}
-                showPreview={true}
-              />
-            </div>
+            {/* COLONNE DROITE (5 cols) : Sécurité, Alertes, Sons & Sauvegardes */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* Carte 3 : Sécurité & Code PIN Caisse */}
+              <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
+                <div className="flex items-center space-x-2.5 text-slate-900 border-b border-slate-100 pb-3">
+                  <div className="w-9 h-9 rounded-2xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-700 shrink-0">
+                    <Lock className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm tracking-tight font-display text-slate-900">
+                      Sécurité & Code PIN Caisse
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      Protection de l'accès caisse et de vos numéros de dépôt
+                    </p>
+                  </div>
+                </div>
 
-            {/* Format d'impression des Tickets de Caisse (Rouleau Thermique) */}
-            <div className="pt-3 border-t border-slate-100 space-y-2">
-              <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider font-display">
-                Format des Tickets de Caisse (Rouleau Thermique)
-              </label>
-              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-600 tracking-wider mb-1 font-display">
+                      Code PIN de Sécurité (4 chiffres)
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="password"
+                        maxLength={4}
+                        inputMode="numeric"
+                        value={pin}
+                        onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
+                        className="w-full pl-8 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all placeholder-slate-400 tracking-widest"
+                        placeholder={shopProfile?.pinCode ? "•••• (Code configuré)" : "Définir un code PIN (4 chiffres)"}
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1 leading-tight">
+                      {shopProfile?.pinCode
+                        ? "Laissez vide pour conserver votre code PIN actuel sans modification."
+                        : "Saisissez 4 chiffres pour verrouiller l'accès aux modifications critiques."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Carte 4 : Alertes & Sons */}
+              <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
+                <div className="flex items-center space-x-2.5 text-slate-900 border-b border-slate-100 pb-3">
+                  <div className="w-9 h-9 rounded-2xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shrink-0">
+                    <BellRing className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm tracking-tight font-display text-slate-900">
+                      Alertes & Retours Caisse
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      Alarme dettes, retours sonores et vocaux
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3.5">
+                  {/* Commutateur Alarme Dettes */}
+                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-150">
+                    <div className="space-y-0.5">
+                      <p className="text-xs font-bold text-slate-900">Alarme hebdomadaire des dettes</p>
+                      <p className="text-[10px] text-slate-500">Rappel automatique sonore pour relancer vos débiteurs</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const nextVal = !debtAlarmEnabled;
+                        setDebtAlarmEnabled(nextVal);
+                        await updateShopProfile({ debtAlarmEnabled: nextVal });
+                      }}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
+                        debtAlarmEnabled ? 'bg-emerald-600 justify-end' : 'bg-slate-300 justify-start'
+                      }`}
+                    >
+                      <div className="bg-white w-4 h-4 rounded-full shadow-xs" />
+                    </button>
+                  </div>
+
+                  {/* Sons & Vibrations */}
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between py-1">
+                      <div className="flex items-center space-x-2">
+                        {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-600" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
+                        <span className="text-xs font-semibold text-slate-800">Bruitage de caisse enregistreuse</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={toggleSound}
+                        className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                          soundEnabled ? 'bg-emerald-600 justify-end' : 'bg-slate-300 justify-start'
+                        }`}
+                      >
+                        <div className="bg-white w-4 h-4 rounded-full shadow-xs" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between py-1">
+                      <div className="flex items-center space-x-2">
+                        <Mic className={`w-4 h-4 ${voiceEnabled ? 'text-emerald-600' : 'text-slate-400'}`} />
+                        <span className="text-xs font-semibold text-slate-800">Synthèse vocale du montant</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={toggleVoice}
+                        className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                          voiceEnabled ? 'bg-emerald-600 justify-end' : 'bg-slate-300 justify-start'
+                        }`}
+                      >
+                        <div className="bg-white w-4 h-4 rounded-full shadow-xs" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between py-1">
+                      <div className="flex items-center space-x-2">
+                        {hapticsEnabled ? <Vibrate className="w-4 h-4 text-emerald-600" /> : <VibrateOff className="w-4 h-4 text-slate-400" />}
+                        <span className="text-xs font-semibold text-slate-800">Vibration tactile (Mobile)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={toggleHaptics}
+                        className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                          hapticsEnabled ? 'bg-emerald-600 justify-end' : 'bg-slate-300 justify-start'
+                        }`}
+                      >
+                        <div className="bg-white w-4 h-4 rounded-full shadow-xs" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Carte 5 : Sauvegardes de Secours JSON */}
+              <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
+                <div className="flex items-center space-x-2.5 text-slate-900 border-b border-slate-100 pb-3">
+                  <div className="w-9 h-9 rounded-2xl bg-slate-100 border border-slate-200/80 flex items-center justify-center text-slate-700 shrink-0">
+                    <FileJson className="w-5 h-5 text-slate-700" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm tracking-tight font-display text-slate-900">
+                      Sauvegarde & Restauration de Secours
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      Exportez ou restaurez vos données complètes en fichier JSON
+                    </p>
+                  </div>
+                </div>
+
+                {backupFeedback && (
+                  <div className={`p-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 ${
+                    backupFeedback.success
+                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      : 'bg-red-50 text-red-800 border border-red-200'
+                  }`}>
+                    {backupFeedback.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />}
+                    <span>{backupFeedback.message}</span>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    disabled={isExporting}
+                    onClick={handleExportBackup}
+                    className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-98 cursor-pointer disabled:opacity-50"
+                  >
+                    <Download className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <span>{isExporting ? 'Export...' : 'Exporter (.json)'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isImporting}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="py-2.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-98 cursor-pointer disabled:opacity-50"
+                  >
+                    <Upload className="w-4 h-4 text-slate-700 shrink-0" />
+                    <span>{isImporting ? 'Lecture...' : 'Restaurer (.json)'}</span>
+                  </button>
+                </div>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".json"
+                  onChange={handleImportBackup}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Carte 6 : Assistance Support WhatsApp */}
+              <div className="bg-gradient-to-br from-emerald-800 to-teal-900 p-5 rounded-3xl text-white shadow-xs space-y-3">
+                <div className="flex items-center space-x-2.5 border-b border-emerald-700/60 pb-3">
+                  <div className="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center text-white shrink-0">
+                    <Headphones className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm font-display text-white">Besoin d'aide ou d'une assistance ?</h3>
+                    <p className="text-[10px] text-emerald-200 font-medium">Support officiel FasoCarnet disponible 7j/7</p>
+                  </div>
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => setReceiptPaperWidth('58mm')}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                    receiptPaperWidth === '58mm'
-                      ? 'border-emerald-500 bg-emerald-50/70 ring-2 ring-emerald-500/20'
-                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100/60 text-slate-700'
-                  }`}
+                  onClick={handleContactSupport}
+                  className="w-full py-3 bg-white hover:bg-emerald-50 text-emerald-900 font-black rounded-xl text-xs shadow-xs active:scale-98 transition-all flex items-center justify-center space-x-2 cursor-pointer font-display"
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-extrabold text-xs text-slate-900 font-display">Rouleau 58 mm</span>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase ${
-                      receiptPaperWidth === '58mm' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
-                    }`}>
-                      Par défaut
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-500 leading-tight">
-                    Mini-imprimantes portables Bluetooth de poche (Le standard le plus économique)
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setReceiptPaperWidth('80mm')}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                    receiptPaperWidth === '80mm'
-                      ? 'border-emerald-500 bg-emerald-50/70 ring-2 ring-emerald-500/20'
-                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100/60 text-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-extrabold text-xs text-slate-900 font-display">Rouleau 80 mm</span>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase ${
-                      receiptPaperWidth === '80mm' ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
-                    }`}>
-                      Large
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-500 leading-tight">
-                    Imprimantes de caisse de comptoir (Epson, Xprinter, supermarchés)
-                  </p>
+                  <MessageCircle className="w-4 h-4 text-emerald-600" />
+                  <span>Contacter le Support WhatsApp</span>
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* BARRE D'ACTION PRINCIPALE D'ENREGISTREMENT */}
+          <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/90 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center space-x-3 text-xs text-slate-600 font-medium">
+              <div className="w-8 h-8 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <p>
+                Vos coordonnées et paramètres sont automatiquement appliqués sur l'ensemble de votre commerce et sur les tickets de caisse.
+              </p>
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs sm:text-sm cursor-pointer font-display"
+              className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black rounded-2xl shadow-md shadow-emerald-700/20 flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs sm:text-sm cursor-pointer font-display shrink-0"
             >
               <Save className="w-4 h-4" />
-              <span>Enregistrer les Coordonnées</span>
+              <span>Enregistrer les Modifications</span>
             </button>
-          </form>
-
-          {/* Colonne de droite : Paramètres avancés, sécurité & sauvegarde */}
-          <div className="space-y-4">
-            {/* Alarme Dettes */}
-            <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
-              <div className="flex items-center space-x-2 text-emerald-900 border-b border-slate-100 pb-2">
-                <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-600 shrink-0">
-                  <BellRing className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-xs tracking-tight text-slate-900 font-display">Alarme & Relance des Dettes</h3>
-                  <p className="text-[10px] text-slate-500">Rappel automatique hebdomadaire des clients débiteurs</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-800">Activer l'alarme automatique</p>
-                  <p className="text-[10px] text-slate-500">Alerte sonore et modale chaque semaine</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const nextVal = !debtAlarmEnabled;
-                    setDebtAlarmEnabled(nextVal);
-                    await updateShopProfile({ debtAlarmEnabled: nextVal });
-                  }}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
-                    debtAlarmEnabled ? 'bg-emerald-600 justify-end' : 'bg-slate-300 justify-start'
-                  }`}
-                >
-                  <div className="bg-white w-4 h-4 rounded-full shadow-xs" />
-                </button>
-              </div>
-            </div>
-
-            {/* Retours Sonores & Vocaux */}
-            <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
-              <div className="flex items-center space-x-2 text-emerald-900 border-b border-slate-100 pb-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
-                  <Volume2 className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-xs tracking-tight text-slate-900 font-display">Sons & Retours Tactiles</h3>
-                  <p className="text-[10px] text-slate-500">Confirmation audio et vibration lors des encaissements</p>
-                </div>
-              </div>
-
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-600" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
-                    <span className="text-xs font-semibold text-slate-800">Bruitage de caisse enregistreuse</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={toggleSound}
-                    className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
-                      soundEnabled ? 'bg-emerald-600 justify-end' : 'bg-slate-300 justify-start'
-                    }`}
-                  >
-                    <div className="bg-white w-4 h-4 rounded-full shadow-xs" />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Mic className={`w-4 h-4 ${voiceEnabled ? 'text-emerald-600' : 'text-slate-400'}`} />
-                    <span className="text-xs font-semibold text-slate-800">Synthèse vocale du montant</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={toggleVoice}
-                    className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
-                      voiceEnabled ? 'bg-emerald-600 justify-end' : 'bg-slate-300 justify-start'
-                    }`}
-                  >
-                    <div className="bg-white w-4 h-4 rounded-full shadow-xs" />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {hapticsEnabled ? <Vibrate className="w-4 h-4 text-emerald-600" /> : <VibrateOff className="w-4 h-4 text-slate-400" />}
-                    <span className="text-xs font-semibold text-slate-800">Vibration tactile (Mobile)</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={toggleHaptics}
-                    className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
-                      hapticsEnabled ? 'bg-emerald-600 justify-end' : 'bg-slate-300 justify-start'
-                    }`}
-                  >
-                    <div className="bg-white w-4 h-4 rounded-full shadow-xs" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Sauvegarde & Restauration */}
-            <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
-              <div className="flex items-center space-x-2 text-emerald-900 border-b border-slate-100 pb-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
-                  <FileJson className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-xs tracking-tight text-slate-900 font-display">Sauvegarde & Restauration de Secours</h3>
-                  <p className="text-[10px] text-slate-500">Exportez ou restaurez vos données complètes en fichier JSON</p>
-                </div>
-              </div>
-
-              {backupFeedback && (
-                <div className={`p-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 ${
-                  backupFeedback.success
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                    : 'bg-red-50 text-red-800 border border-red-200'
-                }`}>
-                  {backupFeedback.success ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />}
-                  <span>{backupFeedback.message}</span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  disabled={isExporting}
-                  onClick={handleExportBackup}
-                  className="py-2.5 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-98 cursor-pointer disabled:opacity-50"
-                >
-                  <Download className="w-4 h-4 text-emerald-700 shrink-0" />
-                  <span>{isExporting ? 'Export...' : 'Exporter (.json)'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={isImporting}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="py-2.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5 transition-all active:scale-98 cursor-pointer disabled:opacity-50"
-                >
-                  <Upload className="w-4 h-4 text-slate-700 shrink-0" />
-                  <span>{isImporting ? 'Lecture...' : 'Restaurer (.json)'}</span>
-                </button>
-              </div>
-
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept=".json"
-                onChange={handleImportBackup}
-                className="hidden"
-              />
-            </div>
-
-            {/* Assistance WhatsApp */}
-            <div className="bg-gradient-to-br from-emerald-800 to-teal-900 p-4 sm:p-5 rounded-3xl text-white shadow-xs space-y-3">
-              <div className="flex items-center space-x-2.5 border-b border-emerald-700/60 pb-2">
-                <div className="w-7 h-7 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
-                  <Headphones className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-xs font-display">Besoin d'aide ou d'une assistance ?</h3>
-                  <p className="text-[10px] text-emerald-200">Support officiel FasoCarnet disponible 7j/7</p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleContactSupport}
-                className="w-full py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 font-black rounded-xl text-xs shadow-xs active:scale-98 transition-all flex items-center justify-center space-x-2 cursor-pointer font-display"
-              >
-                <MessageCircle className="w-4 h-4 text-emerald-600" />
-                <span>Contacter le Support WhatsApp</span>
-              </button>
-            </div>
           </div>
-        </div>
+        </form>
       )}
 
       {/* ======================================================== */}
@@ -2266,104 +2352,161 @@ export const SettingsView: React.FC = () => {
       )}
 
       {/* ======================================================== */}
-      {/* RUBRIQUE 3 : ABONNEMENT & LICENCE (2 000 FCFA / MOIS)    */}
+      {/* RUBRIQUE 3 : ABONNEMENT & LICENCE (SASPAY MOBILE MONEY)  */}
       {/* ======================================================== */}
       {activeSubTab === 'subscription' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-start animate-in fade-in duration-150">
-          {/* Carte Statut Actuel */}
-          <div className="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-950 text-white p-6 rounded-3xl shadow-md border border-emerald-700/50 space-y-4 relative overflow-hidden">
-            <div className="absolute top-0 right-0 -mt-2 -mr-2 w-32 h-32 bg-amber-400/10 rounded-full blur-xl pointer-events-none" />
+        <div className="space-y-6 w-full animate-in fade-in duration-150">
+          {/* BANNIÈRE DE STATUT DE LICENCE DU COMMERCE */}
+          <div className="bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white p-6 sm:p-7 rounded-3xl border border-emerald-500/30 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Crown className="w-5 h-5 text-amber-400" />
-                <span className="text-xs font-bold text-emerald-200 tracking-wider uppercase font-display">
-                  Statut de votre compte
-                </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+              <div className="flex items-center space-x-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-emerald-400 p-0.5 shadow-md shrink-0">
+                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+                    <Crown className="w-6 h-6 text-amber-400" />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-base sm:text-lg font-black font-display text-white">
+                      Statut de votre Licence FasoCarnet
+                    </h3>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      subInfo.status === 'active' 
+                        ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40' 
+                        : subInfo.status === 'trial'
+                        ? 'bg-amber-500/30 text-amber-300 border border-amber-400/40'
+                        : 'bg-red-500/30 text-red-300 border border-red-400/40'
+                    }`}>
+                      {subInfo.statusLabel}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 font-medium">
+                    Formule active : <strong className="text-white">{subInfo.planName}</strong>
+                  </p>
+                </div>
               </div>
-              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                subInfo.status === 'active' 
-                  ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40' 
-                  : subInfo.status === 'trial'
-                  ? 'bg-amber-500/30 text-amber-300 border border-amber-400/40'
-                  : 'bg-red-500/30 text-red-300 border border-red-400/40'
-              }`}>
-                {subInfo.statusLabel}
-              </span>
+
+              <button
+                type="button"
+                onClick={handleContactSupport}
+                className="self-start sm:self-auto px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 border border-white/10 text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer"
+              >
+                <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Support Commercial</span>
+              </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-emerald-700/60">
-              <div>
-                <span className="text-xs text-emerald-300/80 block font-medium">Temps restant</span>
-                <span className="text-3xl font-black text-white font-display">
-                  {subInfo.daysRemaining} <span className="text-sm font-bold text-emerald-300">jours</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-5">
+              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-display">
+                  Temps restant
+                </span>
+                <span className="text-2xl sm:text-3xl font-black text-white font-display mt-0.5 block">
+                  {subInfo.daysRemaining} <span className="text-sm font-semibold text-emerald-400">jours</span>
                 </span>
               </div>
-              <div className="text-right">
-                <span className="text-xs text-emerald-300/80 block font-medium">Valable jusqu'au</span>
-                <span className="text-sm font-black text-amber-300 font-display">
+
+              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-display">
+                  Date d'échéance
+                </span>
+                <span className="text-base sm:text-lg font-extrabold text-amber-300 font-display mt-1 block truncate">
                   {subInfo.formattedExpiresAt}
                 </span>
               </div>
-            </div>
 
-            <div className="text-xs bg-emerald-950/70 p-3 rounded-2xl border border-emerald-700/40 text-emerald-200 flex items-center space-x-2.5">
-              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Formule active : <strong>{subInfo.planName}</strong></span>
+              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col justify-between">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-display">
+                  Activation Mobile Money
+                </span>
+                <div className="flex items-center space-x-1.5 text-xs text-emerald-300 font-bold mt-1">
+                  <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Validation instantanée</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Formules d'Abonnement */}
-          <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center space-x-2 text-emerald-900">
-                <CreditCard className="w-5 h-5 text-emerald-600" />
-                <h3 className="font-black text-sm font-display">Prolonger ma Licence</h3>
+          {/* GRILLE DES FORMULES D'ABONNEMENT (STANDARD STRIPE / SAAS) */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-base sm:text-lg font-black text-slate-900 font-display">
+                  Prolonger ou Renouveler votre Licence
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Règlement sécurisé en 1 clic par <strong>Orange Money</strong>, <strong>Moov Money</strong> ou <strong>Wave</strong> via SasPay.
+                </p>
               </div>
-              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2.5 py-0.5 rounded-full flex items-center space-x-1">
-                <Zap className="w-3 h-3 text-emerald-700" />
-                <span>Activation instantanée</span>
+              <span className="self-start sm:self-auto text-[11px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-3 py-1 rounded-full">
+                100% Mobile Money • Sans carte bancaire
               </span>
             </div>
-            
-            <p className="text-xs text-slate-500 font-medium leading-relaxed">
-              Prolongez votre accès en 1 clic par <strong>Orange Money</strong>, <strong>Moov Money</strong> ou <strong>Wave</strong>.
-            </p>
 
-            <div className="space-y-2.5 pt-1">
-              {SUBSCRIPTION_PLANS.map((plan) => (
-                <div
-                  key={plan.id}
-                  onClick={() => {
-                    setPlanForOnlinePayment(plan);
-                    setIsOnlinePaymentModalOpen(true);
-                  }}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                    plan.popular
-                      ? 'border-emerald-500 bg-emerald-50/40 hover:bg-emerald-50/80 shadow-xs ring-1 ring-emerald-400/40'
-                      : 'border-slate-200 bg-white hover:border-emerald-300 hover:bg-slate-50/80'
-                  }`}
-                >
-                  <div className="space-y-0.5">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-extrabold text-slate-900 text-xs sm:text-sm font-display">{plan.name}</span>
-                      {plan.popular && (
-                        <span className="bg-emerald-600 text-white text-[9px] font-black px-2 py-0.2 rounded-full uppercase tracking-wider">
-                          Populaire
-                        </span>
-                      )}
-                    </div>
-                    {plan.discountText && (
-                      <span className="text-[10px] font-bold text-emerald-700 block">
-                        🎁 {plan.discountText}
-                      </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {SUBSCRIPTION_PLANS.map((plan) => {
+                const isPopular = plan.popular;
+                return (
+                  <div
+                    key={plan.id}
+                    onClick={() => {
+                      setPlanForOnlinePayment(plan);
+                      setIsOnlinePaymentModalOpen(true);
+                    }}
+                    className={`bg-white rounded-3xl border transition-all cursor-pointer p-5 flex flex-col justify-between relative space-y-4 group hover:shadow-lg ${
+                      isPopular
+                        ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm'
+                        : 'border-slate-200/90 hover:border-emerald-300 shadow-2xs'
+                    }`}
+                  >
+                    {isPopular && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[9px] font-black uppercase tracking-wider rounded-full shadow-xs">
+                        Le Plus Populaire
+                      </div>
                     )}
-                  </div>
 
-                  <div className="text-right flex items-center space-x-3">
-                    <span className="text-sm sm:text-base font-black text-slate-900 font-display">
-                      {formatCurrency(plan.price)}
-                    </span>
+                    <div className="space-y-3 pt-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-xs sm:text-sm text-slate-900 font-display">
+                          {plan.name}
+                        </span>
+                        <div className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                          <Zap className="w-3.5 h-3.5 text-emerald-600" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-baseline space-x-1">
+                          <span className="text-2xl font-black text-slate-900 font-display">
+                            {formatCurrency(plan.price)}
+                          </span>
+                        </div>
+                        {plan.discountText && (
+                          <span className="inline-block mt-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
+                            🎁 {plan.discountText}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Avantages inclus */}
+                      <div className="space-y-1.5 pt-2 border-t border-slate-100 text-[11px] text-slate-600">
+                        <div className="flex items-center space-x-2">
+                          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+                          <span>Ventes, reçus & tickets illimités</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+                          <span>Sauvegarde Cloud en direct</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+                          <span>Relances WhatsApp automatiques</span>
+                        </div>
+                      </div>
+                    </div>
+
                     <button
                       type="button"
                       onClick={(e) => {
@@ -2371,79 +2514,248 @@ export const SettingsView: React.FC = () => {
                         setPlanForOnlinePayment(plan);
                         setIsOnlinePaymentModalOpen(true);
                       }}
-                      className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black rounded-xl shadow-xs flex items-center space-x-1 cursor-pointer active:scale-95 transition-all font-display"
+                      className={`w-full py-2.5 rounded-xl font-black text-xs flex items-center justify-center space-x-1.5 transition-all active:scale-95 cursor-pointer font-display shadow-xs ${
+                        isPopular
+                          ? 'bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white shadow-emerald-700/20'
+                          : 'bg-slate-900 hover:bg-slate-800 text-white'
+                      }`}
                     >
-                      <Zap className="w-3 h-3 text-amber-300" />
-                      <span>Payer ➔</span>
+                      <Zap className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Activer par SasPay ➔</span>
                     </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+          </div>
+
+          {/* RÉASSURANCE & CONTACT */}
+          <div className="p-4 sm:p-5 bg-slate-50 border border-slate-200/90 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center space-x-3 text-slate-600">
+              <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 text-emerald-700 flex items-center justify-center shrink-0 shadow-2xs">
+                <CreditCard className="w-4 h-4 text-emerald-600" />
+              </div>
+              <p className="font-medium text-[11px]">
+                Besoin d'une facture proforma ou d'un règlement manuel par mandat ?
+              </p>
             </div>
 
-            <div className="text-center pt-2">
-              <button
-                type="button"
-                onClick={handleContactSupport}
-                className="inline-flex items-center space-x-1.5 text-xs font-bold text-slate-500 hover:text-emerald-700 transition-colors cursor-pointer"
-              >
-                <MessageCircle className="w-4 h-4 text-emerald-600" />
-                <span>Besoin d'aide pour votre abonnement ? Contactez le support WhatsApp</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleContactSupport}
+              className="w-full sm:w-auto px-4 py-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 font-extrabold rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer font-display shrink-0"
+            >
+              <MessageCircle className="w-4 h-4 text-emerald-600" />
+              <span>Contacter le Support WhatsApp</span>
+            </button>
           </div>
         </div>
       )}
 
       {/* ======================================================== */}
-      {/* RUBRIQUE 4 : PAIEMENTS MOBILE MONEY                      */}
+      {/* RUBRIQUE 4 : PAIEMENTS MOBILE MONEY (FINTECH STANDARD)   */}
       {/* ======================================================== */}
       {activeSubTab === 'payments' && (
-        <form onSubmit={handleSaveProfile} className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-start animate-in fade-in duration-150">
-          <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
-            <div className="flex items-center space-x-2 text-emerald-900 border-b border-slate-100 pb-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-600 shrink-0">
-                <Smartphone className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="font-extrabold text-sm tracking-tight font-display text-slate-900">Numéros de Réception Marchand</h3>
-                <p className="text-[10px] text-slate-500">Pour recevoir les règlements de vos clients</p>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Ces numéros seront automatiquement insérés dans vos reçus et vos relances WhatsApp de dettes.
-            </p>
-
-            {phoneError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center space-x-2 text-red-700 text-xs font-semibold animate-in fade-in">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
-                <span>{phoneError}</span>
-              </div>
-            )}
-
-            {/* État de verrouillage sécurisé */}
-            {hasConfiguredPaymentNumbers && (
-              <div className={`p-3 rounded-2xl border flex items-center justify-between transition-all ${
-                isPaymentInputsLocked 
-                  ? 'bg-slate-50 border-slate-200' 
-                  : 'bg-emerald-50 border-emerald-200 text-emerald-900'
-              }`}>
-                <div className="flex items-center space-x-2.5">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                    isPaymentInputsLocked ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 text-white shadow-xs'
-                  }`}>
-                    {isPaymentInputsLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+        <form onSubmit={handleSaveProfile} className="space-y-6 w-full animate-in fade-in duration-150">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start">
+            {/* COLONNE GAUCHE (7 cols) : Configuration des numéros marchands */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Carte Statut de Sécurité & Verrouillage PIN */}
+              <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
+                <div className="flex items-center space-x-2.5 text-slate-900 border-b border-slate-100 pb-3">
+                  <div className="w-9 h-9 rounded-2xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shrink-0">
+                    <Smartphone className="w-5 h-5 text-emerald-700" />
                   </div>
                   <div>
-                    <p className="text-xs font-extrabold text-slate-800 font-display">
-                      {isPaymentInputsLocked ? 'Numéros enregistrés et sécurisés' : 'Numéros déverrouillés pour modification'}
-                    </p>
+                    <h3 className="font-black text-sm tracking-tight font-display text-slate-900">
+                      Numéros de Réception Marchand
+                    </h3>
                     <p className="text-[10px] text-slate-500 font-medium">
-                      {isPaymentInputsLocked 
-                        ? 'Affichage en gris verrouillé. Code PIN requis pour modifier.' 
-                        : 'Vous pouvez modifier les numéros puis cliquer sur Enregistrer.'}
+                      Numéros Mobile Money imprimés sur vos reçus et envoyés par WhatsApp
                     </p>
+                  </div>
+                </div>
+
+                {phoneError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center space-x-2 text-red-700 text-xs font-semibold animate-in fade-in">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
+                    <span>{phoneError}</span>
+                  </div>
+                )}
+
+                {/* État de verrouillage sécurisé */}
+                {hasConfiguredPaymentNumbers && (
+                  <div className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${
+                    isPaymentInputsLocked 
+                      ? 'bg-slate-50 border-slate-200' 
+                      : 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
+                  }`}>
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        isPaymentInputsLocked ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 text-white shadow-xs'
+                      }`}>
+                        {isPaymentInputsLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <p className="text-xs font-extrabold text-slate-900 font-display">
+                          {isPaymentInputsLocked ? 'Numéros protégés & verrouillés' : 'Modification autorisée'}
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-medium">
+                          {isPaymentInputsLocked 
+                            ? 'Affichage sécurisé. Code PIN requis pour toute modification.' 
+                            : 'Vous pouvez modifier les numéros puis cliquer sur Enregistrer.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isPaymentInputsLocked ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUnlockPaymentPin('');
+                          setUnlockPaymentPinError('');
+                          setShowUnlockPaymentModal(true);
+                        }}
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black rounded-xl text-xs flex items-center space-x-1.5 shadow-xs cursor-pointer font-display transition-all shrink-0"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Modifier</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleCancelPaymentUnlock}
+                        className="px-3 py-1.5 text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0"
+                      >
+                        Reverrouiller
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Saisie des Opérateurs */}
+                <div className="space-y-4 pt-1">
+                  {/* Numéro Orange Money */}
+                  <div className="p-3.5 rounded-2xl bg-orange-50/30 border border-orange-200/70 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#ff6600]" />
+                        <label className="text-[11px] font-black text-[#ff6600] uppercase tracking-wider font-display">
+                          Orange Money (Burkina Faso)
+                        </label>
+                      </div>
+                      {isPaymentInputsLocked && omNumber && (
+                        <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                          <Lock className="w-3 h-3" />
+                          <span>Verrouillé</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative flex items-center">
+                      <input
+                        type="tel"
+                        value={omNumber}
+                        readOnly={isPaymentInputsLocked}
+                        disabled={isPaymentInputsLocked}
+                        onClick={isPaymentInputsLocked ? () => {
+                          setUnlockPaymentPin('');
+                          setUnlockPaymentPinError('');
+                          setShowUnlockPaymentModal(true);
+                        } : undefined}
+                        onChange={(e) => {
+                          setPhoneError(null);
+                          setOmNumber(cleanPhoneNumber(e.target.value));
+                        }}
+                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold outline-none transition-all ${
+                          isPaymentInputsLocked
+                            ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed select-none font-mono placeholder:text-slate-400'
+                            : 'bg-white border border-orange-300 text-slate-900 focus:ring-2 focus:ring-[#ff6600]/30 placeholder:text-slate-400 shadow-2xs'
+                        }`}
+                        placeholder="Ex: 70 12 34 56"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Numéro Moov Money */}
+                  <div className="p-3.5 rounded-2xl bg-blue-50/30 border border-blue-200/70 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#005baa]" />
+                        <label className="text-[11px] font-black text-[#005baa] uppercase tracking-wider font-display">
+                          Moov Money (Burkina Faso)
+                        </label>
+                      </div>
+                      {isPaymentInputsLocked && moovNumber && (
+                        <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                          <Lock className="w-3 h-3" />
+                          <span>Verrouillé</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative flex items-center">
+                      <input
+                        type="tel"
+                        value={moovNumber}
+                        readOnly={isPaymentInputsLocked}
+                        disabled={isPaymentInputsLocked}
+                        onClick={isPaymentInputsLocked ? () => {
+                          setUnlockPaymentPin('');
+                          setUnlockPaymentPinError('');
+                          setShowUnlockPaymentModal(true);
+                        } : undefined}
+                        onChange={(e) => {
+                          setPhoneError(null);
+                          setMoovNumber(cleanPhoneNumber(e.target.value));
+                        }}
+                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold outline-none transition-all ${
+                          isPaymentInputsLocked
+                            ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed select-none font-mono placeholder:text-slate-400'
+                            : 'bg-white border border-blue-300 text-slate-900 focus:ring-2 focus:ring-[#005baa]/30 placeholder:text-slate-400 shadow-2xs'
+                        }`}
+                        placeholder="Ex: 60 12 34 56"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Numéro Wave */}
+                  <div className="p-3.5 rounded-2xl bg-sky-50/30 border border-sky-200/70 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#1dc4fe]" />
+                        <label className="text-[11px] font-black text-[#0284c7] uppercase tracking-wider font-display">
+                          Wave (Burkina Faso)
+                        </label>
+                      </div>
+                      {isPaymentInputsLocked && waveNumber && (
+                        <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                          <Lock className="w-3 h-3" />
+                          <span>Verrouillé</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative flex items-center">
+                      <input
+                        type="tel"
+                        value={waveNumber}
+                        readOnly={isPaymentInputsLocked}
+                        disabled={isPaymentInputsLocked}
+                        onClick={isPaymentInputsLocked ? () => {
+                          setUnlockPaymentPin('');
+                          setUnlockPaymentPinError('');
+                          setShowUnlockPaymentModal(true);
+                        } : undefined}
+                        onChange={(e) => {
+                          setPhoneError(null);
+                          setWaveNumber(cleanPhoneNumber(e.target.value));
+                        }}
+                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold outline-none transition-all ${
+                          isPaymentInputsLocked
+                            ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed select-none font-mono placeholder:text-slate-400'
+                            : 'bg-white border border-sky-300 text-slate-900 focus:ring-2 focus:ring-[#1dc4fe]/30 placeholder:text-slate-400 shadow-2xs'
+                        }`}
+                        placeholder="Ex: 70 12 34 56"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -2455,241 +2767,82 @@ export const SettingsView: React.FC = () => {
                       setUnlockPaymentPinError('');
                       setShowUnlockPaymentModal(true);
                     }}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black rounded-xl text-xs flex items-center space-x-1.5 shadow-xs cursor-pointer font-display transition-all"
+                    className="w-full py-3 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs sm:text-sm cursor-pointer font-display border border-slate-200"
                   >
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>Modifier</span>
+                    <Lock className="w-4 h-4 text-emerald-600" />
+                    <span>Modifier les numéros (Code PIN requis)</span>
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={handleCancelPaymentUnlock}
-                    className="px-2.5 py-1 text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
-                  >
-                    Reverrouiller
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Numéro Orange Money */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-[10px] font-bold text-[#ff6600] uppercase tracking-wider font-display">
-                  Numéro Orange Money (Burkina Faso)
-                </label>
-                {isPaymentInputsLocked && omNumber && (
-                  <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-md">
-                    <Lock className="w-3 h-3" />
-                    <span>Verrouillé</span>
-                  </span>
-                )}
-              </div>
-              <div className="relative flex items-center">
-                <input
-                  type="tel"
-                  value={omNumber}
-                  readOnly={isPaymentInputsLocked}
-                  disabled={isPaymentInputsLocked}
-                  onClick={isPaymentInputsLocked ? () => {
-                    setUnlockPaymentPin('');
-                    setUnlockPaymentPinError('');
-                    setShowUnlockPaymentModal(true);
-                  } : undefined}
-                  onChange={(e) => {
-                    setPhoneError(null);
-                    setOmNumber(cleanPhoneNumber(e.target.value));
-                  }}
-                  className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none transition-all ${
-                    isPaymentInputsLocked
-                      ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed select-none font-mono placeholder:text-slate-400'
-                      : 'bg-orange-50/40 border border-orange-200 text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#ff6600]/30 placeholder:text-slate-400'
-                  }`}
-                  placeholder="Ex: 70 12 34 56"
-                />
-                {isPaymentInputsLocked && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUnlockPaymentPin('');
-                      setUnlockPaymentPinError('');
-                      setShowUnlockPaymentModal(true);
-                    }}
-                    className="absolute right-2 px-2 py-1 text-[10px] font-bold text-slate-500 hover:text-emerald-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors cursor-pointer flex items-center space-x-1"
-                    title="Cliquer pour déverrouiller avec le code PIN"
-                  >
-                    <Lock className="w-3 h-3 text-slate-400" />
-                    <span>Modifier</span>
-                  </button>
+                  <div className="space-y-2 pt-2">
+                    <button
+                      type="submit"
+                      className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs sm:text-sm cursor-pointer font-display"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Enregistrer les Numéros de Paiement</span>
+                    </button>
+                    {hasConfiguredPaymentNumbers && (
+                      <button
+                        type="button"
+                        onClick={handleCancelPaymentUnlock}
+                        className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+                      >
+                        Annuler et Reverrouiller
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Numéro Moov Money */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-[10px] font-bold text-[#005baa] uppercase tracking-wider font-display">
-                  Numéro Moov Money (Burkina Faso)
-                </label>
-                {isPaymentInputsLocked && moovNumber && (
-                  <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-md">
-                    <Lock className="w-3 h-3" />
-                    <span>Verrouillé</span>
-                  </span>
-                )}
-              </div>
-              <div className="relative flex items-center">
-                <input
-                  type="tel"
-                  value={moovNumber}
-                  readOnly={isPaymentInputsLocked}
-                  disabled={isPaymentInputsLocked}
-                  onClick={isPaymentInputsLocked ? () => {
-                    setUnlockPaymentPin('');
-                    setUnlockPaymentPinError('');
-                    setShowUnlockPaymentModal(true);
-                  } : undefined}
-                  onChange={(e) => {
-                    setPhoneError(null);
-                    setMoovNumber(cleanPhoneNumber(e.target.value));
-                  }}
-                  className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none transition-all ${
-                    isPaymentInputsLocked
-                      ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed select-none font-mono placeholder:text-slate-400'
-                      : 'bg-blue-50/40 border border-blue-200 text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#005baa]/30 placeholder:text-slate-400'
-                  }`}
-                  placeholder="Ex: 60 12 34 56"
-                />
-                {isPaymentInputsLocked && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUnlockPaymentPin('');
-                      setUnlockPaymentPinError('');
-                      setShowUnlockPaymentModal(true);
-                    }}
-                    className="absolute right-2 px-2 py-1 text-[10px] font-bold text-slate-500 hover:text-emerald-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors cursor-pointer flex items-center space-x-1"
-                    title="Cliquer pour déverrouiller avec le code PIN"
-                  >
-                    <Lock className="w-3 h-3 text-slate-400" />
-                    <span>Modifier</span>
-                  </button>
-                )}
-              </div>
-            </div>
+            {/* COLONNE DROITE (5 cols) : Aperçu Reçu & Relance WhatsApp */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* Carte Aperçu Reçu Thermique */}
+              <div className="bg-slate-50 p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
+                <div className="flex items-center space-x-2.5 text-slate-900 border-b border-slate-200/80 pb-3">
+                  <div className="w-9 h-9 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 shrink-0 shadow-2xs">
+                    <Printer className="w-5 h-5 text-slate-700" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-xs text-slate-900 uppercase tracking-wider font-display">
+                      Aperçu sur vos Reçus Clients
+                    </h4>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      Pied de ticket thermique imprimé pour le client
+                    </p>
+                  </div>
+                </div>
 
-            {/* Numéro Wave */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-[10px] font-bold text-[#1dc4fe] uppercase tracking-wider font-display">
-                  Numéro Wave
-                </label>
-                {isPaymentInputsLocked && waveNumber && (
-                  <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded-md">
-                    <Lock className="w-3 h-3" />
-                    <span>Verrouillé</span>
-                  </span>
-                )}
-              </div>
-              <div className="relative flex items-center">
-                <input
-                  type="tel"
-                  value={waveNumber}
-                  readOnly={isPaymentInputsLocked}
-                  disabled={isPaymentInputsLocked}
-                  onClick={isPaymentInputsLocked ? () => {
-                    setUnlockPaymentPin('');
-                    setUnlockPaymentPinError('');
-                    setShowUnlockPaymentModal(true);
-                  } : undefined}
-                  onChange={(e) => {
-                    setPhoneError(null);
-                    setWaveNumber(cleanPhoneNumber(e.target.value));
-                  }}
-                  className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none transition-all ${
-                    isPaymentInputsLocked
-                      ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed select-none font-mono placeholder:text-slate-400'
-                      : 'bg-sky-50/40 border border-sky-200 text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#1dc4fe]/30 placeholder:text-slate-400'
-                  }`}
-                  placeholder="Ex: 70 12 34 56"
-                />
-                {isPaymentInputsLocked && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUnlockPaymentPin('');
-                      setUnlockPaymentPinError('');
-                      setShowUnlockPaymentModal(true);
-                    }}
-                    className="absolute right-2 px-2 py-1 text-[10px] font-bold text-slate-500 hover:text-emerald-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors cursor-pointer flex items-center space-x-1"
-                    title="Cliquer pour déverrouiller avec le code PIN"
-                  >
-                    <Lock className="w-3 h-3 text-slate-400" />
-                    <span>Modifier</span>
-                  </button>
-                )}
-              </div>
-            </div>
+                <div className="bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm space-y-3 font-mono text-xs">
+                  <div className="border-b border-dashed border-slate-200 pb-2 text-center font-bold text-slate-800 text-[11px]">
+                    --- RÈGLEMENT PAR MOBILE MONEY ---
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-[#ff6600] font-bold">Orange Money :</span>
+                      <span className="font-bold text-slate-900">{omNumber ? formatPhoneNumberDisplay(omNumber) : 'Non configuré'}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-[#005baa] font-bold">Moov Money :</span>
+                      <span className="font-bold text-slate-900">{moovNumber ? formatPhoneNumberDisplay(moovNumber) : 'Non configuré'}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-[#0284c7] font-bold">Wave :</span>
+                      <span className="font-bold text-slate-900">{waveNumber ? formatPhoneNumberDisplay(waveNumber) : 'Non configuré'}</span>
+                    </div>
+                  </div>
+                  <div className="border-t border-dashed border-slate-200 pt-2 text-center text-[10px] text-slate-400">
+                    Merci pour votre confiance !
+                  </div>
+                </div>
 
-            {isPaymentInputsLocked ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setUnlockPaymentPin('');
-                  setUnlockPaymentPinError('');
-                  setShowUnlockPaymentModal(true);
-                }}
-                className="w-full py-3 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs sm:text-sm cursor-pointer font-display border border-slate-200"
-              >
-                <Lock className="w-4 h-4 text-emerald-600" />
-                <span>Modifier les numéros (Code PIN requis)</span>
-              </button>
-            ) : (
-              <div className="space-y-2">
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs sm:text-sm cursor-pointer font-display"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>Enregistrer les Numéros de Paiement</span>
-                </button>
-                {hasConfiguredPaymentNumbers && (
-                  <button
-                    type="button"
-                    onClick={handleCancelPaymentUnlock}
-                    className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
-                  >
-                    Annuler et Reverrouiller
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Aperçu Reçu */}
-          <div className="bg-slate-50 p-5 sm:p-6 rounded-3xl border border-slate-200/80 space-y-3">
-            <h4 className="font-black text-xs text-slate-900 uppercase tracking-wider font-display">
-              Aperçu sur vos Reçus Clients
-            </h4>
-            <p className="text-xs text-slate-500">
-              Voici comment vos moyens de paiement apparaîtront en bas de chaque ticket et facture :
-            </p>
-
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2 font-mono text-xs">
-              <div className="border-b border-slate-100 pb-1.5 text-center font-bold text-slate-800">
-                MOYENS DE PAIEMENT ACCEPTÉS
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#ff6600] font-bold">Orange Money :</span>
-                <span>{omNumber ? formatPhoneNumberDisplay(omNumber) : 'Non configuré'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#005baa] font-bold">Moov Money :</span>
-                <span>{moovNumber ? formatPhoneNumberDisplay(moovNumber) : 'Non configuré'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#1dc4fe] font-bold">Wave :</span>
-                <span>{waveNumber ? formatPhoneNumberDisplay(waveNumber) : 'Non configuré'}</span>
+                {/* Relance WhatsApp Notice */}
+                <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl text-[11px] text-emerald-900 flex items-start space-x-2.5">
+                  <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <p className="leading-relaxed">
+                    Lorsqu'un rappel WhatsApp de dette est envoyé à un client, ces coordonnées de paiement sont automatiquement intégrées pour faciliter le virement direct.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
