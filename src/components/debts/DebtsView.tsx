@@ -20,7 +20,8 @@ import {
   Phone, 
   ArrowDownRight, 
   Clock, 
-  UserCheck
+  UserCheck,
+  X
 } from 'lucide-react';
 
 export const DebtsView: React.FC = () => {
@@ -120,104 +121,128 @@ export const DebtsView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto p-3.5 sm:p-6 lg:p-8 pb-28 lg:pb-12 space-y-6">
       
-      {/* ======================================================== */}
-      {/* 3 CARTES KPI SYNTHÉTIQUES EN EN-TÊTE                     */}
-      {/* ======================================================== */}
+      {/* EN-TÊTE DE LA VUE DETTES & ACTION PRINCIPALE */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-9 h-9 rounded-2xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-700 font-bold shrink-0">
+              <BookOpen className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight font-display">
+              Carnet de Dettes & Clients
+            </h2>
+          </div>
+          <p className="text-xs text-slate-500 font-medium">
+            Suivez les créances en cours, envoyez des relances WhatsApp et enregistrez les règlements d'acomptes.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsNewCustomerModalOpen(true)}
+          className="py-3 px-5 bg-gradient-to-r from-amber-600 via-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-black text-xs sm:text-sm rounded-2xl shadow-md shadow-amber-600/20 active:scale-95 transition-all flex items-center justify-center space-x-2 cursor-pointer font-display shrink-0"
+        >
+          <UserPlus className="w-4 h-4 stroke-[2.5]" />
+          <span>+ Nouveau Client / Dette</span>
+        </button>
+      </div>
+
+      {/* 3 CARTES KPI SYNTHÉTIQUES EN EN-TÊTE */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* KPI 1 : Total Général des Créances */}
-        <div className="bg-gradient-to-br from-amber-600 via-amber-700 to-amber-900 text-white p-5 rounded-3xl shadow-lg border border-amber-500/30 flex flex-col justify-between">
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-3 hover:border-amber-300 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider text-amber-200 font-display">
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200/60 flex items-center justify-center font-bold">
+              <BookOpen className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <span className="bg-amber-50 text-amber-800 border border-amber-200/60 text-[10px] font-extrabold px-2.5 py-1 rounded-full font-display">
+              Créances Actives
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block font-display">
               Total des Dettes Clients
             </span>
-            <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center text-amber-100">
-              <BookOpen className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-2xl sm:text-3xl font-black text-white tracking-tight font-display">
+            <div className="text-2xl font-black text-amber-600 font-display mt-0.5">
               {formatCurrency(totalOutstanding)}
             </div>
-            <p className="text-[11px] text-amber-100/70 font-medium mt-0.5">
+            <p className="text-[10px] text-slate-400 font-medium mt-1">
               Argent à recouvrer auprès des clients
             </p>
           </div>
         </div>
 
         {/* KPI 2 : Débiteurs Actifs */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-3 hover:border-orange-300 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 font-display">
+            <div className="w-10 h-10 rounded-2xl bg-orange-50 text-orange-700 border border-orange-200/60 flex items-center justify-center font-bold">
+              <Users className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <span className="bg-orange-50 text-orange-800 border border-orange-200/60 text-[10px] font-extrabold px-2.5 py-1 rounded-full font-display">
+              {debtorCustomers.length} en attente
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block font-display">
               Clients Débiteurs
             </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-              <Users className="w-4 h-4" />
+            <div className="text-2xl font-black text-slate-900 font-display mt-0.5">
+              {debtorCustomers.length} <span className="text-sm font-semibold text-slate-500">client{debtorCustomers.length > 1 ? 's' : ''}</span>
             </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight font-display">
-              {debtorCustomers.length} <span className="text-sm font-bold text-slate-400">client(s)</span>
-            </div>
-            <p className="text-[11px] text-amber-700 font-medium mt-0.5">
-              {debtorCustomers.length > 0 ? 'Relances programmées & notifications' : 'Aucune dette en retard'}
+            <p className="text-[10px] text-slate-400 font-medium mt-1">
+              {debtorCustomers.length > 0 ? 'Relances WhatsApp programmables' : 'Aucune dette en retard'}
             </p>
           </div>
         </div>
 
         {/* KPI 3 : Dettes Soldées */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-3 hover:border-emerald-300 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 font-display">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200/60 flex items-center justify-center font-bold">
+              <UserCheck className="w-5 h-5 stroke-[2.2]" />
+            </div>
+            <span className="bg-emerald-50 text-emerald-800 border border-emerald-200/60 text-[10px] font-extrabold px-2.5 py-1 rounded-full font-display">
+              Règlements Complets
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block font-display">
               Comptes Soldés
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-              <UserCheck className="w-4 h-4" />
+            <div className="text-2xl font-black text-emerald-600 font-display mt-0.5">
+              {settledCustomers.length} <span className="text-sm font-semibold text-slate-500">client{settledCustomers.length > 1 ? 's' : ''}</span>
             </div>
-          </div>
-          <div className="mt-2">
-            <div className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight font-display">
-              {settledCustomers.length} <span className="text-sm font-bold text-slate-400">client(s)</span>
-            </div>
-            <p className="text-[11px] text-emerald-700 font-medium mt-0.5">
-              Dettes entièrement remboursées
+            <p className="text-[10px] text-slate-400 font-medium mt-1">
+              Dettes intégralement remboursées
             </p>
           </div>
         </div>
       </div>
 
-      {/* ======================================================== */}
-      {/* DISPOSITION RESPONSIVE : 2 COLONNES SUR GRAND ÉCRAN      */}
-      {/* ======================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-        
-        {/* ======================================================== */}
-        {/* COLONNE GAUCHE : RECHERCHE, ONGLETS & LISTE DES CLIENTS  */}
-        {/* ======================================================== */}
+      {/* DISPOSITION RESPONSIVE : 2 COLONNES SUR GRAND ÉCRAN (5 COLS / 7 COLS) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* COLONNE GAUCHE (5 COLONNES) : RECHERCHE, ONGLETS & LISTE DES CLIENTS */}
         <div className="lg:col-span-5 space-y-4">
-          
-          {/* Barre de recherche et Bouton d'ajout */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Rechercher nom ou téléphone..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-3.5 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none shadow-2xs text-slate-800 placeholder-slate-400 transition-all"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsNewCustomerModalOpen(true)}
-              className="px-3.5 py-2.5 bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white font-black text-xs rounded-2xl shadow-sm active:scale-95 transition-all flex items-center space-x-1.5 shrink-0 cursor-pointer font-display"
-              title="Ajouter une Dette"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span className="hidden sm:inline">+ Nouvelle Dette</span>
-              <span className="sm:hidden">+ Dette</span>
-            </button>
+          {/* Barre de recherche */}
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Rechercher par nom de client ou téléphone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-9 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none shadow-2xs text-slate-800 placeholder-slate-400 transition-all"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-full cursor-pointer"
+                title="Effacer la recherche"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           {/* Onglets Dettes En cours vs Dettes Soldées vs Tous */}
@@ -225,9 +250,9 @@ export const DebtsView: React.FC = () => {
             <button
               type="button"
               onClick={() => setFilterTab('active')}
-              className={`flex-1 py-2 rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
+              className={`flex-1 py-2 rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display ${
                 filterTab === 'active'
-                  ? 'bg-amber-600 text-white shadow-xs font-extrabold'
+                  ? 'bg-amber-600 text-white shadow-xs font-black'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -242,9 +267,9 @@ export const DebtsView: React.FC = () => {
             <button
               type="button"
               onClick={() => setFilterTab('settled')}
-              className={`flex-1 py-2 rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer ${
+              className={`flex-1 py-2 rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display ${
                 filterTab === 'settled'
-                  ? 'bg-emerald-600 text-white shadow-xs font-extrabold'
+                  ? 'bg-emerald-600 text-white shadow-xs font-black'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -260,9 +285,9 @@ export const DebtsView: React.FC = () => {
             <button
               type="button"
               onClick={() => setFilterTab('all')}
-              className={`py-2 px-3 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+              className={`py-2 px-3 rounded-xl flex items-center justify-center transition-all cursor-pointer font-display ${
                 filterTab === 'all'
-                  ? 'bg-slate-800 text-white shadow-xs font-extrabold'
+                  ? 'bg-slate-800 text-white shadow-xs font-black'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -306,7 +331,7 @@ export const DebtsView: React.FC = () => {
                     key={customer.id}
                     onClick={() => setSelectedCustomerId(customer.id)}
                     className={`cursor-pointer transition-all ${
-                      isSelected ? 'ring-2 ring-amber-500 rounded-2xl' : ''
+                      isSelected ? 'ring-2 ring-amber-500 rounded-2xl shadow-sm' : ''
                     }`}
                   >
                     <CustomerCard
@@ -321,81 +346,77 @@ export const DebtsView: React.FC = () => {
           </div>
         </div>
 
-        {/* ======================================================== */}
         {/* COLONNE DROITE (DESKTOP) : FICHE CLIENT & GRAND HISTORIQUE */}
-        {/* ======================================================== */}
         <div className="hidden lg:block lg:col-span-7 space-y-4 lg:sticky lg:top-6">
           {selectedCustomer ? (
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md space-y-5 animate-in fade-in">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-5 animate-in fade-in">
               {/* En-tête de la Fiche Client */}
               <div className="flex items-start justify-between border-b border-slate-100 pb-5">
-                <div className="flex items-center space-x-3.5">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-white flex items-center justify-center font-black text-lg shadow-sm font-display">
+                <div className="flex items-center space-x-3.5 min-w-0">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-white flex items-center justify-center font-black text-lg shadow-xs font-display shrink-0">
                     {selectedCustomer.name ? selectedCustomer.name.slice(0, 2).toUpperCase() : 'CL'}
                   </div>
-                  <div>
-                    <h3 className="text-lg font-extrabold text-slate-900 font-display">
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-black text-slate-900 font-display truncate">
                       {selectedCustomer.name}
                     </h3>
                     <div className="flex items-center space-x-2 text-xs text-slate-600 font-semibold mt-0.5">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" />
+                      <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span>{selectedCustomer.phone}</span>
                       {selectedCustomer.notes && (
-                        <span className="text-slate-400 text-[11px]">• {selectedCustomer.notes}</span>
+                        <span className="text-slate-400 text-[11px] truncate">• {selectedCustomer.notes}</span>
                       )}
                     </div>
                     <p className="text-[11px] text-slate-400 mt-1">
-                      Client enregistré le {formatDateTime(selectedCustomer.createdAt)}
+                      Client inscrit le {formatDateTime(selectedCustomer.createdAt)}
                     </p>
                   </div>
                 </div>
 
                 {/* Badge Montant Dette */}
-                <div className="text-right">
-                  <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider block font-display">
+                <div className="text-right shrink-0 ml-3">
+                  <span className="text-[10px] font-bold uppercase text-amber-800 tracking-wider block font-display">
                     Solde Débiteur
                   </span>
                   <div className="text-2xl font-black text-amber-600 font-display">
                     {formatCurrency(selectedCustomer.totalDebt)}
                   </div>
-                  <span className={`inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-full mt-1 ${
+                  <span className={`inline-block text-[10px] font-black px-2.5 py-0.5 rounded-full mt-1 ${
                     selectedCustomer.totalDebt > 0 
-                      ? 'bg-amber-100 text-amber-800' 
-                      : 'bg-emerald-100 text-emerald-800'
+                      ? 'bg-amber-100 text-amber-800 border border-amber-200' 
+                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                   }`}>
-                    {selectedCustomer.totalDebt > 0 ? 'Dette Active' : 'Solde Nul / Réglé'}
+                    {selectedCustomer.totalDebt > 0 ? 'Dette Active' : 'Solde 0 FCFA (Soldé)'}
                   </span>
                 </div>
               </div>
 
               {/* Barre d'Actions Client : Relance WhatsApp & Encaisser Règlement */}
-              <div className="flex items-center gap-3">
-                {selectedCustomer.totalDebt > 0 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleWhatsAppReminder(selectedCustomer)}
-                      className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-md shadow-emerald-700/20 active:scale-98 transition-all cursor-pointer font-display"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      <span>Envoyer Relance WhatsApp</span>
-                    </button>
+              {selectedCustomer.totalDebt > 0 && (
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleWhatsAppReminder(selectedCustomer)}
+                    className="py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-md shadow-emerald-700/20 active:scale-98 transition-all cursor-pointer font-display"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Relancer sur WhatsApp</span>
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setPayingCustomer(selectedCustomer)}
-                      className="flex-1 py-3 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-md shadow-amber-600/20 active:scale-98 transition-all cursor-pointer font-display"
-                    >
-                      <ArrowDownRight className="w-4 h-4" />
-                      <span>Encaisser un Règlement</span>
-                    </button>
-                  </>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => setPayingCustomer(selectedCustomer)}
+                    className="py-3 px-4 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-md shadow-amber-600/20 active:scale-98 transition-all cursor-pointer font-display"
+                  >
+                    <ArrowDownRight className="w-4 h-4" />
+                    <span>Encaisser un Versement</span>
+                  </button>
+                </div>
+              )}
 
               {/* Grand Journal Chronologique : Dettes et Règlements */}
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between">
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                   <div className="flex items-center space-x-2 text-slate-800">
                     <Clock className="w-4 h-4 text-amber-600" />
                     <h4 className="text-xs font-black uppercase tracking-wider font-display">
@@ -411,71 +432,67 @@ export const DebtsView: React.FC = () => {
                   <div className="p-8 text-center text-xs text-slate-400">
                     Chargement du journal chronologique...
                   </div>
+                ) : selectedCustomerHistory.debts.length === 0 && selectedCustomerHistory.payments.length === 0 ? (
+                  <div className="p-8 bg-slate-50 rounded-2xl text-center text-xs text-slate-400 border border-dashed border-slate-200">
+                    Aucun mouvement enregistré pour ce client.
+                  </div>
                 ) : (
-                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                    {selectedCustomerHistory.debts.length === 0 && selectedCustomerHistory.payments.length === 0 ? (
-                      <div className="p-6 bg-slate-50 rounded-2xl text-center text-xs text-slate-400">
-                        Aucun historique disponible pour ce client.
+                  <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                    {/* Liste des dettes contractées */}
+                    {selectedCustomerHistory.debts.map((d) => (
+                      <div key={d.id} className="bg-slate-50/80 p-3 rounded-2xl border border-slate-150 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center space-x-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-black shrink-0">
+                            🔴
+                          </div>
+                          <div>
+                            <p className="font-extrabold text-xs text-slate-900">
+                              Dette contractée : {formatCurrency(d.initialAmount)}
+                            </p>
+                            <p className="text-[10px] text-slate-500 font-medium">
+                              Date : {formatDateTime(d.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg ${
+                          d.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {d.status === 'PAID' ? 'Soldée' : `Reste: ${formatCurrency(d.remainingAmount)}`}
+                        </span>
                       </div>
-                    ) : (
-                      <>
-                        {/* Liste des dettes contractées */}
-                        {selectedCustomerHistory.debts.map((d) => (
-                          <div key={d.id} className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex items-center justify-between">
-                            <div className="flex items-center space-x-2.5">
-                              <div className="w-7 h-7 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center text-xs font-black">
-                                🔴
-                              </div>
-                              <div>
-                                <p className="font-extrabold text-xs text-slate-900">
-                                  Dette contractée : {formatCurrency(d.initialAmount)}
-                                </p>
-                                <p className="text-[10px] text-slate-500 font-medium">
-                                  Date : {formatDateTime(d.createdAt)}
-                                </p>
-                              </div>
-                            </div>
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg ${
-                              d.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                            }`}>
-                              {d.status === 'PAID' ? 'Entièrement Soldée' : `Reste: ${formatCurrency(d.remainingAmount)}`}
-                            </span>
-                          </div>
-                        ))}
+                    ))}
 
-                        {/* Liste des règlements enregistrés */}
-                        {selectedCustomerHistory.payments.map((p) => (
-                          <div key={p.id} className="bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100 flex items-center justify-between">
-                            <div className="flex items-center space-x-2.5">
-                              <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-black">
-                                🟢
-                              </div>
-                              <div>
-                                <p className="font-extrabold text-xs text-emerald-950">
-                                  Versement reçu : +{formatCurrency(p.amount)} ({p.paymentMethod})
-                                </p>
-                                <p className="text-[10px] text-emerald-800/80 font-medium">
-                                  Reçu le {formatDateTime(p.createdAt)}
-                                </p>
-                              </div>
-                            </div>
-                            <span className="text-[10px] font-extrabold text-emerald-700 bg-white px-2 py-0.5 rounded-lg border border-emerald-200">
-                              Encaissé
-                            </span>
+                    {/* Liste des règlements enregistrés */}
+                    {selectedCustomerHistory.payments.map((p) => (
+                      <div key={p.id} className="bg-emerald-50/40 p-3 rounded-2xl border border-emerald-150 flex items-center justify-between hover:bg-emerald-50/70 transition-colors">
+                        <div className="flex items-center space-x-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-black shrink-0">
+                            🟢
                           </div>
-                        ))}
-                      </>
-                    )}
+                          <div>
+                            <p className="font-extrabold text-xs text-emerald-950">
+                              Versement reçu : +{formatCurrency(p.amount)} ({p.paymentMethod})
+                            </p>
+                            <p className="text-[10px] text-emerald-800/80 font-medium">
+                              Reçu le {formatDateTime(p.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-extrabold text-emerald-700 bg-white px-2 py-0.5 rounded-lg border border-emerald-200 shadow-2xs">
+                          Encaissé
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            <div className="bg-white p-12 rounded-3xl border border-slate-200/80 shadow-xs text-center space-y-3">
-              <Users className="w-10 h-10 text-slate-300 mx-auto" />
-              <h3 className="font-extrabold text-sm text-slate-700 font-display">Sélectionnez un client</h3>
-              <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                Cliquez sur un client à gauche pour afficher sa fiche détaillée, son historique complet et ses options de relance.
+            <div className="bg-white p-12 rounded-3xl border border-slate-200/90 shadow-xs text-center space-y-3">
+              <Users className="w-12 h-12 text-slate-300 mx-auto" />
+              <h3 className="font-black text-sm text-slate-800 font-display">Sélectionnez un client</h3>
+              <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                Cliquez sur un client à gauche pour afficher sa fiche détaillée, son historique complet et ses options de relance WhatsApp.
               </p>
             </div>
           )}
