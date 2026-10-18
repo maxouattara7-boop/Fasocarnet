@@ -9,7 +9,7 @@ export const BottomNav: React.FC = () => {
     { id: 'pos', label: 'Vendre', icon: <ShoppingCart className="w-5 h-5" /> },
     { id: 'debts', label: 'Dettes', icon: <BookOpen className="w-5 h-5" /> },
     { id: 'reports', label: 'Bilan', icon: <BarChart3 className="w-5 h-5" /> },
-    { id: 'invoices', label: 'Factures', icon: <FileText className="w-5 h-5" /> },
+    { id: 'invoices', label: 'Facturation', icon: <FileText className="w-5 h-5" /> },
     { id: 'inventory', label: 'Stock', icon: <Package className="w-5 h-5" /> },
     { id: 'settings', label: 'Boutique', icon: <Store className="w-5 h-5" /> },
   ];

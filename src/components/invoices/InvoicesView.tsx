@@ -330,7 +330,7 @@ export const InvoicesView: React.FC = () => {
                 <FileText className="w-5 h-5 stroke-[2.2]" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-black text-slate-900 font-display">Factures & Devis</h2>
+                <h2 className="text-base sm:text-lg font-black text-slate-900 font-display">Facturation</h2>
                 <p className="text-xs text-slate-500 font-medium">
                   {documents.length} document{documents.length > 1 ? 's' : ''} enregistré{documents.length > 1 ? 's' : ''}
                 </p>

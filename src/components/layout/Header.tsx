@@ -13,7 +13,7 @@ export const Header: React.FC = () => {
     { id: 'pos', label: 'Vendre', icon: <ShoppingCart className="w-4 h-4 shrink-0" /> },
     { id: 'debts', label: 'Carnet de Dettes', icon: <BookOpen className="w-4 h-4 shrink-0" /> },
     { id: 'reports', label: 'Bilan & Ventes', icon: <BarChart3 className="w-4 h-4 shrink-0" /> },
-    { id: 'invoices', label: 'Factures & Devis', icon: <FileText className="w-4 h-4 shrink-0" /> },
+    { id: 'invoices', label: 'Facturation', icon: <FileText className="w-4 h-4 shrink-0" /> },
     { id: 'inventory', label: 'Articles & Stock', icon: <Package className="w-4 h-4 shrink-0" /> },
     { id: 'settings', label: 'Ma Boutique', icon: <Store className="w-4 h-4 shrink-0" /> },
   ];
