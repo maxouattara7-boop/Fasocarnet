@@ -2350,77 +2350,44 @@ export const SettingsView: React.FC = () => {
       {/* ======================================================== */}
       {activeSubTab === 'subscription' && (
         <div className="space-y-6 w-full animate-in fade-in duration-150">
-          {/* BANNIÈRE DE STATUT DE LICENCE DU COMMERCE */}
-          <div className="bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white p-6 sm:p-7 rounded-3xl border border-emerald-500/30 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-            
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
-              <div className="flex items-center space-x-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-emerald-400 p-0.5 shadow-md shrink-0">
-                  <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                    <Crown className="w-6 h-6 text-amber-400" />
-                  </div>
+          {/* BANNIÈRE DE STATUT DE LICENCE DU COMMERCE (COMPACTE & ÉPURÉE) */}
+          <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 text-white p-3.5 sm:p-4 rounded-2xl border border-emerald-500/30 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-400/30 flex items-center justify-center shrink-0">
+                <Crown className="w-5 h-5 text-amber-400" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                  <h3 className="text-sm sm:text-base font-black font-display text-white">
+                    {subInfo.planName || 'Licence FasoCarnet'}
+                  </h3>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    subInfo.status === 'active' 
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30' 
+                      : subInfo.status === 'trial'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
+                      : 'bg-red-500/20 text-red-300 border border-red-400/30'
+                  }`}>
+                    {subInfo.statusLabel}
+                  </span>
                 </div>
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <h3 className="text-base sm:text-lg font-black font-display text-white">
-                      Statut de votre Licence FasoCarnet
-                    </h3>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                      subInfo.status === 'active' 
-                        ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40' 
-                        : subInfo.status === 'trial'
-                        ? 'bg-amber-500/30 text-amber-300 border border-amber-400/40'
-                        : 'bg-red-500/30 text-red-300 border border-red-400/40'
-                    }`}>
-                      {subInfo.statusLabel}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300 font-medium">
-                    Formule active : <strong className="text-white">{subInfo.planName}</strong>
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleContactSupport}
-                className="self-start sm:self-auto px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 border border-white/10 text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer"
-              >
-                <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Support Commercial</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-5">
-              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-display">
-                  Temps restant
-                </span>
-                <span className="text-2xl sm:text-3xl font-black text-white font-display mt-0.5 block">
-                  {subInfo.daysRemaining} <span className="text-sm font-semibold text-emerald-400">jours</span>
-                </span>
-              </div>
-
-              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-display">
-                  Date d'échéance
-                </span>
-                <span className="text-base sm:text-lg font-extrabold text-amber-300 font-display mt-1 block truncate">
-                  {subInfo.formattedExpiresAt}
-                </span>
-              </div>
-
-              <div className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col justify-between">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider font-display">
-                  Activation Mobile Money
-                </span>
-                <div className="flex items-center space-x-1.5 text-xs text-emerald-300 font-bold mt-1">
-                  <Zap className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>Validation instantanée</span>
+                <div className="text-xs text-slate-300 font-medium flex items-center space-x-2 mt-0.5">
+                  <span className="text-emerald-400 font-bold">{subInfo.daysRemaining} jours restants</span>
+                  <span>•</span>
+                  <span>Échéance : <strong className="text-amber-200">{subInfo.formattedExpiresAt}</strong></span>
                 </div>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={handleContactSupport}
+              className="self-start sm:self-auto px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 border border-white/10 text-xs font-bold flex items-center space-x-1.5 transition-all cursor-pointer shrink-0"
+              title="Contacter le support d'assistance"
+            >
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Support Commercial</span>
+            </button>
           </div>
 
           {/* GRILLE DES FORMULES D'ABONNEMENT (ÉPURÉE & RESPONSIVE MOBILE/TABLETTE) */}
