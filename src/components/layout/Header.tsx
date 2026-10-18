@@ -37,7 +37,16 @@ export const Header: React.FC = () => {
             <div className="group-hover:scale-105 transition-transform shrink-0">
               <Logo size="sm" showText={false} />
             </div>
-            <div className="min-w-0">
+
+            {/* Sur mobile : uniquement la mention "Bienvenue" calibrée à la taille du logo */}
+            <div className="md:hidden flex items-center">
+              <span className="font-black text-base leading-none text-white tracking-tight font-display group-hover:text-emerald-100 transition-colors">
+                Bienvenue
+              </span>
+            </div>
+
+            {/* Sur desktop : Bienvenue + Nom de la boutique */}
+            <div className="hidden md:block min-w-0">
               <span className="text-xs text-emerald-200/90 font-semibold block leading-tight truncate">
                 Bienvenue
               </span>

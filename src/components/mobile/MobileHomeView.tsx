@@ -152,12 +152,7 @@ export const MobileHomeView: React.FC = () => {
       </div>
 
       {/* 3. GRILLE CENTRALE 2x3 DES 6 FONCTIONNALITÉS */}
-      <div className="space-y-2">
-        <p className="text-xs font-extrabold uppercase tracking-wider text-slate-500 font-display px-0.5">
-          Modules Principaux
-        </p>
-
-        <div className="grid grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-3 gap-2.5">
           {/* LIGNE 1 : Vendre, Dettes, Bilan */}
           <button
             type="button"
@@ -226,7 +221,6 @@ export const MobileHomeView: React.FC = () => {
             <span className="text-xs font-extrabold text-slate-900 font-display">Boutique</span>
           </button>
         </div>
-      </div>
 
       {/* 4. HISTORIQUE DES VENTES RÉCENTES DU JOUR */}
       <div className="bg-white rounded-3xl border border-slate-200/90 p-4 shadow-2xs space-y-3">
