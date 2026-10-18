@@ -398,16 +398,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <span className="text-[10px] text-amber-700 font-bold">Vérifiez le SMS</span>
               </div>
 
-              {/* Réf transaction optionnelle */}
-              <div>
-                <input
-                  type="text"
-                  placeholder="ID ou Réf de transaction SMS (optionnel)..."
-                  value={transactionRef}
-                  onChange={(e) => setTransactionRef(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-orange-500 outline-none"
-                />
-              </div>
+
             </div>
           )}
 
@@ -599,16 +590,18 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
           )}
 
-          {/* Note optionnelle */}
-          <div>
-            <input
-              type="text"
-              placeholder="Note ou détails sur la vente (optionnel)..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-emerald-500 outline-none transition-all"
-            />
-          </div>
+          {/* Note optionnelle (masquée en Mobile Money) */}
+          {mainCategory !== 'MOBILE_MONEY' && (
+            <div>
+              <input
+                type="text"
+                placeholder="Note ou détails sur la vente (optionnel)..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-emerald-500 outline-none transition-all"
+              />
+            </div>
+          )}
         </div>
 
         {/* Pied de page : Boutons d'action */}
