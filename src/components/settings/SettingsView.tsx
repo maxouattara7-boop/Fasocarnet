@@ -2423,8 +2423,8 @@ export const SettingsView: React.FC = () => {
             </div>
           </div>
 
-          {/* GRILLE DES FORMULES D'ABONNEMENT (STANDARD STRIPE / SAAS) */}
-          <div className="space-y-4">
+          {/* GRILLE DES FORMULES D'ABONNEMENT (ÉPURÉE & RESPONSIVE MOBILE/TABLETTE) */}
+          <div className="space-y-3.5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h3 className="text-base sm:text-lg font-black text-slate-900 font-display">
@@ -2434,12 +2434,19 @@ export const SettingsView: React.FC = () => {
                   Règlement sécurisé en 1 clic par <strong>Orange Money</strong>, <strong>Moov Money</strong> ou <strong>Wave</strong> via SasPay.
                 </p>
               </div>
-              <span className="self-start sm:self-auto text-[11px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-3 py-1 rounded-full">
+              <span className="self-start sm:self-auto text-[10px] sm:text-[11px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-full">
                 100% Mobile Money • Sans carte bancaire
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Bandeau d'inclusions commun (évite la répétition sur chaque carte) */}
+            <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl py-2 px-3.5 text-center text-[11px] sm:text-xs text-emerald-950 font-semibold flex items-center justify-center space-x-2">
+              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
+              <span className="truncate">Toutes les formules incluent : Ventes illimitées • Sauvegarde Cloud • Relances WhatsApp</span>
+            </div>
+
+            {/* Grille responsive : 2 colonnes sur mobile, 4 colonnes sur tablette & écran large */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3.5 lg:gap-4">
               {SUBSCRIPTION_PLANS.map((plan) => {
                 const isPopular = plan.popular;
                 return (
@@ -2449,56 +2456,37 @@ export const SettingsView: React.FC = () => {
                       setPlanForOnlinePayment(plan);
                       setIsOnlinePaymentModalOpen(true);
                     }}
-                    className={`bg-white rounded-3xl border transition-all cursor-pointer p-5 flex flex-col justify-between relative space-y-4 group hover:shadow-lg ${
+                    className={`bg-white rounded-2xl sm:rounded-3xl border transition-all cursor-pointer p-3 sm:p-4 lg:p-5 flex flex-col justify-between relative space-y-3 group hover:shadow-md ${
                       isPopular
-                        ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm'
+                        ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-xs'
                         : 'border-slate-200/90 hover:border-emerald-300 shadow-2xs'
                     }`}
                   >
                     {isPopular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[9px] font-black uppercase tracking-wider rounded-full shadow-xs">
+                      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[8px] sm:text-[9px] font-black uppercase tracking-wider rounded-full shadow-xs whitespace-nowrap">
                         Le Plus Populaire
                       </div>
                     )}
 
-                    <div className="space-y-3 pt-1">
+                    <div className="space-y-1.5 pt-0.5">
                       <div className="flex items-center justify-between">
-                        <span className="font-extrabold text-xs sm:text-sm text-slate-900 font-display">
+                        <span className="font-extrabold text-xs sm:text-sm text-slate-900 font-display truncate">
                           {plan.name}
                         </span>
-                        <div className="w-7 h-7 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold shrink-0">
-                          <Zap className="w-3.5 h-3.5 text-emerald-600" />
+                        <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                          <Zap className="w-3 h-3 text-emerald-600" />
                         </div>
                       </div>
 
-                      <div>
-                        <div className="flex items-baseline space-x-1">
-                          <span className="text-2xl font-black text-slate-900 font-display">
-                            {formatCurrency(plan.price)}
-                          </span>
-                        </div>
-                        {plan.discountText && (
-                          <span className="inline-block mt-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
-                            🎁 {plan.discountText}
-                          </span>
-                        )}
+                      <div className="text-base sm:text-xl lg:text-2xl font-black text-slate-900 font-display tracking-tight">
+                        {formatCurrency(plan.price)}
                       </div>
 
-                      {/* Avantages inclus */}
-                      <div className="space-y-1.5 pt-2 border-t border-slate-100 text-[11px] text-slate-600">
-                        <div className="flex items-center space-x-2">
-                          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
-                          <span>Ventes, reçus & tickets illimités</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
-                          <span>Sauvegarde Cloud en direct</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" />
-                          <span>Relances WhatsApp automatiques</span>
-                        </div>
-                      </div>
+                      {plan.discountText && (
+                        <span className="inline-block text-[9.5px] sm:text-[10px] font-extrabold text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md truncate max-w-full">
+                          🎁 {plan.discountText}
+                        </span>
+                      )}
                     </div>
 
                     <button
@@ -2508,14 +2496,16 @@ export const SettingsView: React.FC = () => {
                         setPlanForOnlinePayment(plan);
                         setIsOnlinePaymentModalOpen(true);
                       }}
-                      className={`w-full py-2.5 rounded-xl font-black text-xs flex items-center justify-center space-x-1.5 transition-all active:scale-95 cursor-pointer font-display shadow-xs ${
+                      className={`w-full py-2 sm:py-2.5 rounded-xl font-black text-[11px] sm:text-xs flex items-center justify-center space-x-1 sm:space-x-1.5 transition-all active:scale-95 cursor-pointer font-display shadow-xs ${
                         isPopular
                           ? 'bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white shadow-emerald-700/20'
                           : 'bg-slate-900 hover:bg-slate-800 text-white'
                       }`}
                     >
-                      <Zap className="w-3.5 h-3.5 text-amber-300" />
-                      <span>Activer par SasPay ➔</span>
+                      <Zap className="w-3 h-3 text-amber-300 shrink-0" />
+                      <span>Activer</span>
+                      <span className="hidden sm:inline">SasPay</span>
+                      <span>➔</span>
                     </button>
                   </div>
                 );
