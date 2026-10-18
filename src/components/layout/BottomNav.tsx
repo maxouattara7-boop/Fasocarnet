@@ -6,7 +6,7 @@ export const BottomNav: React.FC = () => {
   const { activeTab, setActiveTab } = useAppStore();
 
   const navItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'pos', label: 'Vente', icon: <ShoppingCart className="w-5 h-5" /> },
+    { id: 'pos', label: 'Vendre', icon: <ShoppingCart className="w-5 h-5" /> },
     { id: 'debts', label: 'Dettes', icon: <BookOpen className="w-5 h-5" /> },
     { id: 'reports', label: 'Bilan', icon: <BarChart3 className="w-5 h-5" /> },
     { id: 'invoices', label: 'Factures', icon: <FileText className="w-5 h-5" /> },

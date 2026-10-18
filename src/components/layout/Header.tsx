@@ -10,7 +10,7 @@ export const Header: React.FC = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const desktopNavItems: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'pos', label: 'Vente', icon: <ShoppingCart className="w-4 h-4 shrink-0" /> },
+    { id: 'pos', label: 'Vendre', icon: <ShoppingCart className="w-4 h-4 shrink-0" /> },
     { id: 'debts', label: 'Carnet de Dettes', icon: <BookOpen className="w-4 h-4 shrink-0" /> },
     { id: 'reports', label: 'Bilan & Ventes', icon: <BarChart3 className="w-4 h-4 shrink-0" /> },
     { id: 'invoices', label: 'Factures & Devis', icon: <FileText className="w-4 h-4 shrink-0" /> },
