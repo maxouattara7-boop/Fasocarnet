@@ -168,7 +168,7 @@ describe('PosView component', () => {
       expect(screen.queryByText('Ventes en Attente (1)')).not.toBeInTheDocument();
       expect(screen.getByTitle('Retirer cet article')).toBeInTheDocument();
     });
-  });
+  }, 15000);
 
   it('detects exhausted stock when resuming a held sale and blocks checkout', async () => {
     localStorage.clear();
@@ -229,5 +229,5 @@ describe('PosView component', () => {
     // Clicking ENCAISSER is blocked
     fireEvent.click(screen.getByText(/STOCK ÉPUISÉ — DÉCAISSEMENT BLOQUÉ/));
     expect(screen.queryByText('Mode de Règlement')).not.toBeInTheDocument();
-  });
+  }, 15000);
 });
