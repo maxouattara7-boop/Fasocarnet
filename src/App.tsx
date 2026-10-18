@@ -7,6 +7,7 @@ import { DebtsView } from './components/debts/DebtsView';
 import { DailyReportView } from './components/reports/DailyReportView';
 import { SettingsView } from './components/settings/SettingsView';
 import { InvoicesView } from './components/invoices/InvoicesView';
+import { InventoryView } from './components/inventory/InventoryView';
 import { PinLockModal } from './components/auth/PinLockModal';
 import { OnboardingView } from './components/onboarding/OnboardingView';
 import { AdminView } from './components/admin/AdminView';
@@ -367,6 +368,7 @@ export const App: React.FC = () => {
             {activeTab === 'debts' && <DebtsView />}
             {activeTab === 'reports' && <DailyReportView />}
             {activeTab === 'invoices' && <InvoicesView />}
+            {activeTab === 'inventory' && <InventoryView />}
             {activeTab === 'settings' && <SettingsView />}
           </ErrorBoundary>
         </main>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppStore, ActiveTab } from '../../store/appStore';
-import { ShieldCheck, Lock, Cloud, CloudOff, RefreshCw, HelpCircle, FileText, Calculator, BookOpen, BarChart3, Settings, LogOut, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Lock, Cloud, CloudOff, RefreshCw, HelpCircle, FileText, Calculator, BookOpen, BarChart3, Settings, LogOut, AlertTriangle, Package, Store } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { HelpGuideModal } from '../common/HelpGuideModal';
 
@@ -14,7 +14,8 @@ export const Header: React.FC = () => {
     { id: 'debts', label: 'Carnet de Dettes', icon: <BookOpen className="w-4 h-4 shrink-0" /> },
     { id: 'reports', label: 'Bilan & Ventes', icon: <BarChart3 className="w-4 h-4 shrink-0" /> },
     { id: 'invoices', label: 'Factures & Devis', icon: <FileText className="w-4 h-4 shrink-0" /> },
-    { id: 'settings', label: 'Ma Boutique', icon: <Settings className="w-4 h-4 shrink-0" /> },
+    { id: 'inventory', label: 'Articles & Stock', icon: <Package className="w-4 h-4 shrink-0" /> },
+    { id: 'settings', label: 'Ma Boutique', icon: <Store className="w-4 h-4 shrink-0" /> },
   ];
 
   const handleConfirmLogout = () => {
@@ -27,20 +28,26 @@ export const Header: React.FC = () => {
       <header className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white px-3.5 sm:px-6 py-2.5 sm:py-3 shadow-md sticky top-0 z-30 border-b border-emerald-700/40 backdrop-blur-md">
         <div className="max-w-[1680px] mx-auto flex items-center justify-between gap-4">
           
-          {/* Logo & Nom de la boutique (redirection vers la caisse au clic, sans quitter l'espace) */}
+          {/* Logo & Nom de la boutique (redirection directe vers Boutique & Paramètres au clic) */}
           <div 
-            onClick={() => setActiveTab('pos')}
+            onClick={() => setActiveTab('settings')}
             className="flex items-center space-x-2.5 sm:space-x-3 min-w-0 cursor-pointer select-none group"
-            title="Revenir à la Caisse"
+            title="Gérer Ma Boutique & Paramètres"
           >
             <div className="group-hover:scale-105 transition-transform shrink-0">
               <Logo size="sm" showText={false} />
             </div>
             <div className="min-w-0">
-              <span className="text-xs text-emerald-200/90 font-semibold block leading-tight truncate">
-                Bienvenue dans votre espace
-              </span>
-              <h1 className="font-extrabold text-sm sm:text-lg leading-tight truncate text-white tracking-tight font-display">
+              <div className="flex items-center space-x-1.5">
+                <span className="text-xs text-emerald-200/90 font-semibold block leading-tight truncate">
+                  Bienvenue dans votre espace
+                </span>
+                <span className="px-1.5 py-0.2 rounded-md bg-white/10 group-hover:bg-white/20 text-emerald-200 text-[9px] font-bold border border-white/10 transition-colors shrink-0 flex items-center space-x-0.5">
+                  <Settings className="w-2.5 h-2.5 text-emerald-300" />
+                  <span className="hidden sm:inline">Paramètres</span>
+                </span>
+              </div>
+              <h1 className="font-extrabold text-sm sm:text-lg leading-tight truncate text-white tracking-tight font-display group-hover:text-emerald-100 transition-colors">
                 {shopProfile?.name || 'FasoCarnet'}
               </h1>
             </div>

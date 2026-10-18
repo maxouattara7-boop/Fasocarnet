@@ -8,7 +8,6 @@ import {
   AlertTriangle, 
   PackagePlus, 
   Trash2, 
-  Tag, 
   User, 
   Crown,
   Sparkles,
@@ -78,7 +77,7 @@ const getInitialSettingsTab = (): SettingsTab => {
 };
 
 export const SettingsView: React.FC = () => {
-  const { shopProfile, updateShopProfile, loadCurrentShop } = useAppStore();
+  const { shopProfile, updateShopProfile, loadCurrentShop, setActiveTab } = useAppStore();
 
   const [activeSubTab, setActiveSubTabState] = useState<SettingsTab>(getInitialSettingsTab);
   const [catalogSubTab, setCatalogSubTab] = useState<CatalogSubTab>('catalog');
@@ -687,14 +686,7 @@ export const SettingsView: React.FC = () => {
   const totalFilteredSupplyCost = filteredSupplies.reduce((acc, s) => acc + s.totalCost, 0);
 
   const tabs: { id: SettingsTab; label: string; icon: React.ReactNode; badge?: number | string; badgeColor?: string }[] = [
-    { id: 'shop', label: 'Boutique', icon: <Store className="w-4 h-4" /> },
-    { 
-      id: 'catalog', 
-      label: 'Articles & Stock', 
-      icon: <Tag className="w-4 h-4" />, 
-      badge: lowStockCount > 0 ? `${lowStockCount}⚠️` : (products.length > 0 ? products.length : undefined),
-      badgeColor: lowStockCount > 0 ? 'bg-amber-500' : 'bg-emerald-600'
-    },
+    { id: 'shop', label: 'Boutique & Identité', icon: <Store className="w-4 h-4" /> },
     { 
       id: 'subscription', 
       label: 'Licence & Abonnement', 
@@ -715,7 +707,7 @@ export const SettingsView: React.FC = () => {
           </div>
           <div>
             <h2 className="text-lg sm:text-xl font-black font-display text-slate-900">Ma Boutique & Paramètres</h2>
-            <p className="text-xs text-slate-500 font-medium">Gestion complète du commerce, du catalogue d'articles, des approvisionnements et de la licence</p>
+            <p className="text-xs text-slate-500 font-medium">Gestion du profil commercial, des mentions fiscales, de la licence et des coordonnées de paiement</p>
           </div>
         </div>
         {savedSuccess && (
@@ -726,8 +718,34 @@ export const SettingsView: React.FC = () => {
         )}
       </div>
 
-      {/* SÉLECTEUR DE RUBRIQUES ÉTENDU SUR TOUTE LA LARGEUR */}
-      <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-200/90 p-1.5 rounded-2xl shadow-2xs">
+      {/* BANNIÈRE D'ACCÈS DIRECT À LA NOUVELLE FENÊTRE ARTICLES & STOCKS */}
+      <div className="p-3.5 sm:p-4 bg-emerald-50/70 border border-emerald-200/90 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+        <div className="flex items-center space-x-3">
+          <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+            <Package className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 font-display">
+              Catalogue & Gestion des Stocks
+            </h4>
+            <p className="text-[11px] text-slate-600 font-medium">
+              « Articles & Stock » est désormais une fenêtre principale située dans la barre de navigation entre Factures et Boutique.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('inventory')}
+          className="self-stretch sm:self-auto px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs flex items-center justify-center space-x-1.5 transition-all shadow-xs cursor-pointer font-display shrink-0 active:scale-95"
+        >
+          <span>Ouvrir Articles & Stock</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* SÉLECTEUR DE RUBRIQUES ÉTENDU SUR TOUTE LA LARGEUR (3 ONGLETS ÉPURÉS) */}
+      <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-200/90 p-1.5 rounded-2xl shadow-2xs">
         {tabs.map((tab) => {
           const isActive = activeSubTab === tab.id;
           return (
