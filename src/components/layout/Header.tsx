@@ -146,15 +146,14 @@ export const Header: React.FC = () => {
               <ShieldCheck className="w-3.5 h-3.5" />
             </div>
 
-            {/* BOUTON SE DÉCONNECTER (À l'extrême droite en haut) */}
+            {/* BOUTON SE DÉCONNECTER (Icône compacte à l'extrême droite) */}
             <button
               type="button"
               onClick={() => setShowLogoutModal(true)}
-              className="p-1.5 bg-red-600/90 hover:bg-red-600 active:bg-red-700 text-white rounded-lg border border-red-500/50 transition-all active:scale-95 cursor-pointer flex items-center space-x-1 shadow-xs"
-              title="Se déconnecter de votre espace commercial"
+              className="p-1.5 bg-red-600/90 hover:bg-red-600 active:bg-red-700 text-white rounded-lg border border-red-500/50 transition-all active:scale-95 cursor-pointer flex items-center justify-center shadow-xs"
+              title="Se déconnecter / Quitter"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-black hidden sm:inline">Quitter</span>
             </button>
           </div>
         </div>
