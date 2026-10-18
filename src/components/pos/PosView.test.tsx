@@ -119,4 +119,49 @@ describe('PosView component', () => {
     fireEvent.click(calcBtn);
     expect(screen.getByText('Panier en attente')).toBeInTheDocument();
   });
+
+  it('allows holding a sale and resuming it later from held sales modal', async () => {
+    localStorage.clear();
+    render(<PosView />);
+    await waitFor(() => {
+      expect(screen.getAllByText('Pain Sucré').length).toBeGreaterThan(0);
+    });
+
+    // Add Pain Sucré to cart
+    const productBtn = screen.getAllByText('Pain Sucré')[0].closest('button');
+    fireEvent.click(productBtn!);
+
+    await waitFor(() => {
+      expect(screen.getByText("Quantité d'article")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText("Valider l'ajout").closest('button')!);
+
+    await waitFor(() => {
+      expect(screen.getByText(/ENCAISSER/)).toBeInTheDocument();
+    });
+
+    // Click "En attente" to hold this current cart
+    const holdBtn = screen.getByRole('button', { name: /En attente/i });
+    fireEvent.click(holdBtn);
+
+    // Current cart should now be cleared
+    await waitFor(() => {
+      expect(screen.getByText('Panier en attente')).toBeInTheDocument();
+      expect(screen.getByText('1 en attente')).toBeInTheDocument();
+    });
+
+    // Click badge to view held sales modal
+    fireEvent.click(screen.getByText('1 en attente'));
+    await waitFor(() => {
+      expect(screen.getByText('Ventes en Attente (1)')).toBeInTheDocument();
+      expect(screen.getByText('Reprendre cette vente')).toBeInTheDocument();
+    });
+
+    // Click restore
+    fireEvent.click(screen.getByText('Reprendre cette vente'));
+    await waitFor(() => {
+      expect(screen.queryByText('Ventes en Attente (1)')).not.toBeInTheDocument();
+      expect(screen.getByTitle('Retirer cet article')).toBeInTheDocument();
+    });
+  });
 });

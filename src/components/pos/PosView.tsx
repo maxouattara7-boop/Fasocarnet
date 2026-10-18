@@ -4,6 +4,7 @@ import { PaymentModal } from './PaymentModal';
 import { ReceiptModal } from './ReceiptModal';
 import { QuantityModal } from './QuantityModal';
 import { DiscountModal, DiscountData } from './DiscountModal';
+import { HeldSalesModal } from './HeldSalesModal';
 import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
 import { salesService } from '../../db/services/salesService';
 import { productsService } from '../../db/services/productsService';
@@ -23,9 +24,22 @@ import {
   Check, 
   Sparkles, 
   Tag, 
-  Trash2
+  Trash2,
+  Clock,
+  PauseCircle
 } from 'lucide-react';
 import { evaluatePosExpression, formatPosExpressionDisplay } from '../../utils/calculator';
+
+export interface HeldSale {
+  id: string;
+  createdAt: string;
+  amountStr: string;
+  selectedItems: SaleItem[];
+  discount: DiscountData | null;
+  subtotalAmount: number;
+  finalPayableAmount: number;
+  note?: string;
+}
 
 export const PosView: React.FC = () => {
   const [amountStr, setAmountStr] = useState<string>('0');
@@ -34,6 +48,17 @@ export const PosView: React.FC = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [lastSale, setLastSale] = useState<Sale | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+
+  // Ventes en attente (Park / Hold sales)
+  const [heldSales, setHeldSales] = useState<HeldSale[]>(() => {
+    try {
+      const saved = localStorage.getItem('fasocarnet_held_sales');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isHeldSalesModalOpen, setIsHeldSalesModalOpen] = useState(false);
 
   // Catalogue d'articles & sélecteur modal
   const [products, setProducts] = useState<Product[]>([]);
@@ -209,6 +234,65 @@ export const PosView: React.FC = () => {
     setSelectedItems([]);
     setDiscount(null);
     setLastScannedFeedback(null);
+  };
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('fasocarnet_held_sales', JSON.stringify(heldSales));
+    } catch (err) {
+      console.error('Erreur sauvegarde ventes en attente:', err);
+    }
+  }, [heldSales]);
+
+  const handleHoldCurrentSale = () => {
+    if (finalPayableAmount <= 0 && selectedItems.length === 0 && amountStr === '0') {
+      return;
+    }
+    triggerHaptic(35);
+    const newHeld: HeldSale = {
+      id: `held_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      amountStr,
+      selectedItems,
+      discount,
+      subtotalAmount,
+      finalPayableAmount
+    };
+    setHeldSales((prev) => [newHeld, ...prev]);
+    setScanToast(`✓ Vente de ${formatCurrency(finalPayableAmount)} mise en attente !`);
+    handleClear();
+    setTimeout(() => setScanToast(null), 3500);
+  };
+
+  const handleRestoreHeldSale = (saleToRestore: HeldSale) => {
+    triggerHaptic(35);
+    // Si une vente est déjà en cours, on la bascule elle-même en attente pour ne rien perdre
+    if (finalPayableAmount > 0 || selectedItems.length > 0) {
+      const currentHeld: HeldSale = {
+        id: `held_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        amountStr,
+        selectedItems,
+        discount,
+        subtotalAmount,
+        finalPayableAmount
+      };
+      setHeldSales((prev) => [currentHeld, ...prev.filter((h) => h.id !== saleToRestore.id)]);
+      setScanToast(`✓ Vente précédente mise en attente & vente reprise !`);
+    } else {
+      setHeldSales((prev) => prev.filter((h) => h.id !== saleToRestore.id));
+      setScanToast(`✓ Vente reprise (${formatCurrency(saleToRestore.finalPayableAmount)}) !`);
+    }
+    setAmountStr(saleToRestore.amountStr);
+    setSelectedItems(saleToRestore.selectedItems);
+    setDiscount(saleToRestore.discount);
+    setIsHeldSalesModalOpen(false);
+    setTimeout(() => setScanToast(null), 3000);
+  };
+
+  const handleDeleteHeldSale = (id: string) => {
+    triggerHaptic(25);
+    setHeldSales((prev) => prev.filter((h) => h.id !== id));
   };
 
   const handleRemoveItem = (index: number) => {
@@ -461,7 +545,21 @@ export const PosView: React.FC = () => {
                   )}
                   <span>{hasCalculation ? 'Total Additionné' : 'Montant à Encaisser'}</span>
                 </div>
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center space-x-1.5">
+                  {heldSales.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic(20);
+                        setIsHeldSalesModalOpen(true);
+                      }}
+                      className="bg-amber-400 hover:bg-amber-300 text-amber-950 px-2 py-0.5 rounded-md text-[11px] sm:text-xs font-black tracking-wide flex items-center space-x-1 transition-all cursor-pointer shadow-xs animate-pulse"
+                      title="Voir les ventes en attente"
+                    >
+                      <Clock className="w-3.5 h-3.5 text-amber-950" />
+                      <span>{heldSales.length} en attente</span>
+                    </button>
+                  )}
                   {discount && discount.calculatedAmount > 0 && (
                     <button
                       type="button"
@@ -535,8 +633,8 @@ export const PosView: React.FC = () => {
               </div>
             </div>
 
-            {/* TOUCHES D'ACTION ALLONGÉES & VISIBLES : CALCULATRICE & REMISE */}
-            <div className="grid grid-cols-2 gap-1.5 sm:gap-2 shrink-0">
+            {/* TOUCHES D'ACTION ALLONGÉES & VISIBLES : CALCULATRICE, REMISE & EN ATTENTE */}
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 shrink-0">
               {/* Bouton Calculatrice pour dérouler / replier le clavier tactile */}
               <button
                 type="button"
@@ -544,15 +642,15 @@ export const PosView: React.FC = () => {
                   triggerHaptic(20);
                   setShowCalculator((prev) => !prev);
                 }}
-                className={`h-10 sm:h-11 lg:h-10 xl:h-11 px-2.5 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display ${
+                className={`h-10 sm:h-11 lg:h-10 xl:h-11 px-2 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center space-x-1 sm:space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display ${
                   showCalculator
                     ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/25 ring-2 ring-amber-400'
                     : 'bg-gradient-to-r from-amber-500 via-amber-600 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-amber-500/20'
                 }`}
                 title={showCalculator ? "Replier la calculatrice" : "Afficher la calculatrice"}
               >
-                <Calculator className="w-4.5 h-4.5 text-amber-100 shrink-0" />
-                <span className="tracking-wide">Calculatrice {showCalculator ? '▴' : '▾'}</span>
+                <Calculator className="w-4 h-4 text-amber-100 shrink-0" />
+                <span className="tracking-tight sm:tracking-wide truncate">Calculatrice {showCalculator ? '▴' : '▾'}</span>
               </button>
 
               {/* Bouton Remise (% ou FCFA) grand format allongé */}
@@ -562,16 +660,59 @@ export const PosView: React.FC = () => {
                   triggerHaptic(30);
                   setIsDiscountModalOpen(true);
                 }}
-                className={`h-10 sm:h-11 lg:h-10 xl:h-11 px-2.5 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display ${
+                className={`h-10 sm:h-11 lg:h-10 xl:h-11 px-2 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center space-x-1 sm:space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display ${
                   discount && discount.calculatedAmount > 0
                     ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-500 shadow-amber-400/30'
                     : 'bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white shadow-slate-900/20'
                 }`}
                 title="Appliquer une remise en % ou FCFA"
               >
-                <Tag className="w-4.5 h-4.5 text-amber-300 shrink-0" />
-                <span className="tracking-wide truncate">{discount && discount.calculatedAmount > 0 ? `Remise (-${formatCurrency(discountAmount)})` : 'Remise Client'}</span>
+                <Tag className="w-4 h-4 text-amber-300 shrink-0" />
+                <span className="tracking-tight sm:tracking-wide truncate">
+                  {discount && discount.calculatedAmount > 0 ? `-${formatCurrency(discountAmount)}` : 'Remise Client'}
+                </span>
               </button>
+
+              {/* Bouton Mettre en attente / Ventes en attente */}
+              {finalPayableAmount > 0 || selectedItems.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={handleHoldCurrentSale}
+                  className="h-10 sm:h-11 lg:h-10 xl:h-11 px-2 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center space-x-1 sm:space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20 border border-slate-700/60"
+                  title="Mettre en attente cette vente pour servir un autre client"
+                >
+                  <PauseCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span className="tracking-tight sm:tracking-wide truncate">En attente</span>
+                  {heldSales.length > 0 && (
+                    <span className="bg-amber-500 text-amber-950 text-[10px] font-black px-1.5 py-0.2 rounded-full shrink-0">
+                      {heldSales.length}
+                    </span>
+                  )}
+                </button>
+              ) : heldSales.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic(25);
+                    setIsHeldSalesModalOpen(true);
+                  }}
+                  className="h-10 sm:h-11 lg:h-10 xl:h-11 px-2 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center space-x-1 sm:space-x-1.5 shadow-xs active:scale-95 transition-all cursor-pointer font-display bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white shadow-amber-500/30 animate-pulse"
+                  title="Voir et reprendre les ventes en attente"
+                >
+                  <Clock className="w-4 h-4 text-white shrink-0" />
+                  <span className="tracking-tight sm:tracking-wide truncate">En attente ({heldSales.length})</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="h-10 sm:h-11 lg:h-10 xl:h-11 px-2 rounded-xl text-xs sm:text-sm font-black flex items-center justify-center space-x-1 sm:space-x-1.5 shadow-xs transition-all font-display bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                  title="Aucune vente en cours à mettre en attente"
+                >
+                  <PauseCircle className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span className="tracking-tight sm:tracking-wide truncate">En attente</span>
+                </button>
+              )}
             </div>
 
             {/* Bouton catalogue complet & Puces rapides en 1 ligne compacte (Sur mobile) */}
@@ -1162,6 +1303,16 @@ export const PosView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Modale des ventes en attente */}
+      <HeldSalesModal
+        isOpen={isHeldSalesModalOpen}
+        onClose={() => setIsHeldSalesModalOpen(false)}
+        heldSales={heldSales}
+        onRestore={handleRestoreHeldSale}
+        onDelete={handleDeleteHeldSale}
+        hasCurrentSale={finalPayableAmount > 0 || selectedItems.length > 0}
+      />
     </div>
   );
 };
