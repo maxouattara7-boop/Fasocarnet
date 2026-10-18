@@ -10,8 +10,6 @@ import {
   CreditCard, 
   ArrowDownLeft, 
   Calendar, 
-  ChevronDown, 
-  ChevronUp, 
   Wallet, 
   ShoppingBag, 
   CalendarDays, 
@@ -58,9 +56,6 @@ export const DailyReportView: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<string>(
     new Date().toISOString().slice(0, 7)
   );
-  const [isCashDetailsOpen, setIsCashDetailsOpen] = useState(false);
-  const [isExpensesDetailsOpen, setIsExpensesDetailsOpen] = useState(false);
-  const [isProfitDetailsOpen, setIsProfitDetailsOpen] = useState(false);
   const [isSuppliesHistoryModalOpen, setIsSuppliesHistoryModalOpen] = useState(false);
   const [isNewExpenseModalOpen, setIsNewExpenseModalOpen] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
@@ -94,6 +89,28 @@ export const DailyReportView: React.FC = () => {
       return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
     } catch {
       return dString;
+    }
+  };
+
+  const getPaymentMethodBadge = (method: string) => {
+    switch (method) {
+      case 'CASH':
+      case 'Espèces':
+        return { label: 'Espèces', color: 'bg-emerald-100 text-emerald-800' };
+      case 'ORANGE_MONEY':
+      case 'Orange Money':
+        return { label: 'Orange Money', color: 'bg-[#ff6600]/15 text-[#ff6600]' };
+      case 'MOOV_MONEY':
+      case 'Moov Money':
+        return { label: 'Moov Money', color: 'bg-[#005baa]/15 text-[#005baa]' };
+      case 'WAVE':
+      case 'Wave':
+        return { label: 'Wave', color: 'bg-[#1dc4fe]/15 text-[#1dc4fe]' };
+      case 'CREDIT':
+      case 'Crédit':
+        return { label: 'Crédit', color: 'bg-amber-100 text-amber-800' };
+      default:
+        return { label: method, color: 'bg-slate-100 text-slate-800' };
     }
   };
 
@@ -420,492 +437,466 @@ export const DailyReportView: React.FC = () => {
       {/* ======================================================== */}
       {/* 4 CARTES KPI SYNTHÉTIQUES EN GRILLE RESPONSIVE           */}
       {/* ======================================================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        
+      {/* 4 CARTES KPI SYNTHÉTIQUES EN GRILLE RESPONSIVE */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* CARTE 1 : CHIFFRE D'AFFAIRES ENCAISSÉ */}
-        <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white p-5 rounded-3xl shadow-md space-y-2 border border-emerald-700/50 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-emerald-300 text-[11px] font-bold uppercase tracking-wider font-display">
-            <div className="flex items-center space-x-1.5">
-              <BarChart3 className="w-4 h-4 stroke-[2.5]" />
-              <span>{reportPeriod === 'day' ? 'CA du Jour' : 'CA du Mois'}</span>
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-3 hover:border-emerald-300 transition-all">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center font-bold">
+              <BarChart3 className="w-5 h-5 stroke-[2.2]" />
             </div>
-            <span className="bg-emerald-700/70 px-2 py-0.5 rounded-lg text-[10px] font-extrabold">
+            <span className="bg-emerald-50 text-emerald-800 border border-emerald-200/60 text-[10px] font-extrabold px-2.5 py-1 rounded-full font-display">
               {summary?.salesCount || 0} vente{summary?.salesCount && summary.salesCount > 1 ? 's' : ''}
             </span>
           </div>
-
-          <div className="my-1">
-            <div className="text-2xl sm:text-3xl font-black text-white tracking-tight font-display drop-shadow-xs">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block font-display">
+              {reportPeriod === 'day' ? "Chiffre d'Affaires du Jour" : "Chiffre d'Affaires du Mois"}
+            </span>
+            <div className="text-2xl font-black text-slate-900 font-display mt-0.5">
               {formatCurrency(summary?.totalSales || 0)}
             </div>
-            <p className="text-[10px] text-emerald-200/80 font-medium mt-0.5">
-              Total net encaissé (hors crédits impayés)
+            <p className="text-[10px] text-slate-400 font-medium mt-1">
+              Net perçu en caisse (hors crédits impayés)
             </p>
           </div>
         </div>
 
-        {/* CARTE 2 : BÉNÉFICE COMMERCIAL & MARGE BRUTE */}
-        <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-emerald-950 text-white p-5 rounded-3xl border border-indigo-700/40 shadow-md space-y-2 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-indigo-300 text-[11px] font-bold uppercase tracking-wider font-display">
-            <div className="flex items-center space-x-1.5">
-              <TrendingUp className="w-4 h-4 text-emerald-400 stroke-[2.5]" />
-              <span>Bénéfice Net</span>
+        {/* CARTE 2 : BÉNÉFICE NET RÉEL */}
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-3 hover:border-indigo-300 transition-all">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-700 border border-indigo-100 flex items-center justify-center font-bold">
+              <TrendingUp className="w-5 h-5 stroke-[2.2]" />
             </div>
-            <button
-              type="button"
-              onClick={() => setIsProfitDetailsOpen(!isProfitDetailsOpen)}
-              className="text-[10px] bg-indigo-900/80 hover:bg-indigo-800 text-indigo-200 px-2 py-0.5 rounded-lg font-bold flex items-center space-x-1 transition-colors cursor-pointer"
-            >
-              <span>{isProfitDetailsOpen ? 'Masquer' : 'Marge'}</span>
-              {isProfitDetailsOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            </button>
+            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full font-display ${
+              (summary?.netProfit || 0) >= 0 
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/60' 
+                : 'bg-rose-50 text-rose-800 border border-rose-200/60'
+            }`}>
+              {(summary?.netProfit || 0) >= 0 ? 'Rentable' : 'Déficit'}
+            </span>
           </div>
-
-          <div className="my-1">
-            <div className={`text-2xl sm:text-3xl font-black font-display ${
-              (summary?.netProfit || 0) >= 0 ? 'text-amber-300' : 'text-rose-400'
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block font-display">
+              Bénéfice Net Réel
+            </span>
+            <div className={`text-2xl font-black font-display mt-0.5 ${
+              (summary?.netProfit || 0) >= 0 ? 'text-emerald-700' : 'text-rose-600'
             }`}>
               {(summary?.netProfit || 0) >= 0 ? `+${formatCurrency(summary?.netProfit || 0)}` : `-${formatCurrency(Math.abs(summary?.netProfit || 0))}`}
             </div>
-            <div className="text-[10px] text-slate-300/80 font-medium mt-0.5">
-              Marge brute : <strong className="text-emerald-400">+{formatCurrency(summary?.grossProfit || 0)}</strong>
+            <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium mt-1 pt-1 border-t border-slate-100">
+              <span>Marge brute : <strong className="text-emerald-700">+{formatCurrency(summary?.grossProfit || 0)}</strong></span>
+              <span>Coût : {formatCurrency(summary?.totalCostOfGoodsSold || 0)}</span>
             </div>
           </div>
-
-          {isProfitDetailsOpen && (
-            <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 gap-2 text-xs animate-in fade-in duration-150">
-              <div className="bg-slate-900/70 p-2 rounded-xl border border-slate-800">
-                <span className="text-[9px] text-slate-400 block">Coût Achat</span>
-                <span className="font-extrabold text-slate-200 text-xs">{formatCurrency(summary?.totalCostOfGoodsSold || 0)}</span>
-              </div>
-              <div className="bg-slate-900/70 p-2 rounded-xl border border-slate-800">
-                <span className="text-[9px] text-slate-400 block">Dépenses</span>
-                <span className="font-extrabold text-rose-300 text-xs">{formatCurrency(summary?.totalExpenses || 0)}</span>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* CARTE 3 : TRÉSORERIE NETTE RÉELLE (ENCAISSEMENTS - DÉPENSES) */}
-        <div className={`p-5 rounded-3xl border shadow-md flex flex-col justify-between transition-all ${
-          isPositiveFlow 
-            ? 'bg-gradient-to-br from-teal-900 to-emerald-950 text-white border-teal-700/40' 
-            : 'bg-gradient-to-br from-rose-950 to-slate-900 text-white border-rose-800/40'
-        }`}>
-          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider font-display text-slate-300">
-            <div className="flex items-center space-x-1.5">
-              {isPositiveFlow ? <TrendingUp className="w-4 h-4 text-emerald-400" /> : <TrendingDown className="w-4 h-4 text-rose-400" />}
-              <span>Trésorerie Réelle</span>
+        {/* CARTE 3 : TRÉSORERIE NETTE RÉELLE */}
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-3 hover:border-teal-300 transition-all">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-2xl bg-teal-50 text-teal-700 border border-teal-100 flex items-center justify-center font-bold">
+              <Wallet className="w-5 h-5 stroke-[2.2]" />
             </div>
-            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold ${isPositiveFlow ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
-              {isPositiveFlow ? 'Solde +' : 'Déficit'}
+            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full font-display ${
+              isPositiveFlow 
+                ? 'bg-teal-50 text-teal-800 border border-teal-200/60' 
+                : 'bg-rose-50 text-rose-800 border border-rose-200/60'
+            }`}>
+              {isPositiveFlow ? 'Solde +' : 'Solde −'}
             </span>
           </div>
-
-          <div className="my-1">
-            <div className="text-2xl sm:text-3xl font-black tracking-tight font-display">
-              {isPositiveFlow ? `+ ${formatCurrency(netFlow)}` : `- ${formatCurrency(Math.abs(netFlow))}`}
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block font-display">
+              Trésorerie Nette Réelle
+            </span>
+            <div className={`text-2xl font-black font-display mt-0.5 ${
+              isPositiveFlow ? 'text-teal-800' : 'text-rose-600'
+            }`}>
+              {isPositiveFlow ? `+${formatCurrency(netFlow)}` : `-${formatCurrency(Math.abs(netFlow))}`}
             </div>
-            <p className="text-[10px] text-slate-300/80 font-medium mt-0.5 truncate">
-              Encaissements ({formatCurrency((summary?.totalSales || 0) + (summary?.totalRecoveredDebts || 0))}) − Dépenses ({formatCurrency(summary?.totalExpenses || 0)})
+            <p className="text-[10px] text-slate-400 font-medium mt-1 truncate">
+              Entrées ({formatCurrency((summary?.totalSales || 0) + (summary?.totalRecoveredDebts || 0))}) − Dépenses ({formatCurrency(summary?.totalExpenses || 0)})
             </p>
           </div>
         </div>
 
         {/* CARTE 4 : DÉPENSES & SORTIES DE CAISSE */}
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-md flex flex-col justify-between space-y-2">
-          <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider font-display">
-            <div className="flex items-center space-x-1.5 text-rose-700">
-              <TrendingDown className="w-4 h-4" />
-              <span>Dépenses Globales</span>
+        <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between space-y-3 hover:border-rose-300 transition-all">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-700 border border-rose-100 flex items-center justify-center font-bold">
+              <TrendingDown className="w-5 h-5 stroke-[2.2]" />
             </div>
-            <button
-              type="button"
-              onClick={() => setIsExpensesDetailsOpen(!isExpensesDetailsOpen)}
-              className="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-lg font-bold flex items-center space-x-1 cursor-pointer"
-            >
-              <span>{isExpensesDetailsOpen ? 'Masquer' : 'Détails'}</span>
-              {isExpensesDetailsOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            </button>
+            <span className="bg-rose-50 text-rose-800 border border-rose-200/60 text-[10px] font-extrabold px-2.5 py-1 rounded-full font-display">
+              {expensesList.length} sortie{expensesList.length > 1 ? 's' : ''}
+            </span>
           </div>
-
-          <div className="my-1">
-            <div className="text-2xl sm:text-3xl font-black text-rose-700 font-display">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block font-display">
+              Dépenses d'Exploitation
+            </span>
+            <div className="text-2xl font-black text-rose-700 font-display mt-0.5">
               -{formatCurrency(summary?.totalExpenses || 0)}
             </div>
-            <p className="text-[10px] text-slate-500 font-medium mt-0.5">
-              {expensesList.length} sortie(s) de caisse enregistrée(s)
+            <p className="text-[10px] text-slate-400 font-medium mt-1">
+              Espèces : {formatCurrency(summary?.cashExpenses || 0)} • Mobile : {formatCurrency((summary?.orangeMoneyExpenses || 0) + (summary?.moovMoneyExpenses || 0) + (summary?.waveExpenses || 0))}
             </p>
           </div>
+        </div>
+      </div>
 
-          {isExpensesDetailsOpen && (
-            <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-1.5 text-[10px] animate-in fade-in">
-              <div className="bg-slate-50 p-1.5 rounded-lg">
-                <span className="text-slate-400 block">Espèces</span>
-                <span className="font-bold text-rose-700">{formatCurrency(summary?.cashExpenses || 0)}</span>
+      {/* DISPOSITION EN 2 VOLETS COMPLÉMENTAIRES (7 COLS JOURNAL / 5 COLS FLUX & CRÉANCES) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* VOLET GAUCHE (7 COLONNES) : JOURNAL DES OPÉRATIONS */}
+        <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-3 border-b border-slate-100 pb-4">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 font-bold shrink-0">
+                <ShoppingBag className="w-4 h-4" />
               </div>
-              <div className="bg-slate-50 p-1.5 rounded-lg">
-                <span className="text-slate-400 block">Mobile</span>
-                <span className="font-bold text-rose-700">{formatCurrency((summary?.orangeMoneyExpenses || 0) + (summary?.moovMoneyExpenses || 0) + (summary?.waveExpenses || 0))}</span>
+              <div>
+                <h3 className="font-black text-sm sm:text-base text-slate-900 font-display">Journal des Opérations</h3>
+                <p className="text-[10px] text-slate-500 font-medium">Historique chronologique des encaissements et dépenses</p>
               </div>
+            </div>
+
+            <div className="flex items-center p-1 bg-slate-100 rounded-2xl gap-1 text-xs font-bold shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setHistoryTab('sales')}
+                className={`px-3.5 py-1.5 rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display ${
+                  historyTab === 'sales'
+                    ? 'bg-white text-emerald-800 shadow-xs font-black'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span>Ventes ({salesList.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setHistoryTab('expenses')}
+                className={`px-3.5 py-1.5 rounded-xl flex items-center justify-center space-x-1.5 transition-all cursor-pointer font-display ${
+                  historyTab === 'expenses'
+                    ? 'bg-white text-rose-800 shadow-xs font-black'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <TrendingDown className="w-3.5 h-3.5" />
+                <span>Dépenses ({expensesList.length})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* CONTENU DE L'ONGLET VENTES */}
+          {historyTab === 'sales' && (
+            <div>
+              {salesList.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 space-y-2 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                  <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="text-xs font-bold text-slate-600">Aucune vente enregistrée pour cette sélection</p>
+                  <p className="text-[11px] text-slate-400">Les transactions validées à la caisse apparaîtront ici.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto pr-1 space-y-1">
+                  {salesList.map((sale) => (
+                    <div 
+                      key={sale.id} 
+                      className={`py-3 px-3 flex items-center justify-between text-xs hover:bg-slate-50/80 rounded-2xl transition-all ${
+                        sale.isCancelled ? 'opacity-60 bg-red-50/30' : ''
+                      }`}
+                    >
+                      <div className="min-w-0 pr-3 space-y-0.5">
+                        <div className="flex items-center space-x-2 flex-wrap">
+                          <span className={`font-black text-xs sm:text-sm font-display ${
+                            sale.isCancelled ? 'text-slate-500 line-through' : 'text-slate-900'
+                          }`}>
+                            {sale.isPartialCredit 
+                              ? `Vente Partielle : ${sale.customerName || 'Client'}` 
+                              : sale.isCredit 
+                              ? `Crédit : ${sale.customerName || 'Client'}` 
+                              : `Vente ${getPaymentMethodBadge(sale.paymentMethod).label}`}
+                          </span>
+                          {sale.isCancelled ? (
+                            <span className="bg-red-100 text-red-800 text-[9px] font-black px-2 py-0.5 rounded-md border border-red-200">
+                              ANNULÉE
+                            </span>
+                          ) : (
+                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${getPaymentMethodBadge(sale.paymentMethod).color}`}>
+                              {getPaymentMethodBadge(sale.paymentMethod).label}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-400">{formatDateTime(sale.createdAt)}</div>
+                        {sale.isCancelled && sale.cancelReason && (
+                          <div className="text-[11px] text-red-600 italic">
+                            Motif : {sale.cancelReason}
+                          </div>
+                        )}
+                        {sale.isPartialCredit && (
+                          <div className="text-[11px] text-indigo-700 font-semibold">
+                            Acompte : {formatCurrency(sale.paidAmount || 0)} • Dette : {formatCurrency(sale.creditAmount || 0)}
+                          </div>
+                        )}
+                        {sale.items && sale.items.length > 0 && (
+                          <div className="text-[11px] text-slate-500 truncate">
+                            {sale.items.map(it => `${it.description} (x${it.quantity})`).join(', ')}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center space-x-3 flex-shrink-0">
+                        <div className={`font-black font-display text-sm sm:text-base ${
+                          sale.isCancelled 
+                            ? 'text-slate-400 line-through' 
+                            : sale.isCredit 
+                            ? 'text-amber-700' 
+                            : 'text-emerald-700'
+                        }`}>
+                          {formatCurrency(sale.totalAmount)}
+                        </div>
+                        {!sale.isCancelled && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCancelSale(sale)}
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                            title="Annuler cette vente et remettre en stock"
+                          >
+                            <RotateCcw className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CONTENU DE L'ONGLET DÉPENSES */}
+          {historyTab === 'expenses' && (
+            <div>
+              {expensesList.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 space-y-2 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                  <TrendingDown className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="text-xs font-bold text-slate-600">Aucune dépense pour cette sélection</p>
+                  <button
+                    type="button"
+                    onClick={() => setIsNewExpenseModalOpen(true)}
+                    className="mt-1 text-xs font-black text-rose-600 hover:text-rose-700 underline cursor-pointer font-display"
+                  >
+                    + Enregistrer une dépense
+                  </button>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto pr-1 space-y-1">
+                  {expensesList.map((exp) => (
+                    <div key={exp.id} className="py-3 px-3 flex items-center justify-between text-xs hover:bg-slate-50/80 rounded-2xl transition-all">
+                      <div className="min-w-0 pr-2 space-y-0.5">
+                        <div className="font-bold text-slate-900 text-xs sm:text-sm truncate font-display">
+                          {exp.title}
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          {formatDateTime(exp.createdAt)} • <span className="font-semibold text-rose-700">{exp.paymentMethod}</span>
+                        </div>
+                        {exp.notes && (
+                          <div className="text-[11px] text-slate-500 italic truncate">{exp.notes}</div>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2.5 flex-shrink-0">
+                        <span className="font-black font-display text-xs sm:text-sm text-rose-700">
+                          -{formatCurrency(exp.amount)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteExpense(exp.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                          title="Supprimer la dépense"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
-      </div>
 
-      {/* ======================================================== */}
-      {/* SECTION INTERMÉDIAIRE : DÉTAIL DES MODES & ENCOURS DETTES */}
-      {/* ======================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-      {/* BLOC 3 : ENCAISSEMENTS CASH & MOBILE MONEY (DÉROULANT) */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
-        <div 
-          onClick={() => setIsCashDetailsOpen(!isCashDetailsOpen)}
-          className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors"
-        >
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
-              <Wallet className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Encaissements Ventes</span>
-              <span className="text-sm font-black text-slate-900 font-display">{formatCurrency(totalCashCollected)}</span>
-            </div>
-          </div>
-          <div className="flex items-center space-x-1 text-emerald-700 text-xs font-bold">
-            <span>{isCashDetailsOpen ? 'Masquer' : 'Détails'}</span>
-            {isCashDetailsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </div>
-        </div>
-
-        {isCashDetailsOpen && (
-          <div className="px-3 pb-3 pt-1 border-t border-slate-100 grid grid-cols-2 gap-2 animate-in fade-in duration-150">
-            <div className="bg-slate-50 p-2.5 rounded-xl space-y-0.5">
-              <div className="flex items-center space-x-1 text-emerald-700 text-[10px] font-bold font-display">
-                <Banknote className="w-3.5 h-3.5 stroke-[2.2]" />
-                <span>Espèces</span>
+        {/* VOLET DROIT (5 COLONNES) : VENTILATION DES ENCAISSEMENTS & SITUATION DES CRÉDITS */}
+        <div className="lg:col-span-5 space-y-5">
+          {/* CARTE 1 : VENTILATION DES ENCAISSEMENTS VENTES */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                  <Wallet className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-black text-xs sm:text-sm text-slate-900 font-display">Moyens de Paiement</h4>
+                  <p className="text-[10px] text-slate-500">Répartition des encaissements ventes</p>
+                </div>
               </div>
-              <div className="text-xs font-extrabold text-slate-900 font-display truncate">
-                {formatCurrency(summary?.cashSales || 0)}
-              </div>
+              <span className="text-xs sm:text-sm font-black text-emerald-800 font-display">
+                {formatCurrency(totalCashCollected)}
+              </span>
             </div>
 
-            <div className="bg-slate-50 p-2.5 rounded-xl space-y-0.5">
-              <div className="flex items-center space-x-1 text-[#ff6600] text-[10px] font-bold font-display">
-                <Smartphone className="w-3.5 h-3.5 stroke-[2.2] text-[#ff6600]" />
-                <span>Orange Money</span>
-              </div>
-              <div className="text-xs font-extrabold text-slate-900 font-display truncate">
-                {formatCurrency(summary?.orangeMoneySales || 0)}
-              </div>
-            </div>
-
-            <div className="bg-slate-50 p-2.5 rounded-xl space-y-0.5">
-              <div className="flex items-center space-x-1 text-[#005baa] text-[10px] font-bold font-display">
-                <Smartphone className="w-3.5 h-3.5 stroke-[2.2] text-[#005baa]" />
-                <span>Moov Money</span>
-              </div>
-              <div className="text-xs font-extrabold text-slate-900 font-display truncate">
-                {formatCurrency(summary?.moovMoneySales || 0)}
-              </div>
-            </div>
-
-            <div className="bg-slate-50 p-2.5 rounded-xl space-y-0.5">
-              <div className="flex items-center space-x-1 text-[#1dc4fe] text-[10px] font-bold font-display">
-                <Smartphone className="w-3.5 h-3.5 stroke-[2.2] text-[#1dc4fe]" />
-                <span>Wave</span>
-              </div>
-              <div className="text-xs font-extrabold text-slate-900 font-display truncate">
-                {formatCurrency(summary?.waveSales || 0)}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* BLOC 4 : DÉPENSES & SORTIES DE CAISSE (DÉROULANT) */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
-        <div 
-          onClick={() => setIsExpensesDetailsOpen(!isExpensesDetailsOpen)}
-          className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-rose-50/50 transition-colors"
-        >
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center">
-              <TrendingDown className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Dépenses & Sorties de Caisse</span>
-              <span className="text-sm font-black text-rose-700 font-display">{formatCurrency(summary?.totalExpenses || 0)}</span>
-            </div>
-          </div>
-          <div className="flex items-center space-x-1 text-rose-700 text-xs font-bold">
-            <span>{isExpensesDetailsOpen ? 'Masquer' : 'Détails'}</span>
-            {isExpensesDetailsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </div>
-        </div>
-
-        {isExpensesDetailsOpen && (
-          <div className="px-3 pb-3 pt-1 border-t border-slate-100 grid grid-cols-2 gap-2 animate-in fade-in duration-150">
-            <div className="bg-slate-50 p-2.5 rounded-xl space-y-0.5">
-              <div className="flex items-center space-x-1 text-slate-700 text-[10px] font-bold font-display">
-                <Banknote className="w-3.5 h-3.5 stroke-[2.2]" />
-                <span>Caisse (Espèces)</span>
-              </div>
-              <div className="text-xs font-extrabold text-rose-700 font-display truncate">
-                {formatCurrency(summary?.cashExpenses || 0)}
-              </div>
-            </div>
-
-            <div className="bg-slate-50 p-2.5 rounded-xl space-y-0.5">
-              <div className="flex items-center space-x-1 text-[#ff6600] text-[10px] font-bold font-display">
-                <Smartphone className="w-3.5 h-3.5 stroke-[2.2] text-[#ff6600]" />
-                <span>Orange Money</span>
-              </div>
-              <div className="text-xs font-extrabold text-rose-700 font-display truncate">
-                {formatCurrency(summary?.orangeMoneyExpenses || 0)}
-              </div>
-            </div>
-
-            <div className="bg-slate-50 p-2.5 rounded-xl space-y-0.5">
-              <div className="flex items-center space-x-1 text-[#005baa] text-[10px] font-bold font-display">
-                <Smartphone className="w-3.5 h-3.5 stroke-[2.2] text-[#005baa]" />
-                <span>Moov Money</span>
-              </div>
-              <div className="text-xs font-extrabold text-rose-700 font-display truncate">
-                {formatCurrency(summary?.moovMoneyExpenses || 0)}
-              </div>
-            </div>
-
-            <div className="bg-slate-50 p-2.5 rounded-xl space-y-0.5">
-              <div className="flex items-center space-x-1 text-[#1dc4fe] text-[10px] font-bold font-display">
-                <Smartphone className="w-3.5 h-3.5 stroke-[2.2] text-[#1dc4fe]" />
-                <span>Wave</span>
-              </div>
-              <div className="text-xs font-extrabold text-rose-700 font-display truncate">
-                {formatCurrency(summary?.waveExpenses || 0)}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* BLOC 5 : SITUATION DES CRÉDITS & ENCOURS GLOBAL DES DETTES (POINT 3) */}
-      <div className="space-y-2">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="bg-amber-50/80 p-3 rounded-2xl border border-amber-200/80 shadow-xs space-y-0.5">
-            <div className="text-[9px] font-bold text-amber-800 uppercase tracking-wider flex items-center space-x-1 font-display">
-              <CreditCard className="w-3 h-3 text-amber-700" />
-              <span>Crédits Accordés</span>
-            </div>
-            <div className="text-xs sm:text-sm font-black text-amber-950 font-display truncate">
-              {formatCurrency(summary?.creditSales || 0)}
-            </div>
-          </div>
-
-          <div className="bg-emerald-50/80 p-3 rounded-2xl border border-emerald-200/80 shadow-xs space-y-0.5">
-            <div className="text-[9px] font-bold text-emerald-800 uppercase tracking-wider flex items-center space-x-1 font-display">
-              <ArrowDownLeft className="w-3 h-3 text-emerald-700" />
-              <span>Dettes Récupérées</span>
-            </div>
-            <div className="text-xs sm:text-sm font-black text-emerald-950 font-display truncate">
-              {formatCurrency(summary?.totalRecoveredDebts || 0)}
-            </div>
-          </div>
-        </div>
-
-        {/* CARTE SPÉCIALE POINT 3 : TOTAL DES DETTES RESTANTES À RÉCUPÉRER */}
-        <div 
-          onClick={() => setActiveTab('debts')}
-          className="bg-gradient-to-r from-amber-950 to-slate-900 text-white p-3.5 rounded-2xl shadow-xs border border-amber-500/30 flex items-center justify-between cursor-pointer hover:border-amber-400 transition-all active:scale-99"
-        >
-          <div className="space-y-0.5">
-            <div className="flex items-center space-x-1.5 text-amber-300 text-[10px] font-bold uppercase tracking-wider font-display">
-              <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
-              <span>Dettes Restantes à Récupérer (Encours)</span>
-            </div>
-            <div className="text-lg font-black text-white font-display">
-              {formatCurrency(summary?.totalOutstandingDebt || 0)}
-            </div>
-            <p className="text-[10px] text-amber-200/80">
-              {summary?.debtorsCount || 0} client{summary?.debtorsCount && summary.debtorsCount > 1 ? 's' : ''} débiteur{summary?.debtorsCount && summary.debtorsCount > 1 ? 's' : ''} en attente
-            </p>
-          </div>
-
-          <div className="bg-amber-500/20 text-amber-300 p-2 rounded-xl flex items-center space-x-1 text-xs font-bold border border-amber-400/30 shrink-0">
-            <span>Carnet</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
-          </div>
-        </div>
-      </div>
-    </div>
-
-      {/* SECTION HISTORIQUE AVEC DOUBLE ONGLET : VENTES vs DÉPENSES */}
-      <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
-        {/* Sélecteur d'onglet d'historique */}
-        <div className="flex items-center justify-between flex-wrap gap-3 border-b border-slate-100 pb-4">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
-              <ShoppingBag className="w-4 h-4" />
-            </div>
-            <h3 className="font-extrabold text-sm text-slate-900 font-display">Journal des Opérations</h3>
-          </div>
-
-          <div className="flex items-center p-1 bg-slate-100 rounded-2xl gap-1 text-xs font-bold shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setHistoryTab('sales')}
-              className={`px-4 py-2 rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer ${
-                historyTab === 'sales'
-                  ? 'bg-white text-emerald-800 shadow-xs font-black'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Ventes ({salesList.length})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setHistoryTab('expenses')}
-              className={`px-4 py-2 rounded-xl flex items-center justify-center space-x-2 transition-all cursor-pointer ${
-                historyTab === 'expenses'
-                  ? 'bg-white text-rose-800 shadow-xs font-black'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <TrendingDown className="w-3.5 h-3.5" />
-              <span>Dépenses ({expensesList.length})</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Contenu de l'onglet Ventes */}
-        {historyTab === 'sales' && (
-          <div>
-            {salesList.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 space-y-2">
-                <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto" />
-                <p className="text-xs font-bold text-slate-600">Aucune vente enregistrée pour cette sélection</p>
-                <p className="text-[11px] text-slate-400">Les transactions validées à la caisse apparaîtront ici.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto pr-1">
-                {salesList.map((sale) => (
-                  <div key={sale.id} className={`py-3 flex items-center justify-between text-xs hover:bg-slate-50/80 px-2.5 rounded-2xl transition-colors ${sale.isCancelled ? 'opacity-60 bg-red-50/30' : ''}`}>
-                    <div className="min-w-0 pr-3">
-                      <div className="flex items-center space-x-2 flex-wrap">
-                        <span className={`font-black text-xs sm:text-sm font-display ${sale.isCancelled ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
-                          {sale.isPartialCredit 
-                            ? `Vente Partielle : ${sale.customerName || 'Client'}` 
-                            : sale.isCredit 
-                            ? `Crédit : ${sale.customerName || 'Client'}` 
-                            : `Vente ${sale.paymentMethod}`}
-                        </span>
-                        {sale.isCancelled ? (
-                          <span className="bg-red-100 text-red-800 text-[9px] font-black px-2 py-0.5 rounded-md border border-red-200">
-                            ANNULÉE
-                          </span>
-                        ) : (
-                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${
-                            sale.isCredit ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
-                          }`}>
-                            {sale.paymentMethod}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">{formatDateTime(sale.createdAt)}</div>
-                      {sale.isCancelled && sale.cancelReason && (
-                        <div className="text-[11px] text-red-600 italic mt-0.5">
-                          Motif : {sale.cancelReason}
-                        </div>
-                      )}
-                      {sale.isPartialCredit && (
-                        <div className="text-[11px] text-indigo-700 font-semibold mt-0.5">
-                          Acompte : {formatCurrency(sale.paidAmount || 0)} • Dette : {formatCurrency(sale.creditAmount || 0)}
-                        </div>
-                      )}
-                      {sale.items && sale.items.length > 0 && (
-                        <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                          {sale.items.map(it => `${it.description} (x${it.quantity})`).join(', ')}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-3 flex-shrink-0">
-                      <div className={`font-black font-display text-sm sm:text-base ${
-                        sale.isCancelled 
-                          ? 'text-slate-400 line-through' 
-                          : sale.isCredit 
-                          ? 'text-amber-700' 
-                          : 'text-emerald-700'
-                      }`}>
-                        {formatCurrency(sale.totalAmount)}
-                      </div>
-                      {!sale.isCancelled && (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenCancelSale(sale)}
-                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-                          title="Annuler cette vente et remettre en stock"
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+            {/* Visual Distribution Bar */}
+            {totalCashCollected > 0 && (
+              <div className="space-y-1.5">
+                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                  {(summary?.cashSales || 0) > 0 && (
+                    <div 
+                      style={{ width: `${((summary?.cashSales || 0) / totalCashCollected) * 100}%` }}
+                      className="bg-emerald-600 h-full transition-all"
+                      title={`Espèces : ${formatCurrency(summary?.cashSales || 0)}`}
+                    />
+                  )}
+                  {(summary?.orangeMoneySales || 0) > 0 && (
+                    <div 
+                      style={{ width: `${((summary?.orangeMoneySales || 0) / totalCashCollected) * 100}%` }}
+                      className="bg-[#ff6600] h-full transition-all"
+                      title={`Orange Money : ${formatCurrency(summary?.orangeMoneySales || 0)}`}
+                    />
+                  )}
+                  {(summary?.moovMoneySales || 0) > 0 && (
+                    <div 
+                      style={{ width: `${((summary?.moovMoneySales || 0) / totalCashCollected) * 100}%` }}
+                      className="bg-[#005baa] h-full transition-all"
+                      title={`Moov Money : ${formatCurrency(summary?.moovMoneySales || 0)}`}
+                    />
+                  )}
+                  {(summary?.waveSales || 0) > 0 && (
+                    <div 
+                      style={{ width: `${((summary?.waveSales || 0) / totalCashCollected) * 100}%` }}
+                      className="bg-[#1dc4fe] h-full transition-all"
+                      title={`Wave : ${formatCurrency(summary?.waveSales || 0)}`}
+                    />
+                  )}
+                </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Contenu de l'onglet Dépenses */}
-        {historyTab === 'expenses' && (
-          <div>
-            {expensesList.length === 0 ? (
-              <div className="py-6 text-center text-slate-400 space-y-1">
-                <TrendingDown className="w-8 h-8 text-slate-300 mx-auto" />
-                <p className="text-xs font-semibold">Aucune dépense pour cette sélection</p>
-                <button
-                  type="button"
-                  onClick={() => setIsNewExpenseModalOpen(true)}
-                  className="mt-2 text-xs font-bold text-rose-600 hover:text-rose-700 underline cursor-pointer"
-                >
-                  + Enregistrer une dépense
-                </button>
+            {/* Grille des 4 canaux */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-150 space-y-1">
+                <div className="flex items-center space-x-1.5 text-emerald-700 text-[10px] font-bold font-display">
+                  <Banknote className="w-3.5 h-3.5 stroke-[2.2]" />
+                  <span>Espèces (Cash)</span>
+                </div>
+                <div className="text-xs sm:text-sm font-black text-slate-900 font-display truncate">
+                  {formatCurrency(summary?.cashSales || 0)}
+                </div>
+                <div className="text-[10px] text-slate-400 font-medium">
+                  {totalCashCollected > 0 ? `${Math.round(((summary?.cashSales || 0) / totalCashCollected) * 100)}% du total` : '0%'}
+                </div>
               </div>
-            ) : (
-              <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto pr-1">
-                {expensesList.map((exp) => (
-                  <div key={exp.id} className="py-2.5 flex items-center justify-between text-xs">
-                    <div className="min-w-0 pr-2 space-y-0.5">
-                      <div className="font-bold text-slate-900 text-xs truncate font-display">
-                        {exp.title}
-                      </div>
-                      <div className="text-[10px] text-slate-400">{formatDateTime(exp.createdAt)} • <span className="font-semibold text-rose-700">{exp.paymentMethod}</span></div>
-                      {exp.notes && (
-                        <div className="text-[10px] text-slate-500 italic truncate">{exp.notes}</div>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2 flex-shrink-0">
-                      <span className="font-black font-display text-xs sm:text-sm text-rose-700">
-                        -{formatCurrency(exp.amount)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteExpense(exp.id)}
-                        className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                        title="Supprimer la dépense"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+
+              <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-150 space-y-1">
+                <div className="flex items-center space-x-1.5 text-[#ff6600] text-[10px] font-bold font-display">
+                  <Smartphone className="w-3.5 h-3.5 stroke-[2.2] text-[#ff6600]" />
+                  <span>Orange Money</span>
+                </div>
+                <div className="text-xs sm:text-sm font-black text-slate-900 font-display truncate">
+                  {formatCurrency(summary?.orangeMoneySales || 0)}
+                </div>
+                <div className="text-[10px] text-slate-400 font-medium">
+                  {totalCashCollected > 0 ? `${Math.round(((summary?.orangeMoneySales || 0) / totalCashCollected) * 100)}% du total` : '0%'}
+                </div>
               </div>
-            )}
+
+              <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-150 space-y-1">
+                <div className="flex items-center space-x-1.5 text-[#005baa] text-[10px] font-bold font-display">
+                  <Smartphone className="w-3.5 h-3.5 stroke-[2.2] text-[#005baa]" />
+                  <span>Moov Money</span>
+                </div>
+                <div className="text-xs sm:text-sm font-black text-slate-900 font-display truncate">
+                  {formatCurrency(summary?.moovMoneySales || 0)}
+                </div>
+                <div className="text-[10px] text-slate-400 font-medium">
+                  {totalCashCollected > 0 ? `${Math.round(((summary?.moovMoneySales || 0) / totalCashCollected) * 100)}% du total` : '0%'}
+                </div>
+              </div>
+
+              <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-150 space-y-1">
+                <div className="flex items-center space-x-1.5 text-[#1dc4fe] text-[10px] font-bold font-display">
+                  <Smartphone className="w-3.5 h-3.5 stroke-[2.2] text-[#1dc4fe]" />
+                  <span>Wave</span>
+                </div>
+                <div className="text-xs sm:text-sm font-black text-slate-900 font-display truncate">
+                  {formatCurrency(summary?.waveSales || 0)}
+                </div>
+                <div className="text-[10px] text-slate-400 font-medium">
+                  {totalCashCollected > 0 ? `${Math.round(((summary?.waveSales || 0) / totalCashCollected) * 100)}% du total` : '0%'}
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+
+          {/* CARTE 2 : SITUATION DES CRÉDITS & ENCOURS DETTES */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs space-y-3.5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-black text-xs sm:text-sm text-slate-900 font-display">Crédits & Créances</h4>
+                  <p className="text-[10px] text-slate-500">Mouvements des dettes sur la période</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="bg-amber-50/70 p-3 rounded-2xl border border-amber-200/70 space-y-1">
+                <div className="text-[10px] font-bold text-amber-800 uppercase tracking-wider flex items-center space-x-1 font-display">
+                  <CreditCard className="w-3 h-3 text-amber-700" />
+                  <span>Crédits Accordés</span>
+                </div>
+                <div className="text-xs sm:text-sm font-black text-amber-950 font-display truncate">
+                  {formatCurrency(summary?.creditSales || 0)}
+                </div>
+              </div>
+
+              <div className="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-200/70 space-y-1">
+                <div className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider flex items-center space-x-1 font-display">
+                  <ArrowDownLeft className="w-3 h-3 text-emerald-700" />
+                  <span>Dettes Récupérées</span>
+                </div>
+                <div className="text-xs sm:text-sm font-black text-emerald-950 font-display truncate">
+                  {formatCurrency(summary?.totalRecoveredDebts || 0)}
+                </div>
+              </div>
+            </div>
+
+            {/* Encart Dettes Restantes à Récupérer */}
+            <div 
+              onClick={() => setActiveTab('debts')}
+              className="bg-gradient-to-r from-amber-600 via-amber-700 to-amber-900 text-white p-4 rounded-2xl shadow-sm border border-amber-500/40 flex items-center justify-between cursor-pointer hover:border-amber-400 hover:shadow-md transition-all active:scale-99 group"
+            >
+              <div className="space-y-0.5 min-w-0 pr-2">
+                <div className="flex items-center space-x-1.5 text-amber-200 text-[10px] font-bold uppercase tracking-wider font-display">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Dettes Restantes à Recouvrer</span>
+                </div>
+                <div className="text-base sm:text-lg font-black text-white font-display truncate">
+                  {formatCurrency(summary?.totalOutstandingDebt || 0)}
+                </div>
+                <p className="text-[10px] text-amber-100/80">
+                  {summary?.debtorsCount || 0} client{summary?.debtorsCount && summary.debtorsCount > 1 ? 's' : ''} débiteur{summary?.debtorsCount && summary.debtorsCount > 1 ? 's' : ''} en attente
+                </p>
+              </div>
+
+              <div className="bg-white/20 group-hover:bg-white text-white group-hover:text-amber-900 px-3 py-1.5 rounded-xl flex items-center space-x-1 text-xs font-bold transition-colors shrink-0 font-display">
+                <span>Carnet</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* MODALE D'AJOUT DE DÉPENSE */}
