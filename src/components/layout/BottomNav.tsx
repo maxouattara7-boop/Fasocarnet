@@ -25,14 +25,14 @@ export const BottomNav: React.FC = () => {
               onClick={() => setActiveTab(item.id)}
               className={`flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-150 cursor-pointer ${
                 isActive
-                  ? 'text-emerald-700 font-extrabold bg-emerald-500/10'
+                  ? 'text-orange-600 font-extrabold bg-orange-500/10'
                   : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/60 font-semibold'
               }`}
             >
-              <div className={`p-0.5 rounded-lg transition-transform duration-150 ${isActive ? 'scale-105 text-emerald-600' : 'text-slate-400'}`}>
+              <div className={`p-0.5 rounded-lg transition-transform duration-150 ${isActive ? 'scale-105 text-orange-600' : 'text-slate-400'}`}>
                 {item.icon}
               </div>
-              <span className={`text-xs tracking-tight leading-none mt-1 ${isActive ? 'text-emerald-800 font-extrabold' : 'text-slate-600 font-semibold'}`}>
+              <span className={`text-xs tracking-tight leading-none mt-1 ${isActive ? 'text-orange-700 font-extrabold' : 'text-slate-600 font-semibold'}`}>
                 {item.label}
               </span>
             </button>

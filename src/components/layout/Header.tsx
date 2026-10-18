@@ -57,7 +57,7 @@ export const Header: React.FC = () => {
                   onClick={() => setActiveTab(item.id)}
                   className={`px-2.5 lg:px-3.5 py-1.5 lg:py-2 rounded-xl font-bold text-xs lg:text-[13px] flex items-center space-x-1.5 lg:space-x-2 transition-all cursor-pointer font-display whitespace-nowrap shrink-0 ${
                     isActive
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-md shadow-emerald-500/25 font-black scale-102'
+                      ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 text-slate-950 shadow-md shadow-orange-500/30 font-black scale-102'
                       : 'text-emerald-200 hover:text-white hover:bg-emerald-800/50'
                   }`}
                 >
