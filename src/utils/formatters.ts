@@ -54,3 +54,19 @@ export function formatDateTime(isoString: string): string {
     return isoString;
   }
 }
+
+/**
+ * Formate uniquement l'heure en français (ex: "14:30")
+ */
+export function formatTime(isoString: string): string {
+  try {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch {
+    return isoString;
+  }
+}
+

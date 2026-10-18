@@ -8,6 +8,7 @@ import { DailyReportView } from './components/reports/DailyReportView';
 import { SettingsView } from './components/settings/SettingsView';
 import { InvoicesView } from './components/invoices/InvoicesView';
 import { InventoryView } from './components/inventory/InventoryView';
+import { MobileHomeView } from './components/mobile/MobileHomeView';
 import { PinLockModal } from './components/auth/PinLockModal';
 import { OnboardingView } from './components/onboarding/OnboardingView';
 import { AdminView } from './components/admin/AdminView';
@@ -364,6 +365,7 @@ export const App: React.FC = () => {
 
         <main className={`flex-1 w-full min-h-0 ${activeTab === 'pos' ? 'h-full overflow-hidden' : ''}`}>
           <ErrorBoundary fallbackMessage="Une anomalie temporaire est survenue sur cet écran. Vos données sont conservées en toute sécurité.">
+            {activeTab === 'home' && <MobileHomeView />}
             {activeTab === 'pos' && <PosView />}
             {activeTab === 'debts' && <DebtsView />}
             {activeTab === 'reports' && <DailyReportView />}

@@ -4,13 +4,17 @@ import { db } from '../db/db';
 import { syncService, LoginResult } from '../db/services/syncService';
 import { verifyHash, hashPin, isHashed } from '../utils/crypto';
 
-export type ActiveTab = 'pos' | 'debts' | 'reports' | 'invoices' | 'inventory' | 'settings';
+export type ActiveTab = 'home' | 'pos' | 'debts' | 'reports' | 'invoices' | 'inventory' | 'settings';
 
 const getInitialActiveTab = (): ActiveTab => {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('fasocarnet_active_tab');
-    if (saved === 'pos' || saved === 'debts' || saved === 'reports' || saved === 'invoices' || saved === 'inventory' || saved === 'settings') {
+    if (saved === 'home' || saved === 'pos' || saved === 'debts' || saved === 'reports' || saved === 'invoices' || saved === 'inventory' || saved === 'settings') {
       return saved as ActiveTab;
+    }
+    // Sur mobile, démarrer par défaut sur le hub d'accueil
+    if (window.innerWidth < 768) {
+      return 'home';
     }
   }
   return 'pos';
