@@ -2507,59 +2507,30 @@ export const SettingsView: React.FC = () => {
       {/* RUBRIQUE 4 : PAIEMENTS MOBILE MONEY (FINTECH STANDARD)   */}
       {/* ======================================================== */}
       {activeSubTab === 'payments' && (
-        <form onSubmit={handleSaveProfile} className="space-y-6 w-full animate-in fade-in duration-150">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start">
+        <form onSubmit={handleSaveProfile} className="space-y-4 w-full animate-in fade-in duration-150">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 w-full items-start">
             {/* COLONNE GAUCHE (7 cols) : Configuration des numéros marchands */}
-            <div className="lg:col-span-7 space-y-6">
-              {/* Carte Statut de Sécurité & Verrouillage PIN */}
-              <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
-                <div className="flex items-center space-x-2.5 text-slate-900 border-b border-slate-100 pb-3">
-                  <div className="w-9 h-9 rounded-2xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shrink-0">
-                    <Smartphone className="w-5 h-5 text-emerald-700" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-sm tracking-tight font-display text-slate-900">
-                      Numéros de Réception Marchand
-                    </h3>
-                    <p className="text-[10px] text-slate-500 font-medium">
-                      Numéros Mobile Money imprimés sur vos reçus et envoyés par WhatsApp
-                    </p>
-                  </div>
-                </div>
-
-                {phoneError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center space-x-2 text-red-700 text-xs font-semibold animate-in fade-in">
-                    <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
-                    <span>{phoneError}</span>
-                  </div>
-                )}
-
-                {/* État de verrouillage sécurisé */}
-                {hasConfiguredPaymentNumbers && (
-                  <div className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${
-                    isPaymentInputsLocked 
-                      ? 'bg-slate-50 border-slate-200' 
-                      : 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
-                  }`}>
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                        isPaymentInputsLocked ? 'bg-slate-200 text-slate-600' : 'bg-emerald-600 text-white shadow-xs'
-                      }`}>
-                        {isPaymentInputsLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                      </div>
-                      <div>
-                        <p className="text-xs font-extrabold text-slate-900 font-display">
-                          {isPaymentInputsLocked ? 'Numéros protégés & verrouillés' : 'Modification autorisée'}
-                        </p>
-                        <p className="text-[10px] text-slate-500 font-medium">
-                          {isPaymentInputsLocked 
-                            ? 'Affichage sécurisé. Code PIN requis pour toute modification.' 
-                            : 'Vous pouvez modifier les numéros puis cliquer sur Enregistrer.'}
-                        </p>
-                      </div>
+            <div className="lg:col-span-7 space-y-4">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3.5">
+                {/* En-tête compact avec statut & action intégrés */}
+                <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-100 pb-3">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200/60 flex items-center justify-center text-emerald-700 shrink-0">
+                      <Smartphone className="w-4 h-4 text-emerald-700" />
                     </div>
+                    <div>
+                      <h3 className="font-bold text-sm tracking-tight font-display text-slate-900">
+                        Numéros de Réception Marchand
+                      </h3>
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        Imprimés sur les reçus et intégrés aux rappels WhatsApp
+                      </p>
+                    </div>
+                  </div>
 
-                    {isPaymentInputsLocked ? (
+                  {/* Bouton d'action sécurisé compact */}
+                  {hasConfiguredPaymentNumbers && (
+                    isPaymentInputsLocked ? (
                       <button
                         type="button"
                         onClick={() => {
@@ -2567,195 +2538,186 @@ export const SettingsView: React.FC = () => {
                           setUnlockPaymentPinError('');
                           setShowUnlockPaymentModal(true);
                         }}
-                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black rounded-xl text-xs flex items-center space-x-1.5 shadow-xs cursor-pointer font-display transition-all shrink-0"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 hover:border-emerald-300 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
                       >
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>Modifier</span>
+                        <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Modifier (PIN)</span>
                       </button>
                     ) : (
                       <button
                         type="button"
                         onClick={handleCancelPaymentUnlock}
-                        className="px-3 py-1.5 text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                       >
-                        Reverrouiller
+                        <Unlock className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Reverrouiller</span>
                       </button>
-                    )}
+                    )
+                  )}
+                </div>
+
+                {phoneError && (
+                  <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl flex items-center space-x-2 text-red-700 text-xs font-semibold animate-in fade-in">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
+                    <span>{phoneError}</span>
                   </div>
                 )}
 
-                {/* Saisie des Opérateurs */}
-                <div className="space-y-4 pt-1">
+                {/* Bandeau d'état lors du déverrouillage */}
+                {hasConfiguredPaymentNumbers && !isPaymentInputsLocked && (
+                  <div className="px-3 py-2 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-900 font-semibold animate-in fade-in">
+                    <span className="flex items-center gap-1.5">
+                      <Unlock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Modification autorisée — Modifiez les numéros puis enregistrez.</span>
+                    </span>
+                  </div>
+                )}
+
+                {/* Saisie compacte des Opérateurs */}
+                <div className="space-y-3">
                   {/* Numéro Orange Money */}
-                  <div className="p-3.5 rounded-2xl bg-orange-50/30 border border-orange-200/70 space-y-2">
+                  <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#ff6600]" />
-                        <label className="text-[11px] font-black text-[#ff6600] uppercase tracking-wider font-display">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#ff6600]" />
+                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
                           Orange Money (Burkina Faso)
                         </label>
                       </div>
-                      {isPaymentInputsLocked && omNumber && (
-                        <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                          <Lock className="w-3 h-3" />
-                          <span>Verrouillé</span>
-                        </span>
-                      )}
                     </div>
-                    <div className="relative flex items-center">
-                      <input
-                        type="tel"
-                        value={omNumber}
-                        readOnly={isPaymentInputsLocked}
-                        disabled={isPaymentInputsLocked}
-                        onClick={isPaymentInputsLocked ? () => {
-                          setUnlockPaymentPin('');
-                          setUnlockPaymentPinError('');
-                          setShowUnlockPaymentModal(true);
-                        } : undefined}
-                        onChange={(e) => {
-                          setPhoneError(null);
-                          setOmNumber(cleanPhoneNumber(e.target.value));
-                        }}
-                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold outline-none transition-all ${
-                          isPaymentInputsLocked
-                            ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed select-none font-mono placeholder:text-slate-400'
-                            : 'bg-white border border-orange-300 text-slate-900 focus:ring-2 focus:ring-[#ff6600]/30 placeholder:text-slate-400 shadow-2xs'
-                        }`}
-                        placeholder="Ex: 70 12 34 56"
-                      />
-                    </div>
+                    <input
+                      type="tel"
+                      value={omNumber}
+                      readOnly={isPaymentInputsLocked}
+                      disabled={isPaymentInputsLocked}
+                      onClick={isPaymentInputsLocked ? () => {
+                        setUnlockPaymentPin('');
+                        setUnlockPaymentPinError('');
+                        setShowUnlockPaymentModal(true);
+                      } : undefined}
+                      onChange={(e) => {
+                        setPhoneError(null);
+                        setOmNumber(cleanPhoneNumber(e.target.value));
+                      }}
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none transition-all ${
+                        isPaymentInputsLocked
+                          ? 'bg-slate-50 text-slate-600 border border-slate-200/80 cursor-pointer select-none font-mono placeholder:text-slate-400'
+                          : 'bg-white border border-orange-300 text-slate-900 focus:ring-2 focus:ring-[#ff6600]/20 placeholder:text-slate-400 shadow-2xs'
+                      }`}
+                      placeholder="Ex: 70 12 34 56"
+                    />
                   </div>
 
                   {/* Numéro Moov Money */}
-                  <div className="p-3.5 rounded-2xl bg-blue-50/30 border border-blue-200/70 space-y-2">
+                  <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#005baa]" />
-                        <label className="text-[11px] font-black text-[#005baa] uppercase tracking-wider font-display">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#005baa]" />
+                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
                           Moov Money (Burkina Faso)
                         </label>
                       </div>
-                      {isPaymentInputsLocked && moovNumber && (
-                        <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                          <Lock className="w-3 h-3" />
-                          <span>Verrouillé</span>
-                        </span>
-                      )}
                     </div>
-                    <div className="relative flex items-center">
-                      <input
-                        type="tel"
-                        value={moovNumber}
-                        readOnly={isPaymentInputsLocked}
-                        disabled={isPaymentInputsLocked}
-                        onClick={isPaymentInputsLocked ? () => {
-                          setUnlockPaymentPin('');
-                          setUnlockPaymentPinError('');
-                          setShowUnlockPaymentModal(true);
-                        } : undefined}
-                        onChange={(e) => {
-                          setPhoneError(null);
-                          setMoovNumber(cleanPhoneNumber(e.target.value));
-                        }}
-                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold outline-none transition-all ${
-                          isPaymentInputsLocked
-                            ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed select-none font-mono placeholder:text-slate-400'
-                            : 'bg-white border border-blue-300 text-slate-900 focus:ring-2 focus:ring-[#005baa]/30 placeholder:text-slate-400 shadow-2xs'
-                        }`}
-                        placeholder="Ex: 60 12 34 56"
-                      />
-                    </div>
+                    <input
+                      type="tel"
+                      value={moovNumber}
+                      readOnly={isPaymentInputsLocked}
+                      disabled={isPaymentInputsLocked}
+                      onClick={isPaymentInputsLocked ? () => {
+                        setUnlockPaymentPin('');
+                        setUnlockPaymentPinError('');
+                        setShowUnlockPaymentModal(true);
+                      } : undefined}
+                      onChange={(e) => {
+                        setPhoneError(null);
+                        setMoovNumber(cleanPhoneNumber(e.target.value));
+                      }}
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none transition-all ${
+                        isPaymentInputsLocked
+                          ? 'bg-slate-50 text-slate-600 border border-slate-200/80 cursor-pointer select-none font-mono placeholder:text-slate-400'
+                          : 'bg-white border border-blue-300 text-slate-900 focus:ring-2 focus:ring-[#005baa]/20 placeholder:text-slate-400 shadow-2xs'
+                      }`}
+                      placeholder="Ex: 60 12 34 56"
+                    />
                   </div>
 
                   {/* Numéro Wave */}
-                  <div className="p-3.5 rounded-2xl bg-sky-50/30 border border-sky-200/70 space-y-2">
+                  <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#1dc4fe]" />
-                        <label className="text-[11px] font-black text-[#0284c7] uppercase tracking-wider font-display">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#1dc4fe]" />
+                        <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">
                           Wave (Burkina Faso)
                         </label>
                       </div>
-                      {isPaymentInputsLocked && waveNumber && (
-                        <span className="inline-flex items-center space-x-1 text-[9px] font-extrabold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
-                          <Lock className="w-3 h-3" />
-                          <span>Verrouillé</span>
-                        </span>
-                      )}
                     </div>
-                    <div className="relative flex items-center">
-                      <input
-                        type="tel"
-                        value={waveNumber}
-                        readOnly={isPaymentInputsLocked}
-                        disabled={isPaymentInputsLocked}
-                        onClick={isPaymentInputsLocked ? () => {
-                          setUnlockPaymentPin('');
-                          setUnlockPaymentPinError('');
-                          setShowUnlockPaymentModal(true);
-                        } : undefined}
-                        onChange={(e) => {
-                          setPhoneError(null);
-                          setWaveNumber(cleanPhoneNumber(e.target.value));
-                        }}
-                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold outline-none transition-all ${
-                          isPaymentInputsLocked
-                            ? 'bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed select-none font-mono placeholder:text-slate-400'
-                            : 'bg-white border border-sky-300 text-slate-900 focus:ring-2 focus:ring-[#1dc4fe]/30 placeholder:text-slate-400 shadow-2xs'
-                        }`}
-                        placeholder="Ex: 70 12 34 56"
-                      />
-                    </div>
+                    <input
+                      type="tel"
+                      value={waveNumber}
+                      readOnly={isPaymentInputsLocked}
+                      disabled={isPaymentInputsLocked}
+                      onClick={isPaymentInputsLocked ? () => {
+                        setUnlockPaymentPin('');
+                        setUnlockPaymentPinError('');
+                        setShowUnlockPaymentModal(true);
+                      } : undefined}
+                      onChange={(e) => {
+                        setPhoneError(null);
+                        setWaveNumber(cleanPhoneNumber(e.target.value));
+                      }}
+                      className={`w-full px-3 py-2 rounded-xl text-xs font-semibold outline-none transition-all ${
+                        isPaymentInputsLocked
+                          ? 'bg-slate-50 text-slate-600 border border-slate-200/80 cursor-pointer select-none font-mono placeholder:text-slate-400'
+                          : 'bg-white border border-sky-300 text-slate-900 focus:ring-2 focus:ring-[#1dc4fe]/20 placeholder:text-slate-400 shadow-2xs'
+                      }`}
+                      placeholder="Ex: 70 12 34 56"
+                    />
                   </div>
                 </div>
 
-                {isPaymentInputsLocked ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUnlockPaymentPin('');
-                      setUnlockPaymentPinError('');
-                      setShowUnlockPaymentModal(true);
-                    }}
-                    className="w-full py-3 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-bold rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs sm:text-sm cursor-pointer font-display border border-slate-200"
-                  >
-                    <Lock className="w-4 h-4 text-emerald-600" />
-                    <span>Modifier les numéros (Code PIN requis)</span>
-                  </button>
-                ) : (
-                  <div className="space-y-2 pt-2">
+                {/* Actions de validation quand déverrouillé ou non configuré */}
+                {!isPaymentInputsLocked ? (
+                  <div className="space-y-2 pt-1.5">
                     <button
                       type="submit"
-                      className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs sm:text-sm cursor-pointer font-display"
+                      className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-bold rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs cursor-pointer font-display"
                     >
                       <Save className="w-4 h-4" />
-                      <span>Enregistrer les Numéros de Paiement</span>
+                      <span>Enregistrer les numéros</span>
                     </button>
                     {hasConfiguredPaymentNumbers && (
                       <button
                         type="button"
                         onClick={handleCancelPaymentUnlock}
-                        className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+                        className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
                       >
                         Annuler et Reverrouiller
                       </button>
                     )}
+                  </div>
+                ) : !hasConfiguredPaymentNumbers && (
+                  <div className="pt-1.5">
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-bold rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs cursor-pointer font-display"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Enregistrer les numéros</span>
+                    </button>
                   </div>
                 )}
               </div>
             </div>
 
             {/* COLONNE DROITE (5 cols) : Aperçu Reçu & Relance WhatsApp */}
-            <div className="lg:col-span-5 space-y-6">
-              {/* Carte Aperçu Reçu Thermique */}
-              <div className="bg-slate-50 p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
-                <div className="flex items-center space-x-2.5 text-slate-900 border-b border-slate-200/80 pb-3">
-                  <div className="w-9 h-9 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 shrink-0 shadow-2xs">
-                    <Printer className="w-5 h-5 text-slate-700" />
+            <div className="lg:col-span-5 space-y-4">
+              <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-3.5">
+                <div className="flex items-center space-x-2 text-slate-900 border-b border-slate-200/80 pb-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 shrink-0 shadow-2xs">
+                    <Printer className="w-4 h-4 text-slate-700" />
                   </div>
                   <div>
-                    <h4 className="font-black text-xs text-slate-900 uppercase tracking-wider font-display">
+                    <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider font-display">
                       Aperçu sur vos Reçus Clients
                     </h4>
                     <p className="text-[10px] text-slate-500 font-medium">
@@ -2764,8 +2726,8 @@ export const SettingsView: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm space-y-3 font-mono text-xs">
-                  <div className="border-b border-dashed border-slate-200 pb-2 text-center font-bold text-slate-800 text-[11px]">
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-2.5 font-mono text-xs">
+                  <div className="border-b border-dashed border-slate-200 pb-1.5 text-center font-bold text-slate-700 text-[11px]">
                     --- RÈGLEMENT PAR MOBILE MONEY ---
                   </div>
                   <div className="space-y-1.5">
@@ -2782,16 +2744,16 @@ export const SettingsView: React.FC = () => {
                       <span className="font-bold text-slate-900">{waveNumber ? formatPhoneNumberDisplay(waveNumber) : 'Non configuré'}</span>
                     </div>
                   </div>
-                  <div className="border-t border-dashed border-slate-200 pt-2 text-center text-[10px] text-slate-400">
+                  <div className="border-t border-dashed border-slate-200 pt-1.5 text-center text-[10px] text-slate-400">
                     Merci pour votre confiance !
                   </div>
                 </div>
 
-                {/* Relance WhatsApp Notice */}
-                <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl text-[11px] text-emerald-900 flex items-start space-x-2.5">
-                  <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <p className="leading-relaxed">
-                    Lorsqu'un rappel WhatsApp de dette est envoyé à un client, ces coordonnées de paiement sont automatiquement intégrées pour faciliter le virement direct.
+                {/* Relance WhatsApp Notice compacte */}
+                <div className="p-2.5 bg-emerald-50/70 border border-emerald-200/80 rounded-xl text-[11px] text-emerald-900 flex items-center space-x-2">
+                  <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <p className="leading-snug">
+                    Coordonnées incluses automatiquement dans les rappels WhatsApp de dettes.
                   </p>
                 </div>
               </div>
