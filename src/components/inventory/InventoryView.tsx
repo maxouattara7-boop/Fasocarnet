@@ -9,6 +9,7 @@ import {
   Search,
   X,
   Plus,
+  Minus,
   PackagePlus,
   Trash2,
   Barcode,
@@ -28,7 +29,7 @@ import { subscriptionService } from '../../db/services/subscriptionService';
 import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
 import { compressImage } from '../../utils/imageCompressor';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
-import { triggerDoubleHaptic } from '../../utils/haptics';
+import { triggerHaptic, triggerDoubleHaptic } from '../../utils/haptics';
 import { exportSuppliesToExcel, printSuppliesReport } from '../../utils/suppliesExporter';
 
 type CatalogSubTab = 'catalog' | 'supplies';
@@ -1247,68 +1248,113 @@ export const InventoryView: React.FC = () => {
 
       {/* MODAL DE RÉAPPROVISIONNEMENT RAPIDE */}
       {restockProduct && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl p-5 space-y-4 animate-in zoom-in-95 duration-150 border border-slate-100">
-            <div className="flex items-center space-x-2.5 text-slate-900 border-b border-slate-100 pb-3">
-              <div className="w-9 h-9 rounded-2xl bg-emerald-50 border border-emerald-200/80 text-emerald-700 flex items-center justify-center font-bold shrink-0">
-                <Boxes className="w-5 h-5 text-emerald-600" />
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-150 border border-slate-100">
+            {/* En-tête */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-700 flex items-center justify-center font-bold shrink-0">
+                  <Boxes className="w-4 h-4 text-emerald-600" />
+                </div>
+                <h3 className="text-sm font-black text-slate-900 font-display">
+                  Réapprovisionner le Stock
+                </h3>
               </div>
-              <div className="overflow-hidden">
-                <h3 className="text-xs font-black text-slate-900 font-display">Réapprovisionner le Stock</h3>
-                <p className="text-[11px] font-bold text-emerald-700 truncate font-display">
-                  {restockProduct.name}
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setRestockProduct(null)}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs space-y-1">
-              <div className="flex justify-between text-slate-600">
-                <span>Stock actuel :</span>
-                <span className="font-extrabold text-slate-900">
-                  {restockProduct.stockQuantity !== undefined ? `${restockProduct.stockQuantity} unité(s)` : 'Non suivi'}
+            {/* Fiche Produit simplifiée */}
+            <div className="bg-white border-2 border-slate-100 rounded-2xl p-3 flex items-center space-x-3 shadow-2xs">
+              {restockProduct.imageUrl ? (
+                <img
+                  src={restockProduct.imageUrl}
+                  alt={restockProduct.name}
+                  className="w-12 h-12 rounded-xl object-cover border border-slate-200 shadow-2xs shrink-0"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-2xs shrink-0">
+                  <Package className="w-6 h-6 stroke-[2]" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 leading-tight truncate font-display">
+                  {restockProduct.name}
+                </h4>
+                <p className="font-black text-sm text-emerald-600 mt-0.5 font-display">
+                  {formatCurrency(restockProduct.price)}
+                </p>
+                <span className="text-[10px] font-bold text-slate-500">
+                  Stock actuel : {restockProduct.stockQuantity !== undefined ? `${restockProduct.stockQuantity} unité(s)` : 'Non suivi'}
                 </span>
               </div>
-              <div className="flex justify-between text-emerald-800 font-bold">
-                <span>Prix unitaire :</span>
-                <span>{formatCurrency(restockProduct.price)}</span>
-              </div>
             </div>
 
-            <form onSubmit={handleApplyRestockModal} className="space-y-3">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1 font-display">
+            <form onSubmit={handleApplyRestockModal} className="space-y-4">
+              {/* Stepper épuré : [-]  [Chiffre]  [+] */}
+              <div className="py-1">
+                <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 text-center font-display tracking-wider">
                   Quantité à ajouter au stock *
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={restockQtyInput}
-                  onChange={(e) => setRestockQtyInput(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border-2 border-emerald-500 rounded-xl text-sm font-black text-center text-slate-900 focus:ring-2 focus:ring-emerald-500/20 outline-none font-display"
-                  placeholder="Ex: 10"
-                  autoFocus
-                />
-              </div>
-
-              <div className="grid grid-cols-4 gap-1.5">
-                {[5, 10, 20, 50].map((qty) => (
+                <div className="flex items-center justify-center space-x-5">
+                  {/* Bouton Moins */}
                   <button
-                    key={qty}
                     type="button"
-                    onClick={() => setRestockQtyInput(String(qty))}
-                    className={`py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer font-display ${
-                      restockQtyInput === String(qty)
-                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
-                        : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
-                    }`}
+                    onClick={() => {
+                      triggerHaptic(30);
+                      const current = parseInt(restockQtyInput, 10) || 0;
+                      setRestockQtyInput(String(Math.max(1, current - 1)));
+                    }}
+                    className="w-14 h-14 rounded-2xl border-2 border-slate-200/90 bg-white hover:bg-rose-50/50 text-slate-800 active:bg-rose-600 active:border-rose-600 active:text-white flex items-center justify-center transition-all duration-150 active:scale-95 cursor-pointer shadow-sm"
+                    title="Diminuer d'une unité"
                   >
-                    +{qty}
+                    <Minus className="w-6 h-6 stroke-[3]" />
                   </button>
-                ))}
+
+                  {/* Chiffre au milieu */}
+                  <div className="flex flex-col items-center justify-center min-w-[70px]">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      required
+                      value={restockQtyInput}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setRestockQtyInput(val === '' ? '1' : val);
+                      }}
+                      onFocus={(e) => e.target.select()}
+                      className="w-24 text-center text-4xl sm:text-5xl font-black text-slate-950 font-display bg-transparent border-0 focus:outline-none focus:ring-0 select-all p-0 leading-none cursor-text tracking-tight"
+                      autoFocus
+                    />
+                    <span className="text-[10px] font-extrabold text-slate-400 mt-1 uppercase tracking-wider font-display">
+                      Unités
+                    </span>
+                  </div>
+
+                  {/* Bouton Plus */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic(30);
+                      const current = parseInt(restockQtyInput, 10) || 0;
+                      setRestockQtyInput(String(Math.max(1, current + 1)));
+                    }}
+                    className="w-14 h-14 rounded-2xl border-2 border-emerald-700 bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-white flex items-center justify-center transition-all duration-150 active:scale-95 cursor-pointer shadow-md shadow-emerald-700/20"
+                    title="Ajouter une unité"
+                  >
+                    <Plus className="w-6 h-6 stroke-[3]" />
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              {/* Paramètres optionnels de prix */}
+              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
                 <div>
                   <label className="block text-[9px] font-bold text-slate-600 mb-1">
                     Prix d'achat unitaire (FCFA)
@@ -1325,7 +1371,7 @@ export const InventoryView: React.FC = () => {
 
                 <div>
                   <label className="block text-[9px] font-bold text-slate-600 mb-1">
-                    Nouveau prix de vente (FCFA)
+                    Prix de vente (FCFA)
                   </label>
                   <input
                     type="number"
@@ -1355,14 +1401,14 @@ export const InventoryView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setRestockProduct(null)}
-                  className="w-1/2 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer font-display"
+                  className="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer font-display"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={isRestocking}
-                  className="w-1/2 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black rounded-xl text-xs shadow-md shadow-emerald-700/20 active:scale-95 transition-all cursor-pointer font-display disabled:opacity-50"
+                  className="w-1/2 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black rounded-xl text-xs shadow-md shadow-emerald-700/20 active:scale-95 transition-all cursor-pointer font-display disabled:opacity-50"
                 >
                   {isRestocking ? 'Ajout...' : 'Ajouter au Stock'}
                 </button>

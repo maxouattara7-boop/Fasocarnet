@@ -21,11 +21,16 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
 }) => {
   const [quantity, setQuantity] = useState<number>(initialQuantity);
   const [inputVal, setInputVal] = useState<string>(initialQuantity.toString());
+  const [minusActive, setMinusActive] = useState(false);
+  const [plusActive, setPlusActive] = useState(false);
 
   useEffect(() => {
     if (isOpen && product) {
-      setQuantity(initialQuantity || 1);
-      setInputVal((initialQuantity || 1).toString());
+      const q = initialQuantity || 1;
+      setQuantity(q);
+      setInputVal(q.toString());
+      setMinusActive(false);
+      setPlusActive(false);
     }
   }, [isOpen, product, initialQuantity]);
 
@@ -99,153 +104,154 @@ export const QuantityModal: React.FC<QuantityModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4 animate-in slide-in-from-bottom duration-200 border border-slate-100">
-        {/* En-tête modal */}
-        <div className="flex items-start justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center space-x-3">
-            <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shrink-0">
-              <Package className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-xs font-black uppercase tracking-wider text-slate-400 block">
-                Quantité d'article
-              </span>
-              <h3 className="text-xl font-black text-slate-900 leading-tight">
-                {product.name}
-              </h3>
-            </div>
-          </div>
+      <div className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5 animate-in slide-in-from-bottom duration-200 border border-slate-100">
+        
+        {/* En-tête modal épuré */}
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h3 className="text-base font-black text-slate-900 font-display">
+            Quantité d'article
+          </h3>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+            title="Fermer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Détails Prix Unitaire et Stock */}
-        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 flex items-center justify-between text-xs">
-          <div>
-            <span className="text-xs font-bold uppercase text-slate-500 block">Prix unitaire</span>
-            <span className="font-black text-slate-900 text-lg">
-              {formatCurrency(product.price)}
-            </span>
-          </div>
-          {maxAvailableStock !== undefined && (
-            <div className="text-right">
-              <span className="text-xs font-bold uppercase text-slate-500 block">Stock disponible</span>
-              <span className={`font-black text-xs sm:text-sm px-3 py-1 rounded-full ${
-                isOutOfStock
-                  ? 'bg-red-100 text-red-700 border border-red-200'
-                  : maxAvailableStock <= (product.minStockAlert ?? 5)
-                  ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                  : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-              }`}>
-                {maxAvailableStock} unité(s)
-              </span>
+        {/* Fiche Article stylée inspirée du design moderne */}
+        <div className="bg-white border-2 border-slate-100 rounded-2xl sm:rounded-3xl p-3 sm:p-4 flex items-center space-x-3.5 shadow-sm">
+          {product.imageUrl ? (
+            <img
+              src={product.imageUrl}
+              alt={product.name}
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border border-slate-200 shadow-2xs shrink-0"
+            />
+          ) : (
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-700 shadow-2xs shrink-0">
+              <Package className="w-7 h-7 stroke-[2]" />
             </div>
           )}
+
+          <div className="min-w-0 flex-1">
+            <h4 className="font-extrabold text-sm sm:text-base text-slate-900 leading-snug line-clamp-2 font-display">
+              {product.name}
+            </h4>
+            <p className="font-black text-base sm:text-lg text-emerald-600 mt-0.5 font-display">
+              {formatCurrency(product.price)}
+            </p>
+            {maxAvailableStock !== undefined && (
+              <span className={`inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-md mt-1 ${
+                isOutOfStock
+                  ? 'bg-rose-100 text-rose-700'
+                  : maxAvailableStock <= (product.minStockAlert ?? 5)
+                  ? 'bg-amber-100 text-amber-800'
+                  : 'bg-emerald-100 text-emerald-800'
+              }`}>
+                Stock : {maxAvailableStock} dispo
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Sélecteur de Quantité Stepper & Clavier */}
-        <div className="space-y-2.5">
-          <label className="block text-sm sm:text-base font-bold text-slate-700 text-center">
-            Précisez le nombre d'unités à ajouter :
-          </label>
-          <div className="flex items-center justify-center space-x-3.5">
+        {/* Sélecteur de Quantité Ultra-Épuré : [-]  [Chiffre]  [+] */}
+        <div className="py-2">
+          <div className="flex items-center justify-center space-x-5 sm:space-x-7">
+            {/* Bouton Moins (Blanc avec retour rouge au clic) */}
             <button
               type="button"
               onClick={() => handleIncrement(-1)}
+              onMouseDown={() => setMinusActive(true)}
+              onMouseUp={() => setMinusActive(false)}
+              onTouchStart={() => setMinusActive(true)}
+              onTouchEnd={() => setMinusActive(false)}
               disabled={quantity <= 1 || isOutOfStock}
-              className="w-13 h-13 rounded-2xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 flex items-center justify-center text-xl font-black transition-all active:scale-95 disabled:opacity-30 cursor-pointer"
+              className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl sm:rounded-3xl border-2 flex items-center justify-center transition-all duration-150 active:scale-95 cursor-pointer shadow-sm ${
+                minusActive
+                  ? 'bg-rose-600 border-rose-600 text-white shadow-rose-500/30 ring-4 ring-rose-500/20'
+                  : 'bg-white hover:bg-rose-50/50 border-slate-200/90 text-slate-800 active:bg-rose-600 active:border-rose-600 active:text-white'
+              } disabled:opacity-30 disabled:cursor-not-allowed`}
+              title="Diminuer d'une unité"
             >
-              <Minus className="w-6 h-6" />
+              <Minus className="w-7 h-7 stroke-[3]" />
             </button>
 
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={inputVal}
-              disabled={isOutOfStock}
-              onChange={handleInputChange}
-              onFocus={(e) => e.target.select()}
-              className="w-28 h-13 bg-white border-2 border-emerald-500 rounded-2xl text-center text-3xl font-black text-slate-900 focus:ring-4 focus:ring-emerald-500/20 outline-none shadow-inner font-display disabled:bg-slate-100 disabled:opacity-50"
-              autoFocus
-            />
+            {/* Chiffre au milieu (Sélectionnable & modifiable au clavier) */}
+            <div className="flex flex-col items-center justify-center min-w-[70px]">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={inputVal}
+                disabled={isOutOfStock}
+                onChange={handleInputChange}
+                onFocus={(e) => e.target.select()}
+                className="w-24 sm:w-28 text-center text-5xl sm:text-6xl font-black text-slate-950 font-display bg-transparent border-0 focus:outline-none focus:ring-0 select-all p-0 leading-none cursor-text tracking-tight"
+                autoFocus
+              />
+              <span className="text-[11px] font-extrabold text-slate-400 mt-1 uppercase tracking-wider font-display">
+                {quantity > 1 ? 'Unités' : 'Unité'}
+              </span>
+            </div>
 
+            {/* Bouton Plus (Vert plein avec retour vert au clic) */}
             <button
               type="button"
               onClick={() => handleIncrement(1)}
+              onMouseDown={() => setPlusActive(true)}
+              onMouseUp={() => setPlusActive(false)}
+              onTouchStart={() => setPlusActive(true)}
+              onTouchEnd={() => setPlusActive(false)}
               disabled={isOutOfStock || (maxAvailableStock !== undefined && quantity >= maxAvailableStock)}
-              className="w-13 h-13 rounded-2xl bg-emerald-100 hover:bg-emerald-200 active:bg-emerald-300 text-emerald-800 flex items-center justify-center text-xl font-black transition-all active:scale-95 disabled:opacity-30 cursor-pointer"
+              className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl sm:rounded-3xl border-2 flex items-center justify-center transition-all duration-150 active:scale-95 cursor-pointer shadow-md shadow-emerald-700/20 ${
+                plusActive
+                  ? 'bg-emerald-600 border-emerald-600 text-white ring-4 ring-emerald-500/20'
+                  : 'bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 border-emerald-700 text-white'
+              } disabled:opacity-30 disabled:cursor-not-allowed`}
+              title="Ajouter une unité"
             >
-              <Plus className="w-6 h-6" />
+              <Plus className="w-7 h-7 stroke-[3]" />
             </button>
-          </div>
-
-          {/* Raccourcis tactiles rapides (+1, +2, +5, +10) */}
-          <div className="grid grid-cols-4 gap-2 pt-1">
-            {[1, 2, 5, 10].map((step) => (
-              <button
-                key={step}
-                type="button"
-                disabled={isOutOfStock || (maxAvailableStock !== undefined && quantity + step > maxAvailableStock)}
-                onClick={() => handleIncrement(step)}
-                className="py-3 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 text-emerald-800 border border-emerald-200/80 rounded-xl text-base font-black transition-all active:scale-95 cursor-pointer shadow-2xs font-display disabled:opacity-40"
-              >
-                +{step}
-              </button>
-            ))}
           </div>
         </div>
 
         {/* Alerte stock épuisé ou dépassé */}
         {isOutOfStock ? (
-          <div className="bg-red-50 border border-red-200 p-3 rounded-xl text-sm text-red-800 font-bold flex items-center space-x-2 animate-in fade-in">
-            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
-            <span>Cet article est en rupture de stock (0 unité disponible). Vente bloquée.</span>
+          <div className="bg-rose-50 border border-rose-200 p-3 rounded-2xl text-xs sm:text-sm text-rose-800 font-bold flex items-center space-x-2 animate-in fade-in">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>Cet article est en rupture de stock. Vente impossible.</span>
           </div>
         ) : isOverStock ? (
-          <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-sm text-amber-800 font-semibold flex items-center space-x-2 animate-in fade-in">
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-            <span>Attention : la quantité demandée dépasse le stock disponible ({maxAvailableStock}).</span>
+          <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl text-xs sm:text-sm text-amber-800 font-semibold flex items-center space-x-2 animate-in fade-in">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>Stock maximal disponible : {maxAvailableStock} unité(s).</span>
           </div>
         ) : null}
 
-        {/* Sous-total calculé */}
-        <div className="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-md">
-          <div>
-            <span className="text-xs font-bold text-emerald-300 uppercase block">Total calculé</span>
-            <span className="text-sm sm:text-base font-bold text-emerald-100">
-              {quantity} × {formatCurrency(product.price)}
-            </span>
-          </div>
-          <span className="text-2xl sm:text-3xl font-black text-white font-display">
-            {formatCurrency(totalAmount)}
-          </span>
-        </div>
-
         {/* Boutons d'action */}
-        <div className="grid grid-cols-2 gap-2.5 pt-1">
-          <button
-            type="button"
-            onClick={onClose}
-            className="py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-2xl text-sm sm:text-base transition-all active:scale-98 cursor-pointer"
-          >
-            Annuler
-          </button>
+        <div className="space-y-2 pt-1">
           <button
             type="button"
             onClick={handleConfirm}
             disabled={isOutOfStock || isOverStock}
-            className="py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl text-sm sm:text-base flex items-center justify-center space-x-2 shadow-md shadow-emerald-600/30 transition-all active:scale-98 cursor-pointer font-display disabled:opacity-50 disabled:bg-slate-400"
+            className="w-full py-3.5 sm:py-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black rounded-2xl text-sm sm:text-base flex items-center justify-center space-x-2 shadow-lg shadow-emerald-700/25 active:scale-98 transition-all cursor-pointer font-display disabled:opacity-50 disabled:bg-slate-400"
           >
             <Check className="w-5 h-5 stroke-[2.5]" />
             <span>Valider l'ajout</span>
+            <span className="text-emerald-100 font-extrabold ml-1">({formatCurrency(totalAmount)})</span>
+          </button>
+          
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-2.5 text-slate-500 hover:text-slate-800 font-bold text-xs sm:text-sm transition-colors cursor-pointer text-center"
+          >
+            Annuler
           </button>
         </div>
+
       </div>
     </div>
   );
