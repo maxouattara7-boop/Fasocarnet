@@ -800,7 +800,9 @@ export const syncService = {
    * Récupère les données distantes du Cloud et les fusionne en local avec isolation multi-tenant
    */
   async pullRemoteChanges(shopId: string): Promise<boolean> {
-    // Si Supabase est configuré et en ligne, vérifier l'existence
+    let remoteData: CloudShopData | null = null;
+
+    // 1. Si Supabase est configuré et en ligne, récupérer directement les données sans duplication
     if (supabaseClient.isConfigured() && (typeof navigator === 'undefined' || navigator.onLine)) {
       try {
         const supaShop = await supabaseClient.fetchShop(shopId);
@@ -810,6 +812,7 @@ export const syncService = {
           await this.handleShopDeletedLocally(shopId);
           return false;
         }
+        remoteData = supaShop;
       } catch (err) {
         // En cas d'erreur réseau, timeout, coupure Wi-Fi/4G lors de la sortie de veille :
         // NE JAMAIS DÉCONNECTER L'UTILISATEUR !
@@ -818,7 +821,10 @@ export const syncService = {
       }
     }
 
-    const remoteData = await this.fetchShopPartition(shopId);
+    // 2. Fallback REST ou local uniquement si Supabase n'est pas utilisé
+    if (!remoteData) {
+      remoteData = await this.fetchShopPartition(shopId);
+    }
     if (!remoteData) return false;
 
     await db.transaction('rw', [db.shopProfiles, db.products, db.customers, db.debts, db.debtPayments, db.sales, db.licenses], async () => {
@@ -911,14 +917,15 @@ export const syncService = {
       }
     );
 
-    // 2. Polling rapide de secours (toutes les 4 secondes si connecté)
+    // 2. Polling de secours très espacé (toutes les 10 minutes au lieu de 4 secondes pour économiser la bande passante)
+    // Les mises à jour réelles sont déjà transmises instantanément et sans surcoût par WebSocket
     activePollingInterval = setInterval(async () => {
       if (typeof navigator !== 'undefined' && !navigator.onLine) return;
       if (isSyncingLoop) return;
       try {
         await handleRemoteTrigger();
       } catch {}
-    }, 4000);
+    }, 10 * 60 * 1000);
 
     // 3. Réaction dès que l'appareil redevient actif (focus fenêtre, déverrouillage téléphone)
     let focusDebounceTimer: any = null;

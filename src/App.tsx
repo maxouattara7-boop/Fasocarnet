@@ -17,7 +17,6 @@ import { LandingPageView } from './components/landing/LandingPageView';
 import { subscriptionService } from './db/services/subscriptionService';
 import { sasPayService } from './db/services/sasPayService';
 import { syncService } from './db/services/syncService';
-import { adminService } from './db/services/adminService';
 import { AdminBroadcastMessage } from './types';
 import { Crown, Megaphone, X } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
@@ -151,8 +150,6 @@ export const App: React.FC = () => {
   }, [shopProfile]);
 
   useEffect(() => {
-    // Rétablir automatiquement tout compte précédemment suspendu
-    adminService.restoreAllSuspendedShops().catch(() => {});
     loadCurrentShop();
   }, [loadCurrentShop]);
 
