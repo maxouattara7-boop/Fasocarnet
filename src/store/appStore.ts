@@ -13,12 +13,8 @@ const getInitialActiveTab = (): ActiveTab => {
     if (saved === 'home' || saved === 'pos' || saved === 'debts' || saved === 'reports' || saved === 'invoices' || saved === 'inventory' || saved === 'settings') {
       return saved as ActiveTab;
     }
-    // Sur mobile, démarrer par défaut sur le hub d'accueil
-    if (window.innerWidth < 768) {
-      return 'home';
-    }
   }
-  return 'pos';
+  return 'home';
 };
 
 const getInitialAdminOpen = (): boolean => {
@@ -139,7 +135,7 @@ export const useAppStore = create<AppState>((set, get) => {
         activeTeamLeader: null,
         isMiniAdminOpen: false,
         isLocked: false,
-        activeTab: 'pos',
+        activeTab: 'home',
         lastSyncedAt: null,
         syncError: null,
         isInitialized: true
@@ -440,7 +436,7 @@ export const useAppStore = create<AppState>((set, get) => {
         activeTeamLeader: null,
         isMiniAdminOpen: false,
         isLocked: false,
-        activeTab: 'pos',
+        activeTab: 'home',
         lastSyncedAt: null,
         syncError: null
       });
