@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DailySummary, Expense, Sale } from '../../types';
 import { salesService } from '../../db/services/salesService';
 import { expensesService } from '../../db/services/expensesService';
@@ -14,6 +14,7 @@ import {
   ShoppingBag, 
   CalendarDays, 
   FileSpreadsheet, 
+  FileText,
   CheckCircle2, 
   Copy, 
   Share2, 
@@ -33,23 +34,36 @@ import {
   KeyRound,
   ShieldAlert,
   Eye,
-  EyeOff
+  EyeOff,
+  Search
 } from 'lucide-react';
 import { exportMonthlyReportToExcel } from '../../utils/excelExporter';
+import { exportReportToPdf } from '../../utils/reportPdfGenerator';
+import {
+  computePerformanceRatios,
+  computeTrendDelta,
+  getPreviousPeriod,
+  TrendDelta,
+} from '../../utils/reportAnalytics';
 import { useAppStore } from '../../store/appStore';
 import { db } from '../../db/db';
 import { subscriptionService } from '../../db/services/subscriptionService';
 import { NewExpenseModal } from './NewExpenseModal';
 import { SuppliesHistoryModal } from '../inventory/SuppliesHistoryModal';
+import { ReportChartsPanel } from './ReportChartsPanel';
 
 export const DailyReportView: React.FC = () => {
   const { shopProfile, setActiveTab, verifyPin } = useAppStore();
   const isPremium = subscriptionService.isPremiumActive(shopProfile);
   const [reportPeriod, setReportPeriod] = useState<'day' | 'month'>('day');
   const [summary, setSummary] = useState<DailySummary | null>(null);
+  const [prevSummary, setPrevSummary] = useState<DailySummary | null>(null);
   const [salesList, setSalesList] = useState<Sale[]>([]);
   const [expensesList, setExpensesList] = useState<Expense[]>([]);
   const [historyTab, setHistoryTab] = useState<'sales' | 'expenses'>('sales');
+  const [journalSearch, setJournalSearch] = useState('');
+  const [journalMethodFilter, setJournalMethodFilter] = useState<string>('ALL');
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
@@ -116,21 +130,27 @@ export const DailyReportView: React.FC = () => {
 
   const loadReportData = async () => {
     if (reportPeriod === 'day') {
-      const [sum, sales, expenses] = await Promise.all([
+      const prevDate = getPreviousPeriod('day', selectedDate);
+      const [sum, prevSum, sales, expenses] = await Promise.all([
         salesService.getDailySummary(selectedDate),
+        salesService.getDailySummary(prevDate),
         salesService.getSalesByDate(selectedDate),
         expensesService.getByDate(selectedDate)
       ]);
       setSummary(sum);
+      setPrevSummary(prevSum);
       setSalesList(sales);
       setExpensesList(expenses);
     } else {
-      const [sum, sales, expenses] = await Promise.all([
+      const prevMonth = getPreviousPeriod('month', selectedMonth);
+      const [sum, prevSum, sales, expenses] = await Promise.all([
         salesService.getMonthlySummary(selectedMonth),
+        salesService.getMonthlySummary(prevMonth),
         salesService.getSalesByMonth(selectedMonth),
         expensesService.getByMonth(selectedMonth)
       ]);
       setSummary(sum);
+      setPrevSummary(prevSum);
       setSalesList(sales);
       setExpensesList(expenses);
     }
@@ -245,14 +265,18 @@ export const DailyReportView: React.FC = () => {
   const handleShareSummaryWhatsApp = () => {
     if (!summary) return;
     const shopName = shopProfile?.name || 'FasoCarnet';
-    const month = exportModalData?.monthLabel || selectedMonth;
+    const periodTitle =
+      reportPeriod === 'day'
+        ? formatDateLabel(selectedDate)
+        : exportModalData?.monthLabel || formatMonthLabel(selectedMonth);
     const totalMobile = (summary.orangeMoneySales || 0) + (summary.moovMoneySales || 0) + (summary.waveSales || 0);
 
-    let text = `BILAN COMPTABLE - ${month.toUpperCase()}\n`;
+    let text = `BILAN ${reportPeriod === 'day' ? 'JOURNALIER' : 'COMPTABLE'} - ${periodTitle.toUpperCase()}\n`;
     text += `Commerce : ${shopName}\n`;
     if (shopProfile?.ifu) text += `IFU : ${shopProfile.ifu}\n`;
     text += `----------------------------------\n`;
-    text += `Chiffre d'Affaires Net : ${formatCurrency(summary.totalSales || 0)}\n`;
+    text += `Chiffre d'Affaires Net : ${formatCurrency(summary.totalSales || 0)} (${summary.salesCount || 0} ventes)\n`;
+    text += `Bénéfice Net Réel : ${formatCurrency(summary.netProfit || 0)}\n`;
     text += `Espèces (Cash) : ${formatCurrency(summary.cashSales || 0)}\n`;
     text += `Mobile Money : ${formatCurrency(totalMobile)}\n`;
     text += `  - OM : ${formatCurrency(summary.orangeMoneySales || 0)} | Moov : ${formatCurrency(summary.moovMoneySales || 0)} | Wave : ${formatCurrency(summary.waveSales || 0)}\n`;
@@ -268,6 +292,92 @@ export const DailyReportView: React.FC = () => {
     const encoded = encodeURIComponent(text);
     const waUrl = `https://wa.me/?text=${encoded}`;
     window.open(waUrl, '_blank');
+  };
+
+  const handleExportPdf = async () => {
+    if (!summary) return;
+    setIsExportingPdf(true);
+    try {
+      const periodKey = reportPeriod === 'day' ? selectedDate : selectedMonth;
+      const periodLabel =
+        reportPeriod === 'day' ? formatDateLabel(selectedDate) : formatMonthLabel(selectedMonth);
+      await exportReportToPdf({
+        period: reportPeriod,
+        periodLabel,
+        periodKey,
+        summary,
+        sales: salesList,
+        expenses: expensesList,
+        shopProfile: shopProfile || null,
+      });
+    } catch (err) {
+      console.error('Erreur export PDF:', err);
+      alert("Erreur lors de la génération du bilan PDF.");
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const ratios = useMemo(() => computePerformanceRatios(summary), [summary]);
+  const salesTrend = useMemo(
+    () => computeTrendDelta(summary?.totalSales || 0, prevSummary?.totalSales || 0),
+    [summary, prevSummary]
+  );
+  const profitTrend = useMemo(
+    () => computeTrendDelta(summary?.netProfit || 0, prevSummary?.netProfit || 0),
+    [summary, prevSummary]
+  );
+  const expenseTrend = useMemo(
+    () => computeTrendDelta(summary?.totalExpenses || 0, prevSummary?.totalExpenses || 0),
+    [summary, prevSummary]
+  );
+
+  const filteredSales = useMemo(() => {
+    const q = journalSearch.trim().toLowerCase();
+    return salesList.filter((sale) => {
+      if (journalMethodFilter === 'CANCELLED' && !sale.isCancelled) return false;
+      if (journalMethodFilter !== 'ALL' && journalMethodFilter !== 'CANCELLED') {
+        if (sale.isCancelled) return false;
+        if (journalMethodFilter === 'CREDIT') {
+          if (!sale.isCredit && !sale.isPartialCredit) return false;
+        } else if (sale.paymentMethod !== journalMethodFilter) {
+          return false;
+        }
+      }
+      if (!q) return true;
+      const itemsText = sale.items?.map((it) => it.description).join(' ') || '';
+      const haystack = `${sale.customerName || ''} ${sale.customerPhone || ''} ${sale.transactionRef || ''} ${itemsText}`.toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [salesList, journalSearch, journalMethodFilter]);
+
+  const filteredExpenses = useMemo(() => {
+    const q = journalSearch.trim().toLowerCase();
+    if (!q) return expensesList;
+    return expensesList.filter((exp) =>
+      `${exp.title || ''} ${exp.notes || ''} ${exp.paymentMethod || ''}`.toLowerCase().includes(q)
+    );
+  }, [expensesList, journalSearch]);
+
+  const renderTrendBadge = (trend: TrendDelta, invertGood = false) => {
+    if (!trend.hasBaseline) return null;
+    const isPositive = trend.direction === 'up';
+    const isGood = invertGood ? !isPositive : isPositive;
+    const colorClass =
+      trend.direction === 'flat'
+        ? 'bg-slate-100 text-slate-600'
+        : isGood
+        ? 'bg-emerald-50 text-emerald-700'
+        : 'bg-rose-50 text-rose-700';
+    const prefix = trend.value > 0 ? '+' : '';
+    return (
+      <span
+        className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-black ${colorClass}`}
+        title={reportPeriod === 'day' ? 'Variation vs veille' : 'Variation vs mois précédent'}
+      >
+        {prefix}{trend.value}%
+      </span>
+    );
   };
 
   const totalCashCollected = 
@@ -403,6 +513,33 @@ export const DailyReportView: React.FC = () => {
             <span className="hidden sm:inline">Approvisionnements</span>
           </button>
 
+          {/* Bouton Partage WhatsApp Rapide */}
+          <button
+            type="button"
+            onClick={handleShareSummaryWhatsApp}
+            className="py-2.5 px-3.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/70 font-bold text-xs rounded-2xl flex items-center space-x-1.5 transition-all cursor-pointer"
+            title="Partager le résumé du bilan sur WhatsApp"
+          >
+            <Share2 className="w-4 h-4 text-emerald-600" />
+            <span className="hidden sm:inline">WhatsApp</span>
+          </button>
+
+          {/* Bouton Export PDF Pro */}
+          <button
+            type="button"
+            disabled={isExportingPdf || !summary}
+            onClick={handleExportPdf}
+            className="py-2.5 px-3.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-2xl flex items-center space-x-1.5 shadow-xs active:scale-98 transition-all cursor-pointer font-display disabled:opacity-50"
+            title="Télécharger ou partager le bilan comptable en PDF"
+          >
+            {isExportingPdf ? (
+              <Loader2 className="w-4 h-4 animate-spin text-amber-300" />
+            ) : (
+              <FileText className="w-4 h-4 text-amber-300" />
+            )}
+            <span>PDF</span>
+          </button>
+
           {/* Bouton Export Excel */}
           {reportPeriod === 'month' && (
             <button
@@ -453,8 +590,11 @@ export const DailyReportView: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block font-display">
               {reportPeriod === 'day' ? "Chiffre d'Affaires du Jour" : "Chiffre d'Affaires du Mois"}
             </span>
-            <div className="text-2xl font-black text-slate-900 font-display mt-0.5">
-              {formatCurrency(summary?.totalSales || 0)}
+            <div className="flex items-center justify-between gap-2 mt-0.5">
+              <div className="text-2xl font-black text-slate-900 font-display">
+                {formatCurrency(summary?.totalSales || 0)}
+              </div>
+              {renderTrendBadge(salesTrend)}
             </div>
             <p className="text-[10px] text-slate-400 font-medium mt-1">
               Net perçu en caisse (hors crédits impayés)
@@ -480,10 +620,13 @@ export const DailyReportView: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block font-display">
               Bénéfice Net Réel
             </span>
-            <div className={`text-2xl font-black font-display mt-0.5 ${
-              (summary?.netProfit || 0) >= 0 ? 'text-emerald-700' : 'text-rose-600'
-            }`}>
-              {(summary?.netProfit || 0) >= 0 ? `+${formatCurrency(summary?.netProfit || 0)}` : `-${formatCurrency(Math.abs(summary?.netProfit || 0))}`}
+            <div className="flex items-center justify-between gap-2 mt-0.5">
+              <div className={`text-2xl font-black font-display ${
+                (summary?.netProfit || 0) >= 0 ? 'text-emerald-700' : 'text-rose-600'
+              }`}>
+                {(summary?.netProfit || 0) >= 0 ? `+${formatCurrency(summary?.netProfit || 0)}` : `-${formatCurrency(Math.abs(summary?.netProfit || 0))}`}
+              </div>
+              {renderTrendBadge(profitTrend)}
             </div>
             <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium mt-1 pt-1 border-t border-slate-100">
               <span>Marge brute : <strong className="text-emerald-700">+{formatCurrency(summary?.grossProfit || 0)}</strong></span>
@@ -535,8 +678,11 @@ export const DailyReportView: React.FC = () => {
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block font-display">
               Dépenses d'Exploitation
             </span>
-            <div className="text-2xl font-black text-rose-700 font-display mt-0.5">
-              -{formatCurrency(summary?.totalExpenses || 0)}
+            <div className="flex items-center justify-between gap-2 mt-0.5">
+              <div className="text-2xl font-black text-rose-700 font-display">
+                -{formatCurrency(summary?.totalExpenses || 0)}
+              </div>
+              {renderTrendBadge(expenseTrend, true)}
             </div>
             <p className="text-[10px] text-slate-400 font-medium mt-1">
               Espèces : {formatCurrency(summary?.cashExpenses || 0)} • Mobile : {formatCurrency((summary?.orangeMoneyExpenses || 0) + (summary?.moovMoneyExpenses || 0) + (summary?.waveExpenses || 0))}
@@ -544,6 +690,54 @@ export const DailyReportView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* BANDEAU INDICATEURS DE PERFORMANCE (RATIOS PRO) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white px-4 py-3 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Panier Moyen</span>
+            <span className="text-sm font-black text-slate-900 font-display">{formatCurrency(ratios.averageBasket)}</span>
+          </div>
+          <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg">par vente</span>
+        </div>
+
+        <div className="bg-white px-4 py-3 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Marge Brute</span>
+            <span className="text-sm font-black text-emerald-700 font-display">{ratios.grossMarginRate}%</span>
+          </div>
+          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg">du CA</span>
+        </div>
+
+        <div className="bg-white px-4 py-3 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Marge Nette</span>
+            <span className={`text-sm font-black font-display ${ratios.netMarginRate >= 0 ? 'text-indigo-700' : 'text-rose-600'}`}>
+              {ratios.netMarginRate}%
+            </span>
+          </div>
+          <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-lg">rentabilité</span>
+        </div>
+
+        <div className="bg-white px-4 py-3 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Ratio Dépenses</span>
+            <span className="text-sm font-black text-rose-700 font-display">{ratios.expenseRatio}%</span>
+          </div>
+          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg">
+            Crédit {ratios.creditRate}%
+          </span>
+        </div>
+      </div>
+
+      {/* GRAPHIQUES & ANALYSES AVANCÉES */}
+      <ReportChartsPanel
+        period={reportPeriod}
+        periodKey={reportPeriod === 'day' ? selectedDate : selectedMonth}
+        summary={summary}
+        sales={salesList}
+        expenses={expensesList}
+      />
 
       {/* DISPOSITION EN 2 VOLETS COMPLÉMENTAIRES (7 COLS JOURNAL / 5 COLS FLUX & CRÉANCES) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -589,18 +783,56 @@ export const DailyReportView: React.FC = () => {
             </div>
           </div>
 
+          {/* BARRE DE RECHERCHE & FILTRES DU JOURNAL */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={journalSearch}
+                onChange={(e) => setJournalSearch(e.target.value)}
+                placeholder={
+                  historyTab === 'sales'
+                    ? 'Rechercher client, article, réf...'
+                    : 'Rechercher une dépense...'
+                }
+                className="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-emerald-500 outline-none transition-all"
+              />
+            </div>
+            {historyTab === 'sales' && (
+              <select
+                value={journalMethodFilter}
+                onChange={(e) => setJournalMethodFilter(e.target.value)}
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-emerald-500 cursor-pointer"
+                aria-label="Filtrer par moyen de paiement"
+              >
+                <option value="ALL">Tous canaux</option>
+                <option value="CASH">Espèces</option>
+                <option value="ORANGE_MONEY">Orange Money</option>
+                <option value="MOOV_MONEY">Moov Money</option>
+                <option value="WAVE">Wave</option>
+                <option value="CREDIT">Crédit</option>
+                <option value="CANCELLED">Annulées</option>
+              </select>
+            )}
+          </div>
+
           {/* CONTENU DE L'ONGLET VENTES */}
           {historyTab === 'sales' && (
             <div>
-              {salesList.length === 0 ? (
+              {filteredSales.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 space-y-2 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
                   <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto" />
-                  <p className="text-xs font-bold text-slate-600">Aucune vente enregistrée pour cette sélection</p>
+                  <p className="text-xs font-bold text-slate-600">
+                    {salesList.length === 0
+                      ? 'Aucune vente enregistrée pour cette sélection'
+                      : 'Aucune vente ne correspond à votre filtre'}
+                  </p>
                   <p className="text-[11px] text-slate-400">Les transactions validées à la caisse apparaîtront ici.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto pr-1 space-y-1">
-                  {salesList.map((sale) => (
+                  {filteredSales.map((sale) => (
                     <div 
                       key={sale.id} 
                       className={`py-3 px-3 flex items-center justify-between text-xs hover:bg-slate-50/80 rounded-2xl transition-all ${
@@ -677,10 +909,14 @@ export const DailyReportView: React.FC = () => {
           {/* CONTENU DE L'ONGLET DÉPENSES */}
           {historyTab === 'expenses' && (
             <div>
-              {expensesList.length === 0 ? (
+              {filteredExpenses.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 space-y-2 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
                   <TrendingDown className="w-10 h-10 text-slate-300 mx-auto" />
-                  <p className="text-xs font-bold text-slate-600">Aucune dépense pour cette sélection</p>
+                  <p className="text-xs font-bold text-slate-600">
+                    {expensesList.length === 0
+                      ? 'Aucune dépense pour cette sélection'
+                      : 'Aucune dépense ne correspond à votre recherche'}
+                  </p>
                   <button
                     type="button"
                     onClick={() => setIsNewExpenseModalOpen(true)}
@@ -691,7 +927,7 @@ export const DailyReportView: React.FC = () => {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto pr-1 space-y-1">
-                  {expensesList.map((exp) => (
+                  {filteredExpenses.map((exp) => (
                     <div key={exp.id} className="py-3 px-3 flex items-center justify-between text-xs hover:bg-slate-50/80 rounded-2xl transition-all">
                       <div className="min-w-0 pr-2 space-y-0.5">
                         <div className="font-bold text-slate-900 text-xs sm:text-sm truncate font-display">
