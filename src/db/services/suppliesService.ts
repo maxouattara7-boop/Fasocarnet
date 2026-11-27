@@ -168,7 +168,7 @@ export const suppliesService = {
       await db.supplies.put(newSupply);
       createdItems.push(newSupply);
 
-      const currentStock = typeof product.stockQuantity === 'number' ? product.stockQuantity : 0;
+      const currentStock = Number(product.stockQuantity) || 0;
       const updates: Record<string, unknown> = {
         stockQuantity: Math.max(0, currentStock + cleanQty),
         costPrice: cleanCost,
@@ -180,6 +180,9 @@ export const suppliesService = {
       await db.products.update(product.id, updates);
     }
 
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fasocarnet_database_updated'));
+    }
     syncService.triggerAutoPush();
 
     return {

@@ -172,7 +172,37 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
       alert('Veuillez renseigner le nom du fournisseur sur la fiche.');
       return;
     }
-    if (draftLines.length === 0) {
+
+    // Si l'utilisateur a sélectionné un article sans cliquer sur "Ajouter à la fiche", l'inclure automatiquement
+    let finalLines = [...draftLines];
+    if (selectedProductId) {
+      const product = products.find((p) => p.id === selectedProductId);
+      const qty = parseInt(qtyInput, 10);
+      if (product && !isNaN(qty) && qty > 0) {
+        const cost = parseFloat(costInput) || product.costPrice || 0;
+        const sell = sellInput ? parseFloat(sellInput) : undefined;
+        const existingIdx = finalLines.findIndex((l) => l.productId === product.id);
+        if (existingIdx >= 0) {
+          finalLines[existingIdx] = {
+            ...finalLines[existingIdx],
+            quantity: finalLines[existingIdx].quantity + qty,
+            costPrice: cost,
+            sellingPrice: sell,
+          };
+        } else {
+          finalLines.push({
+            tempId: `${product.id}_${Date.now()}`,
+            productId: product.id,
+            productName: product.name,
+            quantity: qty,
+            costPrice: cost,
+            sellingPrice: sell,
+          });
+        }
+      }
+    }
+
+    if (finalLines.length === 0) {
       alert('Ajoutez au moins un article à la fiche avant de valider.');
       return;
     }
@@ -184,7 +214,7 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
         supplierName: supplierName.trim(),
         supplierPhone: supplierPhone.trim() || undefined,
         notes: notes.trim() || undefined,
-        items: draftLines.map((l) => ({
+        items: finalLines.map((l) => ({
           productId: l.productId,
           quantity: l.quantity,
           costPrice: l.costPrice,
@@ -193,6 +223,10 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
       });
 
       setDraftLines([]);
+      setSelectedProductId('');
+      setQtyInput('10');
+      setCostInput('');
+      setSellInput('');
       setSupplierName('');
       setSupplierPhone('');
       setNotes('');
@@ -449,15 +483,15 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
 
         <button
           type="submit"
-          disabled={isSubmitting || draftLines.length === 0}
+          disabled={isSubmitting || (draftLines.length === 0 && !selectedProductId)}
           className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs sm:text-sm cursor-pointer disabled:opacity-50 font-display"
         >
           <ClipboardList className="w-4 h-4" />
           <span>
             {isSubmitting
               ? 'Enregistrement...'
-              : `Valider la Fiche (${draftLines.length} article${
-                  draftLines.length > 1 ? 's' : ''
+              : `Valider la Fiche (${draftLines.length + (selectedProductId && !draftLines.some((l) => l.productId === selectedProductId) ? 1 : 0)} article${
+                  draftLines.length + (selectedProductId && !draftLines.some((l) => l.productId === selectedProductId) ? 1 : 0) > 1 ? 's' : ''
                 })`}
           </span>
         </button>
