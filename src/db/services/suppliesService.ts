@@ -177,24 +177,44 @@ export const suppliesService = {
 
       // Si c'est un nouvel article créé directement depuis la fiche d'approvisionnement
       if (!product && item.newProductName?.trim()) {
-        const cleanPrice =
-          typeof item.sellingPrice === 'number' && item.sellingPrice > 0
-            ? item.sellingPrice
-            : cleanCost > 0
-            ? cleanCost
-            : 100;
-        const newProd: Product = {
-          id: `prod_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-          name: item.newProductName.trim(),
-          price: cleanPrice,
-          costPrice: cleanCost,
-          stockQuantity: cleanQty,
-          minStockAlert: 5,
-          createdAt: nowIso,
-          updatedAt: nowIso,
-        };
-        await db.products.put(newProd);
-        product = newProd;
+        const cleanName = item.newProductName.trim();
+        const existingByName = await db.products
+          .filter((p) => p.name.trim().toLowerCase() === cleanName.toLowerCase())
+          .first();
+
+        if (existingByName) {
+          const currentStock = Number(existingByName.stockQuantity) || 0;
+          const updatedExisting: Product = {
+            ...existingByName,
+            stockQuantity: Math.max(0, currentStock + cleanQty),
+            costPrice: cleanCost,
+            updatedAt: nowIso,
+            ...(typeof item.sellingPrice === 'number' && item.sellingPrice > 0
+              ? { price: item.sellingPrice }
+              : {}),
+          };
+          await db.products.put(updatedExisting);
+          product = updatedExisting;
+        } else {
+          const cleanPrice =
+            typeof item.sellingPrice === 'number' && item.sellingPrice > 0
+              ? item.sellingPrice
+              : cleanCost > 0
+              ? cleanCost
+              : 100;
+          const newProd: Product = {
+            id: `prod_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            name: cleanName,
+            price: cleanPrice,
+            costPrice: cleanCost,
+            stockQuantity: cleanQty,
+            minStockAlert: 5,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          };
+          await db.products.put(newProd);
+          product = newProd;
+        }
       } else if (product) {
         const currentStock = Number(product.stockQuantity) || 0;
         const updatedProduct: Product = {

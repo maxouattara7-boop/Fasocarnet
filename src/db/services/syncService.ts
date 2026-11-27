@@ -829,7 +829,20 @@ export const syncService = {
 
     await db.transaction('rw', [db.shopProfiles, db.products, db.customers, db.debts, db.debtPayments, db.sales, db.licenses], async () => {
       if (remoteData.profile) await db.shopProfiles.put(remoteData.profile);
-      if (remoteData.products?.length) await db.products.bulkPut(remoteData.products);
+      if (remoteData.products?.length) {
+        // Ne jamais écraser un produit local plus récent (ex: stock mis à jour localement avant la fin du push)
+        const localProducts = await db.products.toArray();
+        const localById = new Map(localProducts.map((p) => [p.id, p]));
+        const productsToPut = remoteData.products.filter((remoteProd) => {
+          const localProd = localById.get(remoteProd.id);
+          if (!localProd || !localProd.updatedAt) return true;
+          if (!remoteProd.updatedAt) return false;
+          return remoteProd.updatedAt >= localProd.updatedAt;
+        });
+        if (productsToPut.length > 0) {
+          await db.products.bulkPut(productsToPut);
+        }
+      }
       if (remoteData.customers?.length) await db.customers.bulkPut(remoteData.customers);
       if (remoteData.debts?.length) await db.debts.bulkPut(remoteData.debts);
       if (remoteData.debtPayments?.length) await db.debtPayments.bulkPut(remoteData.debtPayments);
