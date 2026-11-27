@@ -1,9 +1,11 @@
 import { db } from '../db';
-import { StockSupply, SupplyBatch } from '../../types';
+import { Product, StockSupply, SupplyBatch } from '../../types';
 import { syncService } from './syncService';
+import { expensesService } from './expensesService';
 
 export interface BatchSupplyItemInput {
-  productId: string;
+  productId?: string;
+  newProductName?: string;
   quantity: number;
   costPrice: number;
   sellingPrice?: number;
@@ -13,6 +15,7 @@ export interface RecordBatchSupplyInput {
   supplyDate: string; // YYYY-MM-DD
   supplierName: string;
   supplierPhone?: string;
+  paymentMethod?: 'CASH' | 'ORANGE_MONEY' | 'MOOV_MONEY' | 'WAVE';
   notes?: string;
   items: BatchSupplyItemInput[];
 }
@@ -135,19 +138,58 @@ export const suppliesService = {
 
     const batchId = `fiche_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const batchRef = `APP-${dateCompact}-${String(existingBatchesCount + 1).padStart(2, '0')}`;
-    const nowIso = new Date().toISOString();
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const nowIso =
+      cleanDate === todayStr
+        ? new Date().toISOString()
+        : `${cleanDate}T12:00:00.000Z`;
+    const paymentMethod = data.paymentMethod || 'CASH';
     const createdItems: StockSupply[] = [];
 
     for (const item of data.items) {
-      const product = await db.products.get(item.productId);
-      if (!product) {
-        throw new Error(`Article introuvable pour l'ID : ${item.productId}`);
-      }
+      let product: Product | undefined = item.productId
+        ? await db.products.get(item.productId)
+        : undefined;
 
       const cleanQty = Math.max(1, Math.round(item.quantity));
       const cleanCost = Math.max(0, item.costPrice);
-      const totalCost = cleanQty * cleanCost;
 
+      // Si c'est un nouvel article créé directement depuis la fiche d'approvisionnement
+      if (!product && item.newProductName?.trim()) {
+        const cleanPrice =
+          typeof item.sellingPrice === 'number' && item.sellingPrice > 0
+            ? item.sellingPrice
+            : cleanCost > 0
+            ? cleanCost
+            : 100;
+        const newProd: Product = {
+          id: `prod_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          name: item.newProductName.trim(),
+          price: cleanPrice,
+          costPrice: cleanCost,
+          stockQuantity: cleanQty,
+          minStockAlert: 5,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        };
+        await db.products.put(newProd);
+        product = newProd;
+      } else if (product) {
+        const currentStock = Number(product.stockQuantity) || 0;
+        const updates: Record<string, unknown> = {
+          stockQuantity: Math.max(0, currentStock + cleanQty),
+          costPrice: cleanCost,
+          updatedAt: nowIso,
+        };
+        if (typeof item.sellingPrice === 'number' && item.sellingPrice > 0) {
+          updates.price = item.sellingPrice;
+        }
+        await db.products.update(product.id, updates);
+      } else {
+        throw new Error(`Article introuvable pour l'ID : ${item.productId}`);
+      }
+
+      const totalCost = cleanQty * cleanCost;
       const newSupply: StockSupply = {
         id: `sup_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         batchId,
@@ -161,23 +203,36 @@ export const suppliesService = {
         totalCost,
         supplierName: data.supplierName.trim() || undefined,
         supplierPhone: data.supplierPhone?.trim() || undefined,
+        paymentMethod,
         notes: data.notes?.trim() || undefined,
         createdAt: nowIso,
       };
 
-      await db.supplies.put(newSupply);
       createdItems.push(newSupply);
+    }
 
-      const currentStock = Number(product.stockQuantity) || 0;
-      const updates: Record<string, unknown> = {
-        stockQuantity: Math.max(0, currentStock + cleanQty),
-        costPrice: cleanCost,
-        updatedAt: nowIso,
-      };
-      if (typeof item.sellingPrice === 'number' && item.sellingPrice > 0) {
-        updates.price = item.sellingPrice;
-      }
-      await db.products.update(product.id, updates);
+    const totalBatchCost = createdItems.reduce((s, i) => s + i.totalCost, 0);
+    let expenseId: string | undefined;
+
+    // Enregistrer automatiquement la dépense d'approvisionnement dans le Bilan
+    if (totalBatchCost > 0) {
+      const itemsSummary = createdItems
+        .map((it) => `${it.productName} (x${it.quantity})`)
+        .join(', ');
+      const expense = await expensesService.create({
+        title: `Approvisionnement ${batchRef}${data.supplierName.trim() ? ` • ${data.supplierName.trim()}` : ''}`,
+        amount: totalBatchCost,
+        category: 'STOCK',
+        paymentMethod,
+        notes: data.notes?.trim() ? `${itemsSummary} — ${data.notes.trim()}` : itemsSummary,
+        createdAt: nowIso,
+      });
+      expenseId = expense.id;
+    }
+
+    for (const supply of createdItems) {
+      if (expenseId) supply.expenseId = expenseId;
+      await db.supplies.put(supply);
     }
 
     if (typeof window !== 'undefined') {
@@ -191,11 +246,13 @@ export const suppliesService = {
       supplyDate: cleanDate,
       supplierName: data.supplierName.trim() || undefined,
       supplierPhone: data.supplierPhone?.trim() || undefined,
+      paymentMethod,
+      expenseId,
       notes: data.notes?.trim() || undefined,
       createdAt: nowIso,
       items: createdItems,
       totalQuantity: createdItems.reduce((s, i) => s + i.quantity, 0),
-      totalCost: createdItems.reduce((s, i) => s + i.totalCost, 0),
+      totalCost: totalBatchCost,
     };
   },
 
@@ -220,6 +277,8 @@ export const suppliesService = {
           supplyDate: dateStr,
           supplierName: s.supplierName,
           supplierPhone: s.supplierPhone,
+          paymentMethod: s.paymentMethod,
+          expenseId: s.expenseId,
           notes: s.notes,
           createdAt: s.createdAt,
           items: [s],
@@ -245,14 +304,23 @@ export const suppliesService = {
   },
 
   /**
-   * Supprime toutes les lignes d'une fiche d'approvisionnement
+   * Supprime toutes les lignes d'une fiche d'approvisionnement (et la dépense liée au Bilan)
    */
   async deleteBatch(batchId: string): Promise<void> {
     const toDelete = await db.supplies
       .filter((s) => (s.batchId || s.id) === batchId)
       .toArray();
     if (toDelete.length > 0) {
+      const expenseIds = Array.from(
+        new Set(toDelete.map((s) => s.expenseId).filter(Boolean) as string[])
+      );
+      if (expenseIds.length > 0) {
+        await db.expenses.bulkDelete(expenseIds);
+      }
       await db.supplies.bulkDelete(toDelete.map((s) => s.id));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('fasocarnet_database_updated'));
+      }
       syncService.triggerAutoPush();
     }
   }

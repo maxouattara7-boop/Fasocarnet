@@ -22,12 +22,22 @@ import { exportSuppliesToExcel, printSuppliesReport } from '../../utils/supplies
 
 interface DraftLine {
   tempId: string;
-  productId: string;
+  productId?: string;
+  newProductName?: string;
   productName: string;
   quantity: number;
   costPrice: number;
   sellingPrice?: number;
 }
+
+type PaymentChannel = 'CASH' | 'ORANGE_MONEY' | 'MOOV_MONEY' | 'WAVE';
+
+const PAYMENT_LABELS: Record<PaymentChannel, string> = {
+  CASH: 'Espèces (Cash)',
+  ORANGE_MONEY: 'Orange Money',
+  MOOV_MONEY: 'Moov Money',
+  WAVE: 'Wave',
+};
 
 interface SupplySheetsSectionProps {
   products: Product[];
@@ -48,10 +58,13 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
   );
   const [supplierName, setSupplierName] = useState<string>('');
   const [supplierPhone, setSupplierPhone] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentChannel>('CASH');
   const [notes, setNotes] = useState<string>('');
 
   // Saisie d'une ligne d'article dans la fiche
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [isCreatingNewProduct, setIsCreatingNewProduct] = useState(false);
+  const [newProductName, setNewProductName] = useState('');
   const [qtyInput, setQtyInput] = useState<string>('10');
   const [costInput, setCostInput] = useState<string>('');
   const [sellInput, setSellInput] = useState<string>('');
@@ -121,13 +134,41 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
   );
 
   const handleAddLineToSheet = () => {
-    const product = products.find((p) => p.id === selectedProductId);
-    if (!product) return;
     const qty = parseInt(qtyInput, 10);
     if (isNaN(qty) || qty <= 0) {
       alert('Veuillez saisir une quantité valide (>= 1).');
       return;
     }
+
+    if (isCreatingNewProduct) {
+      const cleanName = newProductName.trim();
+      if (!cleanName) {
+        alert("Veuillez saisir le nom du nouvel article.");
+        return;
+      }
+      const cost = parseFloat(costInput) || 0;
+      const sell = parseFloat(sellInput) || cost || 100;
+      setDraftLines((prev) => [
+        ...prev,
+        {
+          tempId: `new_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          newProductName: cleanName,
+          productName: cleanName,
+          quantity: qty,
+          costPrice: cost,
+          sellingPrice: sell,
+        },
+      ]);
+      setNewProductName('');
+      setIsCreatingNewProduct(false);
+      setQtyInput('10');
+      setCostInput('');
+      setSellInput('');
+      return;
+    }
+
+    const product = products.find((p) => p.id === selectedProductId);
+    if (!product) return;
     const cost = parseFloat(costInput) || product.costPrice || 0;
     const sell = sellInput ? parseFloat(sellInput) : undefined;
 
@@ -173,11 +214,22 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
       return;
     }
 
-    // Si l'utilisateur a sélectionné un article sans cliquer sur "Ajouter à la fiche", l'inclure automatiquement
+    // Si l'utilisateur a saisi un article sans cliquer sur "Ajouter à la fiche", l'inclure automatiquement
     let finalLines = [...draftLines];
-    if (selectedProductId) {
+    const qty = parseInt(qtyInput, 10);
+    if (isCreatingNewProduct && newProductName.trim() && !isNaN(qty) && qty > 0) {
+      const cost = parseFloat(costInput) || 0;
+      const sell = parseFloat(sellInput) || cost || 100;
+      finalLines.push({
+        tempId: `new_${Date.now()}`,
+        newProductName: newProductName.trim(),
+        productName: newProductName.trim(),
+        quantity: qty,
+        costPrice: cost,
+        sellingPrice: sell,
+      });
+    } else if (selectedProductId) {
       const product = products.find((p) => p.id === selectedProductId);
-      const qty = parseInt(qtyInput, 10);
       if (product && !isNaN(qty) && qty > 0) {
         const cost = parseFloat(costInput) || product.costPrice || 0;
         const sell = sellInput ? parseFloat(sellInput) : undefined;
@@ -213,9 +265,11 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
         supplyDate,
         supplierName: supplierName.trim(),
         supplierPhone: supplierPhone.trim() || undefined,
+        paymentMethod,
         notes: notes.trim() || undefined,
         items: finalLines.map((l) => ({
           productId: l.productId,
+          newProductName: l.newProductName,
           quantity: l.quantity,
           costPrice: l.costPrice,
           sellingPrice: l.sellingPrice,
@@ -224,6 +278,8 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
 
       setDraftLines([]);
       setSelectedProductId('');
+      setIsCreatingNewProduct(false);
+      setNewProductName('');
       setQtyInput('10');
       setCostInput('');
       setSellInput('');
@@ -233,9 +289,9 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
       await onRefreshAll();
 
       setFeedback(
-        `Fiche ${created.batchRef} enregistrée (${created.items.length} article${
-          created.items.length > 1 ? 's' : ''
-        } • +${created.totalQuantity} unités) !`
+        `Fiche ${created.batchRef} validée (+${created.totalQuantity} en stock${
+          created.totalCost > 0 ? ` • Dépense ${formatCurrency(created.totalCost)} ajoutée au Bilan` : ''
+        }) !`
       );
       setTimeout(() => setFeedback(null), 5000);
     } catch (err: any) {
@@ -357,37 +413,80 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
               />
             </div>
           </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+              Mode de règlement (Dépense au Bilan)
+            </label>
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value as PaymentChannel)}
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:border-emerald-500 outline-none cursor-pointer"
+            >
+              <option value="CASH">Espèces (Caisse)</option>
+              <option value="ORANGE_MONEY">Orange Money</option>
+              <option value="MOOV_MONEY">Moov Money</option>
+              <option value="WAVE">Wave</option>
+            </select>
+          </div>
         </div>
 
         {/* ÉTAPE 2 : AJOUT DES ARTICLES À LA FICHE */}
         <div className="space-y-3">
-          <div className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5 font-display">
-            <PackagePlus className="w-3.5 h-3.5 text-emerald-600" />
-            <span>2. Articles reçus dans cette fiche</span>
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5 font-display">
+              <PackagePlus className="w-3.5 h-3.5 text-emerald-600" />
+              <span>2. Articles reçus dans cette fiche</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsCreatingNewProduct(!isCreatingNewProduct);
+                setSelectedProductId('');
+                setNewProductName('');
+              }}
+              className={`text-[10px] font-extrabold px-2 py-1 rounded-lg border transition-colors cursor-pointer ${
+                isCreatingNewProduct
+                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+              }`}
+            >
+              {isCreatingNewProduct ? '← Choisir existant' : '+ Nouvel article'}
+            </button>
           </div>
 
-          <div>
-            <select
-              value={selectedProductId}
-              onChange={(e) => {
-                const pId = e.target.value;
-                setSelectedProductId(pId);
-                const p = products.find((prod) => prod.id === pId);
-                if (p) {
-                  setCostInput(p.costPrice ? String(p.costPrice) : '');
-                  setSellInput(String(p.price));
-                }
-              }}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 outline-none cursor-pointer"
-            >
-              <option value="">-- Sélectionner un article du catalogue --</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} (Stock: {p.stockQuantity ?? 0}) - {formatCurrency(p.price)}
-                </option>
-              ))}
-            </select>
-          </div>
+          {isCreatingNewProduct ? (
+            <input
+              type="text"
+              placeholder="Nom du nouvel article (ex: Sucre 1kg)"
+              value={newProductName}
+              onChange={(e) => setNewProductName(e.target.value)}
+              className="w-full px-3 py-2 bg-emerald-50/50 border border-emerald-300 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-emerald-500 outline-none"
+            />
+          ) : (
+            <div>
+              <select
+                value={selectedProductId}
+                onChange={(e) => {
+                  const pId = e.target.value;
+                  setSelectedProductId(pId);
+                  const p = products.find((prod) => prod.id === pId);
+                  if (p) {
+                    setCostInput(p.costPrice ? String(p.costPrice) : '');
+                    setSellInput(String(p.price));
+                  }
+                }}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 outline-none cursor-pointer"
+              >
+                <option value="">-- Sélectionner un article du catalogue --</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} (Stock: {p.stockQuantity ?? 0}) - {formatCurrency(p.price)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-3 gap-2">
             <div>
@@ -432,7 +531,7 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
 
           <button
             type="button"
-            disabled={!selectedProductId}
+            disabled={isCreatingNewProduct ? !newProductName.trim() : !selectedProductId}
             onClick={handleAddLineToSheet}
             className="w-full py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-extrabold flex items-center justify-center space-x-1.5 transition-all cursor-pointer disabled:opacity-40 font-display"
           >
@@ -483,16 +582,18 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
 
         <button
           type="submit"
-          disabled={isSubmitting || (draftLines.length === 0 && !selectedProductId)}
+          disabled={
+            isSubmitting ||
+            (draftLines.length === 0 &&
+              !(isCreatingNewProduct ? newProductName.trim() : selectedProductId))
+          }
           className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs sm:text-sm cursor-pointer disabled:opacity-50 font-display"
         >
           <ClipboardList className="w-4 h-4" />
           <span>
             {isSubmitting
               ? 'Enregistrement...'
-              : `Valider la Fiche (${draftLines.length + (selectedProductId && !draftLines.some((l) => l.productId === selectedProductId) ? 1 : 0)} article${
-                  draftLines.length + (selectedProductId && !draftLines.some((l) => l.productId === selectedProductId) ? 1 : 0) > 1 ? 's' : ''
-                })`}
+              : 'Valider la Fiche & Mettre à jour Stock / Bilan'}
           </span>
         </button>
       </form>
@@ -648,6 +749,11 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
                         {new Date(batch.supplyDate + 'T12:00:00').toLocaleDateString('fr-FR')}
                       </strong>
                     </span>
+                    {batch.paymentMethod && (
+                      <span className="px-1.5 py-0.2 bg-rose-50 text-rose-700 rounded font-bold">
+                        Dépense Bilan : {PAYMENT_LABELS[batch.paymentMethod]}
+                      </span>
+                    )}
                     {batch.notes && <span>• {batch.notes}</span>}
                   </div>
                 </div>

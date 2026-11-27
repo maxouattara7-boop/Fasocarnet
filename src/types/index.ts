@@ -76,6 +76,8 @@ export interface StockSupply {
   totalCost: number; // quantity * costPrice
   supplierName?: string;
   supplierPhone?: string;
+  paymentMethod?: 'CASH' | 'ORANGE_MONEY' | 'MOOV_MONEY' | 'WAVE';
+  expenseId?: string; // ID de la dépense associée dans le Bilan
   notes?: string;
   createdAt: string;
 }
@@ -86,6 +88,8 @@ export interface SupplyBatch {
   supplyDate: string;
   supplierName?: string;
   supplierPhone?: string;
+  paymentMethod?: 'CASH' | 'ORANGE_MONEY' | 'MOOV_MONEY' | 'WAVE';
+  expenseId?: string;
   notes?: string;
   createdAt: string;
   items: StockSupply[];
