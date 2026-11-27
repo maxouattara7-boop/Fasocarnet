@@ -15,9 +15,6 @@ import {
   Barcode,
   Camera,
   PlusCircle,
-  FileSpreadsheet,
-  Printer,
-  Calendar,
   Sparkles,
   Crown,
   ArrowRight
@@ -28,9 +25,9 @@ import { suppliesService } from '../../db/services/suppliesService';
 import { subscriptionService } from '../../db/services/subscriptionService';
 import { BarcodeScannerModal } from '../common/BarcodeScannerModal';
 import { compressImage } from '../../utils/imageCompressor';
-import { formatCurrency, formatDateTime } from '../../utils/formatters';
+import { formatCurrency } from '../../utils/formatters';
 import { triggerHaptic, triggerDoubleHaptic } from '../../utils/haptics';
-import { exportSuppliesToExcel, printSuppliesReport } from '../../utils/suppliesExporter';
+import { SupplySheetsSection } from './SupplySheetsSection';
 
 type CatalogSubTab = 'catalog' | 'supplies';
 
@@ -58,16 +55,6 @@ export const InventoryView: React.FC = () => {
 
   // Approvisionnements
   const [suppliesList, setSuppliesList] = useState<StockSupply[]>([]);
-  const [supplyDateFilter, setSupplyDateFilter] = useState<string>('all');
-  const [supplySearch, setSupplySearch] = useState<string>('');
-  const [selectedSupplyProductId, setSelectedSupplyProductId] = useState<string>('');
-  const [supplyQtyInput, setSupplyQtyInput] = useState<string>('10');
-  const [supplyCostPriceInput, setSupplyCostPriceInput] = useState<string>('');
-  const [supplySellingPriceInput, setSupplySellingPriceInput] = useState<string>('');
-  const [supplySupplierInput, setSupplySupplierInput] = useState<string>('');
-  const [supplyNotesInput, setSupplyNotesInput] = useState<string>('');
-  const [isSubmittingSupply, setIsSubmittingSupply] = useState(false);
-  const [supplySuccessFeedback, setSupplySuccessFeedback] = useState<string | null>(null);
 
   // Modal Réapprovisionnement Rapide
   const [restockProduct, setRestockProduct] = useState<Product | null>(null);
@@ -204,59 +191,6 @@ export const InventoryView: React.FC = () => {
     }
   };
 
-  const handleRecordDedicatedSupply = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedSupplyProductId) {
-      alert("Veuillez sélectionner un article à approvisionner.");
-      return;
-    }
-    const targetProd = products.find(p => p.id === selectedSupplyProductId);
-    if (!targetProd) return;
-
-    const qty = parseInt(supplyQtyInput, 10);
-    if (isNaN(qty) || qty <= 0) {
-      alert("Veuillez indiquer une quantité valide à ajouter.");
-      return;
-    }
-    const cost = parseFloat(supplyCostPriceInput) || targetProd.costPrice || 0;
-    const selling = parseFloat(supplySellingPriceInput) || targetProd.price;
-
-    setIsSubmittingSupply(true);
-    try {
-      await suppliesService.recordSupply({
-        productId: targetProd.id,
-        quantity: qty,
-        costPrice: cost,
-        sellingPrice: selling,
-        supplierName: supplySupplierInput.trim() || undefined,
-        notes: supplyNotesInput.trim() || undefined
-      });
-
-      setSelectedSupplyProductId('');
-      setSupplyQtyInput('10');
-      setSupplyCostPriceInput('');
-      setSupplySellingPriceInput('');
-      setSupplySupplierInput('');
-      setSupplyNotesInput('');
-      await loadProducts();
-      await loadSupplies();
-      setSupplySuccessFeedback(`Approvisionnement de ${qty}x ${targetProd.name} validé avec succès !`);
-      setTimeout(() => setSupplySuccessFeedback(null), 4000);
-    } catch (err) {
-      console.error(err);
-      alert("Erreur lors de l'enregistrement de l'approvisionnement.");
-    } finally {
-      setIsSubmittingSupply(false);
-    }
-  };
-
-  const handleDeleteSupply = async (id: string) => {
-    if (confirm("Supprimer cette entrée d'approvisionnement ? (Remarque : cela n'annule pas automatiquement le stock actuel)")) {
-      await suppliesService.delete(id);
-      await loadSupplies();
-    }
-  };
-
   const handleDeleteProduct = async (id: string) => {
     if (confirm("Supprimer cet article du catalogue ?")) {
       await productsService.delete(id);
@@ -287,23 +221,6 @@ export const InventoryView: React.FC = () => {
       (p.barcode && p.barcode.toLowerCase().includes(cleanSearch));
     return matchesFilter && matchesSearch;
   });
-
-  const filteredSupplies = suppliesList.filter((s) => {
-    const matchesDate = supplyDateFilter === 'all' || s.createdAt.startsWith(supplyDateFilter);
-    const cleanSearch = supplySearch.trim().toLowerCase();
-    const matchesSearch = !cleanSearch ||
-      s.productName.toLowerCase().includes(cleanSearch) ||
-      (s.supplierName && s.supplierName.toLowerCase().includes(cleanSearch)) ||
-      (s.notes && s.notes.toLowerCase().includes(cleanSearch));
-    return matchesDate && matchesSearch;
-  });
-
-  const availableSupplyDates = Array.from(
-    new Set(suppliesList.map((s) => s.createdAt.slice(0, 10)))
-  ).sort().reverse();
-
-  const totalFilteredSupplyQty = filteredSupplies.reduce((acc, s) => acc + s.quantity, 0);
-  const totalFilteredSupplyCost = filteredSupplies.reduce((acc, s) => acc + s.totalCost, 0);
 
   if (!isPremium) {
     return (
@@ -719,319 +636,16 @@ export const InventoryView: React.FC = () => {
         </div>
       )}
 
-      {/* VUE 2 : JOURNAL DES APPROVISIONNEMENTS */}
+      {/* VUE 2 : FICHES D'APPROVISIONNEMENT */}
       {catalogSubTab === 'supplies' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-start animate-in fade-in duration-150">
-          {/* FORMULAIRE NOUVEL APPROVISIONNEMENT (5 colonnes) */}
-          <form onSubmit={handleRecordDedicatedSupply} className="lg:col-span-5 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
-            <div className="flex items-center space-x-2.5 border-b border-slate-100 pb-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-100/80 text-emerald-700 flex items-center justify-center shrink-0">
-                <PackagePlus className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="font-black text-sm text-slate-900 font-display">Nouvel Approvisionnement</h3>
-                <p className="text-[10px] text-slate-500 font-medium">Enregistrez un arrivage d'articles et actualisez vos stocks</p>
-              </div>
-            </div>
-
-            {supplySuccessFeedback && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center space-x-2 text-emerald-800 text-xs font-bold animate-in fade-in">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{supplySuccessFeedback}</span>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1 font-display">
-                  Choisir l'Article à Approvisionner <span className="text-emerald-600">*</span>
-                </label>
-                <select
-                  required
-                  value={selectedSupplyProductId}
-                  onChange={(e) => {
-                    const pId = e.target.value;
-                    setSelectedSupplyProductId(pId);
-                    const p = products.find(prod => prod.id === pId);
-                    if (p) {
-                      if (p.costPrice) setSupplyCostPriceInput(String(p.costPrice));
-                      setSupplySellingPriceInput(String(p.price));
-                    }
-                  }}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all shadow-2xs cursor-pointer"
-                >
-                  <option value="">-- Sélectionner un produit du catalogue --</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} (Stock actuel: {p.stockQuantity ?? 0}) - {formatCurrency(p.price)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1 font-display">
-                  Quantité Ajoutée au Stock <span className="text-emerald-600">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={supplyQtyInput}
-                  onChange={(e) => setSupplyQtyInput(e.target.value)}
-                  placeholder="Ex: 10, 50, 100..."
-                  className="w-full px-3 py-2 bg-white border-2 border-emerald-500/80 rounded-xl text-sm font-black text-center text-slate-900 focus:ring-2 focus:ring-emerald-500/20 outline-none font-display shadow-2xs"
-                />
-                <div className="grid grid-cols-4 gap-1.5 mt-2">
-                  {[5, 10, 20, 50].map((qty) => (
-                    <button
-                      key={qty}
-                      type="button"
-                      onClick={() => setSupplyQtyInput(String(qty))}
-                      className={`py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer font-display ${
-                        supplyQtyInput === String(qty)
-                          ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
-                          : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
-                      }`}
-                    >
-                      +{qty}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1 font-display">
-                    Prix d'achat unitaire (coût)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="Ex: 350"
-                      value={supplyCostPriceInput}
-                      onChange={(e) => setSupplyCostPriceInput(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:border-emerald-500 outline-none"
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 pointer-events-none">
-                      FCFA
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1 font-display">
-                    Prix de vente unitaire
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="Ex: 500"
-                      value={supplySellingPriceInput}
-                      onChange={(e) => setSupplySellingPriceInput(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:border-emerald-500 outline-none"
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 pointer-events-none">
-                      FCFA
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1 font-display">
-                    Nom du Fournisseur <span className="text-slate-400 text-[9px] font-normal">(opt.)</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Grossiste Ouaga"
-                    value={supplySupplierInput}
-                    onChange={(e) => setSupplySupplierInput(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:border-emerald-500 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1 font-display">
-                    Notes / N° Facture <span className="text-slate-400 text-[9px] font-normal">(opt.)</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Facture #4092"
-                    value={supplyNotesInput}
-                    onChange={(e) => setSupplyNotesInput(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:border-emerald-500 outline-none"
-                  />
-                </div>
-              </div>
-
-              {parseInt(supplyQtyInput, 10) > 0 && parseFloat(supplyCostPriceInput) > 0 && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 flex items-center justify-between text-xs">
-                  <span className="font-bold text-emerald-900">Coût total d'investissement :</span>
-                  <span className="font-black text-emerald-800 text-sm font-display">
-                    {formatCurrency(parseInt(supplyQtyInput, 10) * parseFloat(supplyCostPriceInput))}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmittingSupply || !selectedSupplyProductId}
-              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-black rounded-xl shadow-xs flex items-center justify-center space-x-2 active:scale-98 transition-all text-xs sm:text-sm cursor-pointer disabled:opacity-50 font-display"
-            >
-              <PackagePlus className="w-4 h-4" />
-              <span>{isSubmittingSupply ? 'Enregistrement...' : 'Valider l\'Approvisionnement'}</span>
-            </button>
-          </form>
-
-          {/* HISTORIQUE DU JOURNAL DES ARRIVAGES (7 colonnes) */}
-          <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-              <div>
-                <h4 className="font-black text-sm text-slate-900 font-display">
-                  Journal des Entrées & Approvisionnements
-                </h4>
-                <p className="text-[10px] text-slate-500 font-medium">
-                  Historique quotidien téléchargeable et imprimable
-                </p>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <button
-                  type="button"
-                  onClick={() => exportSuppliesToExcel({
-                    supplies: filteredSupplies,
-                    dateString: supplyDateFilter === 'all' ? undefined : supplyDateFilter,
-                    shopProfile
-                  })}
-                  disabled={filteredSupplies.length === 0}
-                  className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-xl text-xs font-black flex items-center space-x-1.5 transition-all shadow-2xs cursor-pointer font-display disabled:opacity-50"
-                  title="Télécharger le bordereau en fichier CSV / Excel"
-                >
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                  <span>Télécharger (.csv)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => printSuppliesReport({
-                    supplies: filteredSupplies,
-                    dateString: supplyDateFilter === 'all' ? undefined : supplyDateFilter,
-                    shopProfile
-                  })}
-                  disabled={filteredSupplies.length === 0}
-                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-black flex items-center space-x-1.5 transition-all shadow-2xs cursor-pointer font-display disabled:opacity-50"
-                  title="Imprimer le bordereau de réception"
-                >
-                  <Printer className="w-4 h-4 text-slate-700" />
-                  <span>Imprimer</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div>
-                <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1 font-display">
-                  Filtrer par Date d'Arrivage
-                </label>
-                <select
-                  value={supplyDateFilter}
-                  onChange={(e) => setSupplyDateFilter(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:border-emerald-500 outline-none cursor-pointer shadow-2xs"
-                >
-                  <option value="all">Toutes les dates ({suppliesList.length} arrivages)</option>
-                  {availableSupplyDates.map((d) => (
-                    <option key={d} value={d}>
-                      {new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1 font-display">
-                  Recherche par Article / Fournisseur
-                </label>
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    placeholder="Ex: Riz, Grossiste..."
-                    value={supplySearch}
-                    onChange={(e) => setSupplySearch(e.target.value)}
-                    className="w-full pl-8 pr-2.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:border-emerald-500 outline-none shadow-2xs"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex items-center justify-between flex-wrap gap-2 text-xs">
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-4 h-4 text-emerald-600" />
-                <span className="font-bold text-slate-800">
-                  {supplyDateFilter === 'all' ? 'Tous les arrivages' : `Arrivage du ${supplyDateFilter}`}
-                </span>
-              </div>
-              <div className="flex items-center space-x-3 font-display">
-                <span className="text-slate-600">
-                  Quantité reçue : <strong className="text-slate-900">+{totalFilteredSupplyQty}</strong>
-                </span>
-                <span className="text-emerald-700 font-black">
-                  Investissement : {formatCurrency(totalFilteredSupplyCost)}
-                </span>
-              </div>
-            </div>
-
-            {filteredSupplies.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 text-xs font-medium bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-1">
-                <PackagePlus className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <span className="font-bold text-slate-700 block text-sm">Aucun approvisionnement enregistré</span>
-                <p className="text-[11px] text-slate-500">Utilisez le formulaire ci-contre pour enregistrer votre premier arrivage.</p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-[450px] overflow-y-auto pr-1">
-                {filteredSupplies.map((s) => (
-                  <div
-                    key={s.id}
-                    className="p-3 bg-white border border-slate-200/80 hover:border-emerald-300 rounded-2xl shadow-2xs transition-all flex items-center justify-between"
-                  >
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center space-x-2 flex-wrap">
-                        <span className="font-black text-slate-900 text-xs sm:text-sm">{s.productName}</span>
-                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-black text-[10px] font-display">
-                          +{s.quantity} unités
-                        </span>
-                      </div>
-
-                      <div className="flex items-center space-x-3 text-xs text-slate-500 flex-wrap">
-                        <span>Coût unitaire : <strong className="text-slate-800">{formatCurrency(s.costPrice)}</strong></span>
-                        <span>Total ligne : <strong className="text-emerald-700 font-display">{formatCurrency(s.totalCost)}</strong></span>
-                        {s.supplierName && <span>Fournisseur : <em>{s.supplierName}</em></span>}
-                      </div>
-
-                      <div className="text-[10px] text-slate-400">
-                        Enregistré le {formatDateTime(s.createdAt)} {s.notes ? `• ${s.notes}` : ''}
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteSupply(s.id)}
-                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all cursor-pointer ml-2 shrink-0"
-                      title="Supprimer cette entrée"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <SupplySheetsSection
+          products={products}
+          suppliesList={suppliesList}
+          shopProfile={shopProfile}
+          onRefreshAll={async () => {
+            await Promise.all([loadProducts(), loadSupplies()]);
+          }}
+        />
       )}
 
       {/* MODAL AJOUT NOUVEL ARTICLE */}

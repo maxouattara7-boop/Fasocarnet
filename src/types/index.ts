@@ -65,6 +65,9 @@ export interface Product {
 export interface StockSupply {
   id: string;
   shopId?: string;
+  batchId?: string; // Identifiant de la fiche d'approvisionnement (regroupement multi-articles)
+  batchRef?: string; // Numéro lisible de la fiche (ex: APP-20261127-01)
+  supplyDate?: string; // Date de la fiche (YYYY-MM-DD)
   productId: string;
   productName: string;
   quantity: number; // Quantité approvisionnée
@@ -72,8 +75,22 @@ export interface StockSupply {
   sellingPrice?: number; // Prix de vente unitaire fixé/conseillé
   totalCost: number; // quantity * costPrice
   supplierName?: string;
+  supplierPhone?: string;
   notes?: string;
   createdAt: string;
+}
+
+export interface SupplyBatch {
+  batchId: string;
+  batchRef: string;
+  supplyDate: string;
+  supplierName?: string;
+  supplierPhone?: string;
+  notes?: string;
+  createdAt: string;
+  items: StockSupply[];
+  totalQuantity: number;
+  totalCost: number;
 }
 
 export interface SaleItem {
