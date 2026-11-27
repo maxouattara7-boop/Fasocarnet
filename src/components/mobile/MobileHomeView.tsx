@@ -42,7 +42,6 @@ export const MobileHomeView: React.FC = () => {
   const [debtorsCount, setDebtorsCount] = useState(0);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
   const [totalProductsCount, setTotalProductsCount] = useState(0);
-  const [invoicesCount, setInvoicesCount] = useState(0);
   const [hoveredDay, setHoveredDay] = useState<DayBar | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -57,12 +56,11 @@ export const MobileHomeView: React.FC = () => {
         yest.setDate(yest.getDate() - 1);
         const yesterdayStr = yest.toISOString().slice(0, 10);
 
-        const [allSales, allExpenses, allCustomers, allProducts, allInvoices] = await Promise.all([
+        const [allSales, allExpenses, allCustomers, allProducts] = await Promise.all([
           db.sales.toArray(),
           db.expenses.toArray(),
           db.customers.toArray(),
           db.products.toArray(),
-          db.customInvoices.toArray(),
         ]);
 
         const activeSales = allSales.filter((s) => !s.isCancelled);
@@ -118,7 +116,6 @@ export const MobileHomeView: React.FC = () => {
           setDebtorsCount(debtors.length);
           setLowStockProducts(lowStock);
           setTotalProductsCount(allProducts.length);
-          setInvoicesCount(allInvoices.length);
           setIsLoading(false);
         }
       } catch (err) {
@@ -399,187 +396,68 @@ export const MobileHomeView: React.FC = () => {
           </div>
         </div>
 
-        {/* 3. GRILLE CENTRALE 2x3 DES 6 FONCTIONNALITÉS AVEC BADGES TEMPS RÉEL */}
+        {/* 3. GRILLE CENTRALE 2x3 DES 6 FONCTIONNALITÉS (ICÔNE + TITRE UNIQUEMENT) */}
         <div className="lg:col-span-7 grid grid-cols-3 gap-2.5 md:gap-4">
-          {/* Vendre */}
-          <button
-            type="button"
-            onClick={() => handleTileClick('pos')}
-            className="group relative bg-white p-3.5 md:p-5 rounded-2xl md:rounded-3xl border border-slate-200/90 shadow-2xs hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/10 md:hover:-translate-y-0.5 active:scale-95 transition-all flex flex-col items-center md:items-start justify-between space-y-2 md:space-y-3 cursor-pointer text-center md:text-left"
-          >
-            <div className="w-full flex items-center justify-center md:justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform">
-                <ShoppingCart className="w-6 h-6 stroke-[2.2]" />
-              </div>
-              <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200/70">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Ouvert
-              </span>
-            </div>
-            <div className="w-full">
-              <div className="flex items-center justify-center md:justify-between">
-                <span className="text-xs md:text-sm font-extrabold text-slate-900 font-display">
-                  Vendre
-                </span>
-                <ChevronRight className="hidden md:block w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
-              </div>
-              <span className="hidden md:block text-[11px] text-slate-500 font-medium mt-0.5 truncate">
-                {salesCount > 0
-                  ? `${salesCount} ticket${salesCount > 1 ? 's' : ''} aujourd'hui`
-                  : 'Encaisser un client'}
-              </span>
-            </div>
-          </button>
-
-          {/* Dettes */}
-          <button
-            type="button"
-            onClick={() => handleTileClick('debts')}
-            className="group relative bg-white p-3.5 md:p-5 rounded-2xl md:rounded-3xl border border-slate-200/90 shadow-2xs hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/10 md:hover:-translate-y-0.5 active:scale-95 transition-all flex flex-col items-center md:items-start justify-between space-y-2 md:space-y-3 cursor-pointer text-center md:text-left"
-          >
-            <div className="w-full flex items-center justify-center md:justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md shadow-amber-500/25 group-hover:scale-105 transition-transform">
-                <BookOpen className="w-6 h-6 stroke-[2.2]" />
-              </div>
-              <span
-                className={`hidden md:inline-flex px-2 py-0.5 rounded-full text-[10px] font-black border ${
-                  debtorsCount > 0
-                    ? 'bg-amber-50 text-amber-800 border-amber-200'
-                    : 'bg-slate-50 text-slate-500 border-slate-200'
-                }`}
+          {[
+            {
+              id: 'pos' as const,
+              label: 'Vendre',
+              icon: <ShoppingCart className="w-6 h-6 md:w-7 md:h-7 stroke-[2.2]" />,
+              gradient: 'from-emerald-500 to-teal-600 shadow-emerald-500/25',
+              hoverBorder: 'hover:border-emerald-400 hover:shadow-emerald-500/10',
+            },
+            {
+              id: 'debts' as const,
+              label: 'Dettes',
+              icon: <BookOpen className="w-6 h-6 md:w-7 md:h-7 stroke-[2.2]" />,
+              gradient: 'from-amber-500 to-orange-600 shadow-amber-500/25',
+              hoverBorder: 'hover:border-amber-400 hover:shadow-amber-500/10',
+            },
+            {
+              id: 'reports' as const,
+              label: 'Bilan',
+              icon: <BarChart3 className="w-6 h-6 md:w-7 md:h-7 stroke-[2.2]" />,
+              gradient: 'from-blue-500 to-indigo-600 shadow-blue-500/25',
+              hoverBorder: 'hover:border-blue-400 hover:shadow-blue-500/10',
+            },
+            {
+              id: 'invoices' as const,
+              label: 'Facturation',
+              icon: <FileText className="w-6 h-6 md:w-7 md:h-7 stroke-[2.2]" />,
+              gradient: 'from-purple-500 to-indigo-600 shadow-purple-500/25',
+              hoverBorder: 'hover:border-purple-400 hover:shadow-purple-500/10',
+            },
+            {
+              id: 'inventory' as const,
+              label: 'Stock',
+              icon: <Package className="w-6 h-6 md:w-7 md:h-7 stroke-[2.2]" />,
+              gradient: 'from-sky-500 to-blue-600 shadow-sky-500/25',
+              hoverBorder: 'hover:border-sky-400 hover:shadow-sky-500/10',
+            },
+            {
+              id: 'settings' as const,
+              label: 'Boutique',
+              icon: <Store className="w-6 h-6 md:w-7 md:h-7 stroke-[2.2]" />,
+              gradient: 'from-slate-600 to-slate-800 shadow-slate-600/25',
+              hoverBorder: 'hover:border-slate-400 hover:shadow-slate-500/10',
+            },
+          ].map((tile) => (
+            <button
+              key={tile.id}
+              type="button"
+              onClick={() => handleTileClick(tile.id)}
+              className={`group bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl border border-slate-200/90 shadow-2xs ${tile.hoverBorder} hover:shadow-md md:hover:-translate-y-0.5 active:scale-95 transition-all flex flex-col items-center justify-center space-y-2.5 md:space-y-3 cursor-pointer`}
+            >
+              <div
+                className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br ${tile.gradient} text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform`}
               >
-                {debtorsCount} client{debtorsCount > 1 ? 's' : ''}
-              </span>
-            </div>
-            <div className="w-full">
-              <div className="flex items-center justify-center md:justify-between">
-                <span className="text-xs md:text-sm font-extrabold text-slate-900 font-display">
-                  Dettes
-                </span>
-                <ChevronRight className="hidden md:block w-4 h-4 text-slate-300 group-hover:text-amber-600 group-hover:translate-x-0.5 transition-all" />
+                {tile.icon}
               </div>
-              <span className="hidden md:block text-[11px] font-semibold text-amber-700 mt-0.5 truncate">
-                {outstandingDebt > 0 ? formatCurrency(outstandingDebt) : 'Aucun impayé'}
+              <span className="text-xs md:text-sm font-extrabold text-slate-900 font-display">
+                {tile.label}
               </span>
-            </div>
-          </button>
-
-          {/* Bilan */}
-          <button
-            type="button"
-            onClick={() => handleTileClick('reports')}
-            className="group relative bg-white p-3.5 md:p-5 rounded-2xl md:rounded-3xl border border-slate-200/90 shadow-2xs hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/10 md:hover:-translate-y-0.5 active:scale-95 transition-all flex flex-col items-center md:items-start justify-between space-y-2 md:space-y-3 cursor-pointer text-center md:text-left"
-          >
-            <div className="w-full flex items-center justify-center md:justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/25 group-hover:scale-105 transition-transform">
-                <BarChart3 className="w-6 h-6 stroke-[2.2]" />
-              </div>
-              <span className="hidden md:inline-flex px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200/70">
-                Analytique
-              </span>
-            </div>
-            <div className="w-full">
-              <div className="flex items-center justify-center md:justify-between">
-                <span className="text-xs md:text-sm font-extrabold text-slate-900 font-display">
-                  Bilan
-                </span>
-                <ChevronRight className="hidden md:block w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
-              </div>
-              <span className="hidden md:block text-[11px] text-slate-500 font-medium mt-0.5 truncate">
-                Graphes, PDF &amp; marges
-              </span>
-            </div>
-          </button>
-
-          {/* Facturation */}
-          <button
-            type="button"
-            onClick={() => handleTileClick('invoices')}
-            className="group relative bg-white p-3.5 md:p-5 rounded-2xl md:rounded-3xl border border-slate-200/90 shadow-2xs hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/10 md:hover:-translate-y-0.5 active:scale-95 transition-all flex flex-col items-center md:items-start justify-between space-y-2 md:space-y-3 cursor-pointer text-center md:text-left"
-          >
-            <div className="w-full flex items-center justify-center md:justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-purple-500/25 group-hover:scale-105 transition-transform">
-                <FileText className="w-6 h-6 stroke-[2.2]" />
-              </div>
-              <span className="hidden md:inline-flex px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-50 text-purple-700 border border-purple-200/70">
-                {invoicesCount} émise{invoicesCount > 1 ? 's' : ''}
-              </span>
-            </div>
-            <div className="w-full">
-              <div className="flex items-center justify-center md:justify-between">
-                <span className="text-xs md:text-sm font-extrabold text-slate-900 font-display">
-                  Facturation
-                </span>
-                <ChevronRight className="hidden md:block w-4 h-4 text-slate-300 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
-              </div>
-              <span className="hidden md:block text-[11px] text-slate-500 font-medium mt-0.5 truncate">
-                Devis &amp; factures PDF
-              </span>
-            </div>
-          </button>
-
-          {/* Stock */}
-          <button
-            type="button"
-            onClick={() => handleTileClick('inventory')}
-            className="group relative bg-white p-3.5 md:p-5 rounded-2xl md:rounded-3xl border border-slate-200/90 shadow-2xs hover:border-sky-400 hover:shadow-lg hover:shadow-sky-500/10 md:hover:-translate-y-0.5 active:scale-95 transition-all flex flex-col items-center md:items-start justify-between space-y-2 md:space-y-3 cursor-pointer text-center md:text-left"
-          >
-            <div className="w-full flex items-center justify-center md:justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-md shadow-sky-500/25 group-hover:scale-105 transition-transform">
-                <Package className="w-6 h-6 stroke-[2.2]" />
-              </div>
-              {lowStockProducts.length > 0 ? (
-                <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200">
-                  <AlertTriangle className="w-3 h-3" />
-                  {lowStockProducts.length} alerte{lowStockProducts.length > 1 ? 's' : ''}
-                </span>
-              ) : (
-                <span className="hidden md:inline-flex px-2 py-0.5 rounded-full text-[10px] font-black bg-sky-50 text-sky-700 border border-sky-200/70">
-                  {totalProductsCount} art.
-                </span>
-              )}
-            </div>
-            <div className="w-full">
-              <div className="flex items-center justify-center md:justify-between">
-                <span className="text-xs md:text-sm font-extrabold text-slate-900 font-display">
-                  Stock
-                </span>
-                <ChevronRight className="hidden md:block w-4 h-4 text-slate-300 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all" />
-              </div>
-              <span className="hidden md:block text-[11px] text-slate-500 font-medium mt-0.5 truncate">
-                {lowStockProducts.length > 0
-                  ? 'Réapprovisionnement requis'
-                  : 'Catalogue & arrivages'}
-              </span>
-            </div>
-          </button>
-
-          {/* Boutique */}
-          <button
-            type="button"
-            onClick={() => handleTileClick('settings')}
-            className="group relative bg-white p-3.5 md:p-5 rounded-2xl md:rounded-3xl border border-slate-200/90 shadow-2xs hover:border-slate-400 hover:shadow-lg hover:shadow-slate-500/10 md:hover:-translate-y-0.5 active:scale-95 transition-all flex flex-col items-center md:items-start justify-between space-y-2 md:space-y-3 cursor-pointer text-center md:text-left"
-          >
-            <div className="w-full flex items-center justify-center md:justify-between">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-600 to-slate-800 text-white flex items-center justify-center shadow-md shadow-slate-600/25 group-hover:scale-105 transition-transform">
-                <Store className="w-6 h-6 stroke-[2.2]" />
-              </div>
-              <span className="hidden md:inline-flex px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700 border border-slate-200">
-                Config
-              </span>
-            </div>
-            <div className="w-full">
-              <div className="flex items-center justify-center md:justify-between">
-                <span className="text-xs md:text-sm font-extrabold text-slate-900 font-display">
-                  Boutique
-                </span>
-                <ChevronRight className="hidden md:block w-4 h-4 text-slate-300 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all" />
-              </div>
-              <span className="hidden md:block text-[11px] text-slate-500 font-medium mt-0.5 truncate">
-                Profil, PIN &amp; sauvegarde
-              </span>
-            </div>
-          </button>
+            </button>
+          ))}
         </div>
       </div>
 
