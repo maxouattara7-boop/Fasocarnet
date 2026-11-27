@@ -82,6 +82,22 @@ export const suppliesService = {
     const cleanQty = Math.max(1, Math.round(data.quantity));
     const cleanCost = Math.max(0, data.costPrice);
     const totalCost = cleanQty * cleanCost;
+    const nowIso = new Date().toISOString();
+    const todayStr = nowIso.slice(0, 10);
+    const batchRef = `APP-${todayStr.replace(/-/g, '')}`;
+
+    let expenseId: string | undefined;
+    if (totalCost > 0) {
+      const expense = await expensesService.create({
+        title: `Approvisionnement ${product.name} (x${cleanQty})${data.supplierName?.trim() ? ` • ${data.supplierName.trim()}` : ''}`,
+        amount: totalCost,
+        category: 'STOCK',
+        paymentMethod: 'CASH',
+        notes: data.notes?.trim() || `${batchRef} • ${product.name}`,
+        createdAt: nowIso,
+      });
+      expenseId = expense.id;
+    }
 
     const newSupply: StockSupply = {
       id: `sup_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -92,28 +108,33 @@ export const suppliesService = {
       sellingPrice: typeof data.sellingPrice === 'number' ? data.sellingPrice : product.price,
       totalCost,
       supplierName: data.supplierName?.trim() || undefined,
+      paymentMethod: 'CASH',
+      expenseId,
       notes: data.notes?.trim() || undefined,
-      createdAt: new Date().toISOString()
+      createdAt: nowIso
     };
 
     // 1. Enregistre le mouvement d'approvisionnement
     await db.supplies.put(newSupply);
 
     // 2. Met à jour le stock et les prix du produit
-    const currentStock = typeof product.stockQuantity === 'number' ? product.stockQuantity : 0;
+    const currentStock = Number(product.stockQuantity) || 0;
     const newStock = Math.max(0, currentStock + cleanQty);
 
-    const updates: any = {
+    const updatedProduct: Product = {
+      ...product,
       stockQuantity: newStock,
-      costPrice: cleanCost, // Actualisation du coût d'achat unitaire de référence
-      updatedAt: new Date().toISOString()
+      costPrice: cleanCost,
+      updatedAt: nowIso,
+      ...(typeof data.sellingPrice === 'number' && data.sellingPrice > 0
+        ? { price: data.sellingPrice }
+        : {}),
     };
 
-    if (typeof data.sellingPrice === 'number' && data.sellingPrice > 0) {
-      updates.price = data.sellingPrice;
+    await db.products.put(updatedProduct);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('fasocarnet_database_updated'));
     }
-
-    await db.products.update(product.id, updates);
     syncService.triggerAutoPush();
 
     return newSupply;
@@ -176,15 +197,16 @@ export const suppliesService = {
         product = newProd;
       } else if (product) {
         const currentStock = Number(product.stockQuantity) || 0;
-        const updates: Record<string, unknown> = {
+        const updatedProduct: Product = {
+          ...product,
           stockQuantity: Math.max(0, currentStock + cleanQty),
           costPrice: cleanCost,
           updatedAt: nowIso,
+          ...(typeof item.sellingPrice === 'number' && item.sellingPrice > 0
+            ? { price: item.sellingPrice }
+            : {}),
         };
-        if (typeof item.sellingPrice === 'number' && item.sellingPrice > 0) {
-          updates.price = item.sellingPrice;
-        }
-        await db.products.update(product.id, updates);
+        await db.products.put(updatedProduct);
       } else {
         throw new Error(`Article introuvable pour l'ID : ${item.productId}`);
       }

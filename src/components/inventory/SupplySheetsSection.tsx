@@ -209,10 +209,6 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
 
   const handleSubmitBatch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supplierName.trim()) {
-      alert('Veuillez renseigner le nom du fournisseur sur la fiche.');
-      return;
-    }
 
     // Si l'utilisateur a saisi un article sans cliquer sur "Ajouter à la fiche", l'inclure automatiquement
     let finalLines = [...draftLines];
@@ -367,11 +363,10 @@ export const SupplySheetsSection: React.FC<SupplySheetsSectionProps> = ({
 
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
-                Fournisseur <span className="text-emerald-600">*</span>
+                Fournisseur <span className="text-slate-400 font-normal">(opt.)</span>
               </label>
               <input
                 type="text"
-                required
                 list="known-suppliers-list"
                 placeholder="Ex: Grossiste Ouaga"
                 value={supplierName}
